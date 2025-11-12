@@ -18,6 +18,14 @@ def index():
 def game():
     return render_template('game.html')
 
+@app.route('/create-bot')
+def create_bot():
+    return render_template('create_bot.html')
+
+@app.route('/bot-list')
+def bot_list():
+    return render_template('bot_list.html')
+
 # Run server
 if __name__ == "__main__":
     with app.app_context():
