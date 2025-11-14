@@ -1,1 +1,11 @@
 {% extends "base.html" %}
+
+{% block content %}
+<h1>Create Your Bot!</h1>
+
+<form method="POST">
+    <label for="name">Bot Name:</label><br>
+    <input type="text" id="name" name="name" required><br><br>
+    <button type="submit">Create Bot</button>
+</form>
+{% endblock %}

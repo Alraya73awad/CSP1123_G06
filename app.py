@@ -18,8 +18,13 @@ def index():
 def game():
     return render_template('game.html')
 
-@app.route('/create-bot')
+@app.route('/create-bot', methods=['GET', 'POST'])
 def create_bot():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        print(f"Created bot: {name}")
+        return redirect(url_for('create_bot'))
+
     return render_template('create_bot.html')
 
 @app.route('/bot-list')
