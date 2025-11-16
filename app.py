@@ -21,18 +21,33 @@ def index():
 def game():
     return render_template('game.html')
 
-@app.route('/create-bot', methods=['GET', 'POST'])
+@app.route('/create_bot', methods=['GET', 'POST'])
 def create_bot():
     if request.method == 'POST':
         name = request.form.get('name')
-        return redirect(url_for('bot_list'), name=name)
+        algorithm = request.form["algorithm"]
+
+        new_bot = Bot(name=name, algorithm=algorithm)
+
+        db.session.add(new_bot)
+        db.session.commit()
+
+        return redirect(url_for('bot_list'))
 
     return render_template('create_bot.html')
 
-@app.route('/bot-list')
-def bot_list(name):
-    return render_template('bot_list.html')
-    print(f"You have created {name}.")
+@app.route('/bot_list')
+def bot_list():
+    bots = Bot.query.all()
+    return render_template('bot_list.html', bots=bots)
+
+@app.route('/delete_bot/<int:bot_id>')
+def delete_bot(bot_id):
+    bot = Bot.query.get_or_404(bot_id)
+    db.session.delete(bot)
+    db.session.commit()
+    return redirect(url_for('bot_list'))
+
         
 
 # Run server

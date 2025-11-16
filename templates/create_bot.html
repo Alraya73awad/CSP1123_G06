@@ -6,6 +6,18 @@
 <form method="POST">
     <label for="name">Bot Name:</label><br>
     <input type="text" id="name" name="name" required><br><br>
+
+    <label>Select Algorithm:</label><br>
+    <select name="algorithm" required>
+        <option value="VEX-01">VEX-01 (Aggressive)</option>
+        <option value="BASL-09">BASL-09 (Defensive)</option>
+        <option value="EQUA-12">EQUA-12 (Balanced)</option>
+        <option value="ADAPT-X">ADAPT-X (Adaptive)</option>
+        <option value="RUSH-09">RUSH-09 (Speed)</option>
+        <option value="CHAOS-RND">CHAOS-RND (Random)</option>
+    </select><br><br>
+
     <button type="submit">Create Bot</button>
+
 </form>
 {% endblock %}

@@ -14,3 +14,6 @@ class Bot(db.Model):
     logic = db.Column(db.Integer, default=10)
     luck = db.Column(db.Integer, default=10)
     energy = db.Column(db.Integer, default=100)
+
+    def __repr__(self):
+        return f"<Bot {self.name}>"
