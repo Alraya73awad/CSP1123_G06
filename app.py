@@ -9,6 +9,9 @@ app.config['SECRET_KEY'] = 'dev_secret_key'  # change later for production
 # Initialize database
 db = SQLAlchemy(app)
 
+# Models
+from models import Bot 
+
 # Routes
 @app.route('/')
 def index():
@@ -22,14 +25,15 @@ def game():
 def create_bot():
     if request.method == 'POST':
         name = request.form.get('name')
-        print(f"Created bot: {name}")
-        return redirect(url_for('create_bot'))
+        return redirect(url_for('bot_list'), name=name)
 
     return render_template('create_bot.html')
 
 @app.route('/bot-list')
-def bot_list():
+def bot_list(name):
     return render_template('bot_list.html')
+    print(f"You have created {name}.")
+        
 
 # Run server
 if __name__ == "__main__":
