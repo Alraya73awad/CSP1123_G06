@@ -1,5 +1,26 @@
 {% extends "base.html" %}
 
+{% block head %}
+<style>
+.algorithm-card {
+  cursor: pointer;
+  border: 2px black;
+  border-radius: 6px;
+  transition: all .2s ease;
+}
+
+.algorithm-card:hover {
+  border-color: #0d6efd; /* Bootstrap primary */
+  background-color: #f0f8ff;
+}
+
+.algorithm-card.selected {
+  border-color: #0d6efd;
+  background-color: #e7f1ff;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <h1>Create Your Bot!</h1>
 
@@ -7,17 +28,44 @@
     <label for="name">Bot Name:</label><br>
     <input type="text" id="name" name="name" required><br><br>
 
-    <label>Select Algorithm:</label><br>
-    <select name="algorithm" required>
-        <option value="VEX-01">VEX-01 (Aggressive)</option>
-        <option value="BASL-09">BASL-09 (Defensive)</option>
-        <option value="EQUA-12">EQUA-12 (Balanced)</option>
-        <option value="ADAPT-X">ADAPT-X (Adaptive)</option>
-        <option value="RUSH-09">RUSH-09 (Speed)</option>
-        <option value="CHAOS-RND">CHAOS-RND (Random)</option>
-    </select><br><br>
+    <label class="mb-2">Select Algorithm:</label>
+
+<div class="row row-cols-2 row-cols-md-3 g-3" id="algorithm-container">
+  {% for code, label in algorithms.items() %}
+    <div class="col">
+      <div class="card algorithm-card text-center" data-value="{{ code }}">
+        <div class="card-body">
+          <h6 class="card-title">{{ code }}</h6>
+          <p class="card-text small">{{ label }}</p>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<input type="hidden" id="algorithm" name="algorithm" required>
+
 
     <button type="submit">Create Bot</button>
 
 </form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.algorithm-card').forEach(card => {
+  card.addEventListener('click', function () {
+    // Remove existing selections
+    document.querySelectorAll('.algorithm-card').forEach(c => 
+      c.classList.remove('selected')
+    );
+
+    // Highlight this selection
+    this.classList.add('selected');
+
+    // Put selected value into hidden input
+    document.getElementById('algorithm').value = this.dataset.value;
+  });
+});
+</script>
 {% endblock %}

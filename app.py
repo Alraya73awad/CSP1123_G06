@@ -33,8 +33,17 @@ def create_bot():
         db.session.commit()
 
         return redirect(url_for('bot_list'))
+    
+    algorithms = {
+    "VEX-01": "Aggressive",
+    "BASL-09": "Defensive",
+    "EQUA-12": "Balanced",
+    "ADAPT-X": "Adaptive",
+    "RUSH-09": "Speed",
+    "CHAOS-RND": "Random"
+    }
 
-    return render_template('create_bot.html')
+    return render_template('create_bot.html', algorithms = algorithms)
 
 @app.route('/bot_list')
 def bot_list():
