@@ -18,6 +18,10 @@ def index():
 def game():
     return render_template('game.html')
 
+@app.route('/play')
+def play():
+    return render_template('play.html')
+
 # Run server
 if __name__ == "__main__":
     with app.app_context():
