@@ -114,15 +114,36 @@ document.querySelectorAll(".stat-row").forEach(row => {
     const slider = row.querySelector(".stat-slider");
     const number = row.querySelector(".stat-number");
 
+    // Update number when slider moves
     slider.addEventListener("input", () => {
         number.value = slider.value;
     });
 
+    // Update slider when number changes (allow typing freely)
     number.addEventListener("input", () => {
+        slider.value = number.value;
+    });
+
+    // Function to enforce min/max
+    const enforceLimits = () => {
+        if (number.value === "") return; // skip empty input temporarily
         if (number.value < slider.min) number.value = slider.min;
         if (number.value > slider.max) number.value = slider.max;
         slider.value = number.value;
+    };
+
+    // Enforce min/max when leaving the field
+    number.addEventListener("blur", enforceLimits);
+
+    // Prevent Enter from submitting form and confirm the field
+    number.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();   
+            enforceLimits();    
+            number.blur();       
+        }
     });
 });
 </script>
 {% endblock %}
+
