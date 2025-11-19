@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2>Preview Changes — {{ bot.name }}</h2>
+
+    <table class="table table-bordered table-striped mt-3">
+        <thead>
+            <tr>
+                <th>Stat</th>
+                <th>Current</th>
+                <th>Proposed</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>HP</td><td>{{ bot.hp }}</td><td>{{ new_stats.hp }}</td></tr>
+            <tr><td>ATK</td><td>{{ bot.atk }}</td><td>{{ new_stats.atk }}</td></tr>
+            <tr><td>DEF</td><td>{{ bot.defense }}</td><td>{{ new_stats.defense }}</td></tr>
+            <tr><td>SPEED</td><td>{{ bot.speed }}</td><td>{{ new_stats.speed }}</td></tr>
+            <tr><td>LOGIC</td><td>{{ bot.logic }}</td><td>{{ new_stats.logic }}</td></tr>
+            <tr><td>LUCK</td><td>{{ bot.luck }}</td><td>{{ new_stats.luck }}</td></tr>
+            <tr><td>ENERGY</td><td>{{ bot.energy }}</td><td>{{ new_stats.energy }}</td></tr>
+        </tbody>
+    </table>
+
+    <form method="POST">
+        <!-- Hidden fields for final confirmation -->
+        <input type="hidden" name="hp" value="{{ new_stats.hp }}">
+        <input type="hidden" name="energy" value="{{ new_stats.energy }}">
+        <input type="hidden" name="atk" value="{{ new_stats.atk }}">
+        <input type="hidden" name="defense" value="{{ new_stats.defense }}">
+        <input type="hidden" name="speed" value="{{ new_stats.speed }}">
+        <input type="hidden" name="logic" value="{{ new_stats.logic }}">
+        <input type="hidden" name="luck" value="{{ new_stats.luck }}">
+
+        <button type="submit" name="confirm" value="1" class="btn btn-success">Confirm Changes</button>
+        <a href="{{ url_for('edit_bot', bot_id=bot.id) }}" class="btn btn-secondary">Back</a>
+    </form>
+
+</div>
+{% endblock %}

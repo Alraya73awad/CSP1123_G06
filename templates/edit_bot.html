@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2>Edit Bot — {{ bot.name }}</h2>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} mt-2">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+
+        <div class="mb-4">
+            <h5>Current Stats</h5>
+            <ul class="list-group">
+                <li class="list-group-item">HP: {{ bot.hp }}</li>
+                <li class="list-group-item">ATK: {{ bot.atk }}</li>
+                <li class="list-group-item">DEF: {{ bot.defense }}</li>
+                <li class="list-group-item">SPEED: {{ bot.speed }}</li>
+                <li class="list-group-item">LOGIC: {{ bot.logic }}</li>
+                <li class="list-group-item">LUCK: {{ bot.luck }}</li>
+                <li class="list-group-item">ENERGY: {{ bot.energy }}</li>
+            </ul>
+        </div>
+
+        <h5>Adjust Stats</h5>
+
+        <!-- HP -->
+        <div class="mb-3 stat-row">
+            <label class="form-label">HP ({{ stat_limits.hp[0] }}–{{ stat_limits.hp[1] }})</label>
+            <input type="range" name="hp" class="form-range stat-slider"
+                   min="{{ stat_limits.hp[0] }}" max="{{ stat_limits.hp[1] }}" value="{{ bot.hp }}">
+            <input type="number" class="form-control mt-2 stat-number"
+                   name="hp_number" value="{{ bot.hp }}"
+                   min="{{ stat_limits.hp[0] }}" max="{{ stat_limits.hp[1] }}">
+        </div>
+
+        <!-- ATK -->
+        <div class="mb-3 stat-row">
+            <label class="form-label">ATK ({{ stat_limits.atk[0] }}–{{ stat_limits.atk[1] }})</label>
+            <input type="range" name="atk" class="form-range stat-slider"
+                   min="{{ stat_limits.atk[0] }}" max="{{ stat_limits.atk[1] }}" value="{{ bot.atk }}">
+            <input type="number" class="form-control mt-2 stat-number"
+                   name="atk_number" value="{{ bot.atk }}"
+                   min="{{ stat_limits.atk[0] }}" max="{{ stat_limits.atk[1] }}">
+        </div>
+
+        <!-- DEF -->
+        <div class="mb-3 stat-row">
+            <label class="form-label">DEF ({{ stat_limits.defense[0] }}–{{ stat_limits.defense[1] }})</label>
+            <input type="range" name="defense" class="form-range stat-slider"
+                   min="{{ stat_limits.defense[0] }}" max="{{ stat_limits.defense[1] }}" value="{{ bot.defense }}">
+            <input type="number" class="form-control mt-2 stat-number"
+                   name="defense_number" value="{{ bot.defense }}"
+                   min="{{ stat_limits.defense[0] }}" max="{{ stat_limits.defense[1] }}">
+        </div>
+
+        <!-- SPEED -->
+        <div class="mb-3 stat-row">
+            <label class="form-label">SPEED ({{ stat_limits.speed[0] }}–{{ stat_limits.speed[1] }})</label>
+            <input type="range" name="speed" class="form-range stat-slider"
+                   min="{{ stat_limits.speed[0] }}" max="{{ stat_limits.speed[1] }}" value="{{ bot.speed }}">
+            <input type="number" class="form-control mt-2 stat-number"
+                   name="speed_number" value="{{ bot.speed }}"
+                   min="{{ stat_limits.speed[0] }}" max="{{ stat_limits.speed[1] }}">
+        </div>
+
+        <!-- LOGIC -->
+        <div class="mb-3 stat-row">
+            <label class="form-label">LOGIC ({{ stat_limits.logic[0] }}–{{ stat_limits.logic[1] }})</label>
+            <input type="range" name="logic" class="form-range stat-slider"
+                   min="{{ stat_limits.logic[0] }}" max="{{ stat_limits.logic[1] }}" value="{{ bot.logic }}">
+            <input type="number" class="form-control mt-2 stat-number"
+                   name="logic_number" value="{{ bot.logic }}"
+                   min="{{ stat_limits.logic[0] }}" max="{{ stat_limits.logic[1] }}">
+        </div>
+
+        <!-- LUCK -->
+        <div class="mb-3 stat-row">
+            <label class="form-label">LUCK ({{ stat_limits.luck[0] }}–{{ stat_limits.luck[1] }})</label>
+            <input type="range" name="luck" class="form-range stat-slider"
+                   min="{{ stat_limits.luck[0] }}" max="{{ stat_limits.luck[1] }}" value="{{ bot.luck }}">
+            <input type="number" class="form-control mt-2 stat-number"
+                   name="luck_number" value="{{ bot.luck }}"
+                   min="{{ stat_limits.luck[0] }}" max="{{ stat_limits.luck[1] }}">
+        </div>
+
+        <!-- ENERGY -->
+        <div class="mb-3 stat-row">
+            <label class="form-label">ENERGY ({{ stat_limits.energy[0] }}–{{ stat_limits.energy[1] }})</label>
+            <input type="range" name="energy" class="form-range stat-slider"
+                   min="{{ stat_limits.energy[0] }}" max="{{ stat_limits.energy[1] }}" value="{{ bot.energy }}">
+            <input type="number" class="form-control mt-2 stat-number"
+                   name="energy_number" value="{{ bot.energy }}"
+                   min="{{ stat_limits.energy[0] }}" max="{{ stat_limits.energy[1] }}">
+        </div>
+
+        <button type="submit" name="preview" value="1" class="btn btn-primary">Preview Upgrades</button>
+        <a href="{{ url_for('bot_list') }}" class="btn btn-secondary">Cancel</a>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll(".stat-row").forEach(row => {
+    const slider = row.querySelector(".stat-slider");
+    const number = row.querySelector(".stat-number");
+
+    slider.addEventListener("input", () => {
+        number.value = slider.value;
+    });
+
+    number.addEventListener("input", () => {
+        if (number.value < slider.min) number.value = slider.min;
+        if (number.value > slider.max) number.value = slider.max;
+        slider.value = number.value;
+    });
+});
+</script>
+{% endblock %}

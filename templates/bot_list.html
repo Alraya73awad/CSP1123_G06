@@ -6,9 +6,10 @@
     {% for bot in bots %}
         <div style="border:1px solid gray; border-radius:6px; padding:10px; margin:10px;">
             <h3>{{ bot.name }} ({{ bot.algorithm }})</h3>
-            <p>HP: {{ bot.hp }} | ATK: {{ bot.attack }} | DEF: {{ bot.defense }} | SPD: {{ bot.speed }}</p>
+            <p>HP: {{ bot.hp }} | ATK: {{ bot.atk }} | DEF: {{ bot.defense }} | SPD: {{ bot.speed }}</p>
             <p>LOGIC: {{ bot.logic }} | LUCK: {{ bot.luck }} | ENERGY: {{ bot.energy }}</p>
             <a href="{{ url_for('delete_bot', bot_id=bot.id) }}">DELETE</a>
+            <a href="{{ url_for('edit_bot', bot_id=bot.id) }}">EDIT</a>
         </div>
     {% endfor %}
 {% else %}

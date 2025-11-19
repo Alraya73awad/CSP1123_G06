@@ -8,7 +8,7 @@ class Bot(db.Model):
     algorithm = db.Column(db.String(50), nullable=False)
 
     hp = db.Column(db.Integer, default=100)
-    attack = db.Column(db.Integer, default=10)
+    atk = db.Column(db.Integer, default=10)
     defense = db.Column(db.Integer, default=10)
     speed = db.Column(db.Integer, default=10)
     logic = db.Column(db.Integer, default=10)
