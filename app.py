@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for # type: ignore
-from flask_sqlalchemy import SQLAlchemy # type: ignore
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
 
 # Initialize app
 app = Flask(__name__)
@@ -13,11 +13,6 @@ db = SQLAlchemy(app)
 @app.route('/')
 def index():
     return render_template('index.html')
-
-@app.route('/play')
-def play():
-    return render_template('play.html')
-
 
 @app.route('/game')
 def game():
