@@ -23,6 +23,16 @@ STAT_LIMITS = {
     "luck": (10, 999)
 }
 
+#ALGORITHMS
+algorithms = {
+    "VEX-01": "Aggressive",
+    "BASL-09": "Defensive",
+    "EQUA-12": "Balanced",
+    "ADAPT-X": "Adaptive",
+    "RUSH-09": "Speed",
+    "CHAOS-RND": "Random"
+    }
+
 # Routes
 @app.route('/')
 def index():
@@ -45,14 +55,7 @@ def create_bot():
 
         return redirect(url_for('bot_list'))
     
-    algorithms = {
-    "VEX-01": "Aggressive",
-    "BASL-09": "Defensive",
-    "EQUA-12": "Balanced",
-    "ADAPT-X": "Adaptive",
-    "RUSH-09": "Speed",
-    "CHAOS-RND": "Random"
-    }
+    
 
     return render_template('create_bot.html', algorithms = algorithms)
 
@@ -112,6 +115,18 @@ def edit_bot(bot_id):
             return render_template('preview_bot.html', bot=bot, new_stats=new_stats)
 
         if "confirm" in request.form:
+            new_name = request.form.get("name", "").strip()
+            new_algorithm = request.form.get("algorithm", "").strip()
+
+            if not new_name:
+                flash("Bot name cannot be empty.", "danger")
+                return redirect(url_for('edit_bot', bot_id=bot_id))
+
+            if not new_algorithm:
+                flash("Please select an algorithm.", "danger")
+                return redirect(url_for('edit_bot', bot_id=bot_id))
+
+
             final_stats = {}
             errors = []
             for stat in STAT_LIMITS.keys():
@@ -133,20 +148,38 @@ def edit_bot(bot_id):
                 for e in errors:
                     flash(e, "danger")
                 return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
+            
+            # Read new name + algorithm
+            new_name = request.form.get("name", "").strip()
+            new_algorithm = request.form.get("algorithm", "").strip()
+
+            # Prevent empty name / algorithm
+            if not new_name:
+                flash("Bot name cannot be empty.", "danger")
+                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
+
+            if not new_algorithm:
+                flash("Please select an algorithm.", "danger")
+                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
 
             changed = (
-            bot.hp != final_stats['hp'] or
-            bot.energy != final_stats['energy'] or
-            bot.atk != final_stats['atk'] or
-            bot.defense != final_stats['defense'] or
-            bot.speed != final_stats['speed'] or
-            bot.logic != final_stats['logic'] or
-            bot.luck != final_stats['luck']
+                bot.name != new_name or
+                bot.algorithm != new_algorithm or
+                bot.hp != final_stats['hp'] or
+                bot.energy != final_stats['energy'] or
+                bot.atk != final_stats['atk'] or
+                bot.defense != final_stats['defense'] or
+                bot.speed != final_stats['speed'] or
+                bot.logic != final_stats['logic'] or
+                bot.luck != final_stats['luck']
             )
 
             if not changed:
                 flash("No changes were made.", "warning")
                 return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
+            
+            bot.name = new_name
+            bot.algorithm = new_algorithm
             
             bot.hp = final_stats['hp']
             bot.energy = final_stats['energy']
@@ -160,7 +193,7 @@ def edit_bot(bot_id):
             flash("Bot updated successfully.", "success")
             return redirect(url_for('bot_list') + "?flash=1")
 
-    return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, show_flashes = False)
+    return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, algorithms = algorithms, show_flashes = False)
 
         
 

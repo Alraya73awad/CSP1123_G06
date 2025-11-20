@@ -1,5 +1,28 @@
 {% extends "base.html" %}
 
+{% block head %}
+<style>
+.algorithm-card {
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.algorithm-card:hover {
+    border-color: #0d6efd;
+    background-color: #f0f8ff;
+}
+
+.algorithm-radio:checked + .algorithm-card {
+    border-color: #0d6efd;
+    background-color: #e7f1ff;
+    box-shadow: 0 0 8px rgba(13, 110, 253, 0.4);
+}
+
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
 
@@ -18,6 +41,41 @@
 
 
     <form method="POST">
+
+        <div class="mb-3">
+            <label for="name">Bot Name:</label><br>
+            <input type="text" id="name" name="name" class="form-control"><br><br>
+        </div>
+
+        <div class="mb-3">
+
+            <label class="form-label fw-bold">Select Algorithm:</label>
+
+            <div class="row row-cols-1 row-cols-md-3 g-3">
+
+                {% for code, label in algorithms.items() %}
+                <div class="col">
+
+                    <!-- Hidden radio input -->
+                    <input type="radio"
+                        id="{{ code }}"
+                        name="algorithm"
+                        value="{{ code }}"
+                        class="d-none algorithm-radio"
+                        required>
+
+                    <!-- The card acts as the label -->
+                    <label for="{{ code }}" class="card algorithm-card text-center p-3">
+                        <h5 class="fw-bold">{{ code }}</h5>
+                        <p class="text-muted">{{ label }}</p>
+                    </label>
+
+                </div>
+                {% endfor %}
+
+            </div>
+
+        </div>
 
         <div class="mb-4">
             <h5>Current Stats</h5>
