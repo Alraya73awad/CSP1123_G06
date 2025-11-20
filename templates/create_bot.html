@@ -3,21 +3,23 @@
 {% block head %}
 <style>
 .algorithm-card {
-  cursor: pointer;
-  border: 2px black;
-  border-radius: 6px;
-  transition: all .2s ease;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
 }
 
 .algorithm-card:hover {
-  border-color: #0d6efd; /* Bootstrap primary */
-  background-color: #f0f8ff;
+    border-color: #0d6efd;
+    background-color: #f0f8ff;
 }
 
-.algorithm-card.selected {
-  border-color: #0d6efd;
-  background-color: #e7f1ff;
+.algorithm-radio:checked + .algorithm-card {
+    border-color: #0d6efd;
+    background-color: #e7f1ff;
+    box-shadow: 0 0 8px rgba(13, 110, 253, 0.4);
 }
+
 </style>
 {% endblock %}
 
@@ -25,47 +27,45 @@
 <h1>Create Your Bot!</h1>
 
 <form method="POST">
+<div class="mb-3">
     <label for="name">Bot Name:</label><br>
-    <input type="text" id="name" name="name" required><br><br>
+    <input type="text" id="name" name="name" required class="form-control"><br><br>
+  </div>
 
-    <label class="mb-2">Select Algorithm:</label>
+    <div class="container">
 
-<div class="row row-cols-2 row-cols-md-3 g-3" id="algorithm-container">
-  {% for code, label in algorithms.items() %}
-    <div class="col">
-      <div class="card algorithm-card text-center" data-value="{{ code }}">
-        <div class="card-body">
-          <h6 class="card-title">{{ code }}</h6>
-          <p class="card-text small">{{ label }}</p>
+    <label class="form-label fw-bold">Select Algorithm:</label>
+
+    <div class="row row-cols-1 row-cols-md-3 g-3">
+
+        {% for code, label in algorithms.items() %}
+        <div class="col">
+
+            <!-- Hidden radio input -->
+            <input type="radio"
+                   id="{{ code }}"
+                   name="algorithm"
+                   value="{{ code }}"
+                   class="d-none algorithm-radio"
+                   required>
+
+            <!-- The card acts as the label -->
+            <label for="{{ code }}" class="card algorithm-card text-center p-3">
+                <h5 class="fw-bold">{{ code }}</h5>
+                <p class="text-muted">{{ label }}</p>
+            </label>
+
         </div>
-      </div>
+        {% endfor %}
+
     </div>
-  {% endfor %}
+
 </div>
 
-<input type="hidden" id="algorithm" name="algorithm" required>
 
 
-    <button type="submit">Create Bot</button>
+    <button type="submit" class="btn btn-outline-primary mt-4">Create Bot</button>
 
 </form>
 {% endblock %}
 
-{% block scripts %}
-<script>
-document.querySelectorAll('.algorithm-card').forEach(card => {
-  card.addEventListener('click', function () {
-    // Remove existing selections
-    document.querySelectorAll('.algorithm-card').forEach(c => 
-      c.classList.remove('selected')
-    );
-
-    // Highlight this selection
-    this.classList.add('selected');
-
-    // Put selected value into hidden input
-    document.getElementById('algorithm').value = this.dataset.value;
-  });
-});
-</script>
-{% endblock %}

@@ -107,7 +107,7 @@ def edit_bot(bot_id):
             if errors:
                 for e in errors:
                     flash(e, "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id))
+                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
 
             return render_template('preview_bot.html', bot=bot, new_stats=new_stats)
 
@@ -132,8 +132,22 @@ def edit_bot(bot_id):
             if errors:
                 for e in errors:
                     flash(e, "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id))
+                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
 
+            changed = (
+            bot.hp != final_stats['hp'] or
+            bot.energy != final_stats['energy'] or
+            bot.atk != final_stats['atk'] or
+            bot.defense != final_stats['defense'] or
+            bot.speed != final_stats['speed'] or
+            bot.logic != final_stats['logic'] or
+            bot.luck != final_stats['luck']
+            )
+
+            if not changed:
+                flash("No changes were made.", "warning")
+                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
+            
             bot.hp = final_stats['hp']
             bot.energy = final_stats['energy']
             bot.atk = final_stats['atk']
@@ -144,9 +158,9 @@ def edit_bot(bot_id):
 
             db.session.commit()
             flash("Bot updated successfully.", "success")
-            return redirect(url_for('bot_list'))
+            return redirect(url_for('bot_list') + "?flash=1")
 
-    return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS)
+    return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, show_flashes = False)
 
         
 
