@@ -5,8 +5,27 @@
         <h1 class="display-4 fw-bold">Clash of Code</h1>
         <p class="lead mb-4">tagline?</p>
 
+        <p class="text-center">Train your bot, upgrade stats, and battle other players.</p>
+
+<div class="row text-center mt-5">
+
+    <div class="col-md-4 mb-3">
+        <a href="/play" class="btn btn-primary w-100 py-3">Start Battle</a>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <a href="/character" class="btn btn-warning w-100 py-3">Manage AI Bot</a>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <a href="/store" class="btn btn-success w-100 py-3">Store</a>
+    </div>
+
+</div>
+
         <a class="btn btn-primary btn-lg" href="{{ url_for('play') }}">
             Start Game
         </a>
     </div>
 {% endblock %}
+
