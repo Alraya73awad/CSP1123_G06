@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 # Initialize app
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///clash_of_code.db'
-app.config['SECRET_KEY'] = 'dev_secret_key'  # change later for production
+app.config['SECRET_KEY'] = 'dev_secret_key'  # change later 
 
 # Initialize database
 db = SQLAlchemy(app)
