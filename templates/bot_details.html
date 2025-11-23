@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2>{{ bot.name }} — Details</h2>
+    <p><strong>Algorithm:</strong> {{ bot.algorithm }}</p>
+
+    <table class="table table-bordered mt-3">
+        <thead class="table-light">
+            <tr>
+                <th>Stat</th>
+                <th>Base</th>
+                <th>Multiplier</th>
+                <th>Final</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for stat, base in base_stats.items() %}
+            <tr>
+                <td>{{ stat.upper() }}</td>
+                <td>{{ base }}</td>
+
+                {% set mult = multipliers[stat] %}
+                
+                <td>
+                    {% if mult == 1.0 %}
+                        — 
+                    {% else %}
+                        {% set pct = ((mult - 1.0) * 100) | round(1) %}
+                        {% if pct > 0 %}
+                            +{{ pct }}%
+                        {% else %}
+                            {{ pct }}%
+                        {% endif %}
+                    {% endif %}
+                </td>
+
+                <td>{{ final_stats[stat] }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ url_for('bot_list') }}" class="btn btn-secondary mt-3">Back</a>
+</div>
+{% endblock %}

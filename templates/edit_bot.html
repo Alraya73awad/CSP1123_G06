@@ -10,8 +10,8 @@
 }
 
 .algorithm-card:hover {
-    border-color: #0d6efd;
-    background-color: #f0f8ff;
+    border-color: #0d6efd !important;
+    background-color: #f0f8ff !important;
 }
 
 .algorithm-radio:checked + .algorithm-card {
@@ -44,38 +44,38 @@
 
         <div class="mb-3">
             <label for="name">Bot Name:</label><br>
-            <input type="text" id="name" name="name" class="form-control"><br><br>
+            <input type="text" id="name" name="name" value="{{ bot.name }}" class="form-control"><br><br>
         </div>
 
         <div class="mb-3">
-
-            <label class="form-label fw-bold">Select Algorithm:</label>
+            <label class="form-label fw-bold">Select Algorithm</label>
 
             <div class="row row-cols-1 row-cols-md-3 g-3">
 
                 {% for code, label in algorithms.items() %}
                 <div class="col">
 
-                    <!-- Hidden radio input -->
+                    <!-- RADIO INPUT -->
                     <input type="radio"
-                        id="{{ code }}"
+                        class="btn-check algorithm-radio"
                         name="algorithm"
+                        id="alg-{{ code }}"
                         value="{{ code }}"
-                        class="d-none algorithm-radio"
-                        required>
+                        autocomplete="off"
+                        {% if bot.algorithm == code %} checked {% endif %}>
 
-                    <!-- The card acts as the label -->
-                    <label for="{{ code }}" class="card algorithm-card text-center p-3">
-                        <h5 class="fw-bold">{{ code }}</h5>
-                        <p class="text-muted">{{ label }}</p>
+                    <!-- CARD LABEL -->
+                    <label class="btn card p-3 text-center algorithm-card" for="alg-{{ code }}" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ algorithm_descriptions[code] }}">
+                        <h6>{{ code }}</h6>
+                        <p class="small">{{ label }}</p>
                     </label>
 
                 </div>
                 {% endfor %}
 
             </div>
-
         </div>
+
 
         <div class="mb-4">
             <h5>Current Stats</h5>

@@ -33,6 +33,43 @@ algorithms = {
     "CHAOS-RND": "Random"
     }
 
+#ALGORITHM BUFFS/NERFS
+algorithm_effects = {
+    "VEX-01": {
+        "atk": 1.15,
+        "def": 0.9
+    },
+    "BASL-09": {
+        "def": 1.2,
+        "spd": 0.9
+    },
+    "EQUA-12": {
+
+    },
+    "ADAPT-X": {    
+        "luck": 1.05,
+        "atk": 0.9
+    },
+    "RUSH-09": {    
+        "spd": 1.2,
+        "def": 0.9
+    },
+    "CHAOS-RND": {  
+
+    }
+}
+
+#ALGORITHM DESCRIPTIONS
+algorithm_descriptions = {
+    "VEX-01": "Vexor Assault Kernel: Built for aggressive attack routines. Prioritizes damage output at the cost of stability. +15% ATK, -10% DEF",
+    "BASL-09": "Bastion Logic Framework: Defensive fortress AI that fortifies its shielding subroutines above all else. +20% DEF, -10% SPEED",
+    "EQUA-12": "Equilibrium Core Matrix: Balanced core algorithm ensuring even system resource allocation. No buffs or nerfs.",
+    "ADAPT-X": "Adaptive Pattern  Synthesizer: Self-learning AI that adjusts its combat model mid-battle. +10% LOGIC after 2 turns, +5% LUCK, -10% ATK",
+    "RUSH-09": "Rapid Unit Synchronization Hub: An advanced AI core utilizing probabilistic threading for extreme combat reflexes. Fast but fragile. +20% SPEED, -10% DEF",
+    "CHAOS-RND": "Chaotic Execution Driver: Unstable algorithm driven by randomized decision-making. High volatility, unpredictable results. Unstable modifiers each battle"
+}
+
+
 # Routes
 @app.route('/')
 def index():
@@ -57,7 +94,7 @@ def create_bot():
     
     
 
-    return render_template('create_bot.html', algorithms = algorithms)
+    return render_template('create_bot.html', algorithms = algorithms, algorithm_descriptions=algorithm_descriptions)
 
 @app.route('/bot_list')
 def bot_list():
@@ -176,7 +213,7 @@ def edit_bot(bot_id):
 
             if not changed:
                 flash("No changes were made.", "warning")
-                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
+                return redirect(url_for('bot_list', bot_id=bot_id) + "?flash=1")
             
             bot.name = new_name
             bot.algorithm = new_algorithm
@@ -193,7 +230,41 @@ def edit_bot(bot_id):
             flash("Bot updated successfully.", "success")
             return redirect(url_for('bot_list') + "?flash=1")
 
-    return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, algorithms = algorithms, show_flashes = False)
+    return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, algorithms = algorithms, algorithm_descriptions=algorithm_descriptions, show_flashes = False)
+
+@app.route('/bot/<int:bot_id>')
+def bot_details(bot_id):
+    bot = Bot.query.get_or_404(bot_id)
+
+    base_stats = {
+        "hp": bot.hp,
+        "atk": bot.atk,
+        "def": bot.defense,
+        "spd": bot.speed,
+        "logic": bot.logic,
+        "luck": bot.luck,
+        "energy": bot.energy
+    }
+
+    # lookup effects; default empty dict for algorithms with no static buffs
+    effects = algorithm_effects.get(bot.algorithm, {})
+
+    final_stats = {}
+    multipliers = {}
+
+    for stat, value in base_stats.items():
+        multiplier = effects.get(stat, 1.0)
+        multipliers[stat] = multiplier
+        final_stats[stat] = int(value * multiplier)
+
+    return render_template(
+        "bot_details.html",
+        bot=bot,
+        base_stats=base_stats,
+        multipliers=multipliers,
+        final_stats=final_stats
+    )
+
 
         
 

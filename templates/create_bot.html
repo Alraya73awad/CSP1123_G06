@@ -50,7 +50,7 @@
                    required>
 
             <!-- The card acts as the label -->
-            <label for="{{ code }}" class="card algorithm-card text-center p-3">
+            <label for="{{ code }}" class="card algorithm-card text-center p-3" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ algorithm_descriptions[code] }}">
                 <h5 class="fw-bold">{{ code }}</h5>
                 <p class="text-muted">{{ label }}</p>
             </label>
