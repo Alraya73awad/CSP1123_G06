@@ -80,21 +80,21 @@
         <div class="mb-4">
             <h5>Current Stats</h5>
             <ul class="list-group">
-                <li class="list-group-item">HP: {{ bot.hp }}</li>
-                <li class="list-group-item">ATK: {{ bot.atk }}</li>
-                <li class="list-group-item">DEF: {{ bot.defense }}</li>
-                <li class="list-group-item">SPEED: {{ bot.speed }}</li>
-                <li class="list-group-item">LOGIC: {{ bot.logic }}</li>
-                <li class="list-group-item">LUCK: {{ bot.luck }}</li>
-                <li class="list-group-item">ENERGY: {{ bot.energy }}</li>
+                <li class="list-group-item" data-bs-toggle="tooltip" title="Integrity Core (INT): Your bot's maximum health.">INT: {{ bot.hp }}</li>
+                <li class="list-group-item" data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC: {{ bot.atk }}</li>
+                <li class="list-group-item" data-bs-toggle="tooltip" title="Defense Matrix (DEF): Reduces incoming damage.">DEF: {{ bot.defense }}</li>
+                <li class="list-group-item" data-bs-toggle="tooltip" title="Clock Rate (CLK): Turn order + evasion. Faster bots act earlier and dodge more often.">CLK: {{ bot.speed }}</li>
+                <li class="list-group-item" data-bs-toggle="tooltip" title="Adaptive Logic (LOGIC): AI decision-making efficiency. Improves accuracy and special move success.">LOGIC: {{ bot.logic }}</li>
+                <li class="list-group-item" data-bs-toggle="tooltip" title="Entropy Coefficient (ENT): Random bonus events, crit chance, and rare effects. Unpredictable but powerful.">ENT: {{ bot.luck }}</li>
+                <li class="list-group-item" data-bs-toggle="tooltip" title="Power Core Capacity (PWR): Resource used for skills or abilities. Higher energy allows more actions.">PWR: {{ bot.energy }}</li>
             </ul>
         </div>
 
         <h5>Adjust Stats</h5>
 
         <!-- HP -->
-        <div class="mb-3 stat-row">
-            <label class="form-label">HP ({{ stat_limits.hp[0] }}–{{ stat_limits.hp[1] }})</label>
+        <div class="mb-3 stat-row" >
+            <label class="form-label" data-bs-toggle="tooltip" title="Integrity Core: Your bot's maximum health.">INT ({{ stat_limits.hp[0] }}–{{ stat_limits.hp[1] }})</label>
             <input type="range" name="hp" class="form-range stat-slider"
                    min="{{ stat_limits.hp[0] }}" max="{{ stat_limits.hp[1] }}" value="{{ bot.hp }}">
             <input type="number" class="form-control mt-2 stat-number"
@@ -104,7 +104,7 @@
 
         <!-- ATK -->
         <div class="mb-3 stat-row">
-            <label class="form-label">ATK ({{ stat_limits.atk[0] }}–{{ stat_limits.atk[1] }})</label>
+            <label class="form-label" data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC ({{ stat_limits.atk[0] }}–{{ stat_limits.atk[1] }})</label>
             <input type="range" name="atk" class="form-range stat-slider"
                    min="{{ stat_limits.atk[0] }}" max="{{ stat_limits.atk[1] }}" value="{{ bot.atk }}">
             <input type="number" class="form-control mt-2 stat-number"
@@ -114,7 +114,7 @@
 
         <!-- DEF -->
         <div class="mb-3 stat-row">
-            <label class="form-label">DEF ({{ stat_limits.defense[0] }}–{{ stat_limits.defense[1] }})</label>
+            <label class="form-label" data-bs-toggle="tooltip" title="Defense Matrix (DEF): Reduces incoming damage.">DEF ({{ stat_limits.defense[0] }}–{{ stat_limits.defense[1] }})</label>
             <input type="range" name="defense" class="form-range stat-slider"
                    min="{{ stat_limits.defense[0] }}" max="{{ stat_limits.defense[1] }}" value="{{ bot.defense }}">
             <input type="number" class="form-control mt-2 stat-number"
@@ -124,7 +124,7 @@
 
         <!-- SPEED -->
         <div class="mb-3 stat-row">
-            <label class="form-label">SPEED ({{ stat_limits.speed[0] }}–{{ stat_limits.speed[1] }})</label>
+            <label class="form-label" data-bs-toggle="tooltip" title="Clock Rate (CLK): Turn order + evasion. Faster bots act earlier and dodge more often.">CLK ({{ stat_limits.speed[0] }}–{{ stat_limits.speed[1] }})</label>
             <input type="range" name="speed" class="form-range stat-slider"
                    min="{{ stat_limits.speed[0] }}" max="{{ stat_limits.speed[1] }}" value="{{ bot.speed }}">
             <input type="number" class="form-control mt-2 stat-number"
@@ -134,7 +134,7 @@
 
         <!-- LOGIC -->
         <div class="mb-3 stat-row">
-            <label class="form-label">LOGIC ({{ stat_limits.logic[0] }}–{{ stat_limits.logic[1] }})</label>
+            <label class="form-label" data-bs-toggle="tooltip" title="Adaptive Logic (LOGIC): AI decision-making efficiency. Improves accuracy and special move success.">LOGIC ({{ stat_limits.logic[0] }}–{{ stat_limits.logic[1] }})</label>
             <input type="range" name="logic" class="form-range stat-slider"
                    min="{{ stat_limits.logic[0] }}" max="{{ stat_limits.logic[1] }}" value="{{ bot.logic }}">
             <input type="number" class="form-control mt-2 stat-number"
@@ -144,7 +144,7 @@
 
         <!-- LUCK -->
         <div class="mb-3 stat-row">
-            <label class="form-label">LUCK ({{ stat_limits.luck[0] }}–{{ stat_limits.luck[1] }})</label>
+            <label class="form-label" data-bs-toggle="tooltip" title="Entropy Coefficient (ENT): Random bonus events, crit chance, and rare effects. Unpredictable but powerful.">ENT ({{ stat_limits.luck[0] }}–{{ stat_limits.luck[1] }})</label>
             <input type="range" name="luck" class="form-range stat-slider"
                    min="{{ stat_limits.luck[0] }}" max="{{ stat_limits.luck[1] }}" value="{{ bot.luck }}">
             <input type="number" class="form-control mt-2 stat-number"
@@ -154,7 +154,7 @@
 
         <!-- ENERGY -->
         <div class="mb-3 stat-row">
-            <label class="form-label">ENERGY ({{ stat_limits.energy[0] }}–{{ stat_limits.energy[1] }})</label>
+            <label class="form-label" data-bs-toggle="tooltip" title="Power Core Capacity (PWR): Resource used for skills or abilities. Higher energy allows more actions.">PWR ({{ stat_limits.energy[0] }}–{{ stat_limits.energy[1] }})</label>
             <input type="range" name="energy" class="form-range stat-slider"
                    min="{{ stat_limits.energy[0] }}" max="{{ stat_limits.energy[1] }}" value="{{ bot.energy }}">
             <input type="number" class="form-control mt-2 stat-number"

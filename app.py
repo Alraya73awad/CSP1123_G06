@@ -36,22 +36,22 @@ algorithms = {
 #ALGORITHM BUFFS/NERFS
 algorithm_effects = {
     "VEX-01": {
-        "atk": 1.15,
+        "proc": 1.15,
         "def": 0.9
     },
     "BASL-09": {
         "def": 1.2,
-        "spd": 0.9
+        "clk": 0.9
     },
     "EQUA-12": {
 
     },
     "ADAPT-X": {    
-        "luck": 1.05,
-        "atk": 0.9
+        "ent": 1.05,
+        "proc": 0.9
     },
     "RUSH-09": {    
-        "spd": 1.2,
+        "clk": 1.2,
         "def": 0.9
     },
     "CHAOS-RND": {  
@@ -61,11 +61,11 @@ algorithm_effects = {
 
 #ALGORITHM DESCRIPTIONS
 algorithm_descriptions = {
-    "VEX-01": "Vexor Assault Kernel: Built for aggressive attack routines. Prioritizes damage output at the cost of stability. +15% ATK, -10% DEF",
-    "BASL-09": "Bastion Logic Framework: Defensive fortress AI that fortifies its shielding subroutines above all else. +20% DEF, -10% SPEED",
+    "VEX-01": "Vexor Assault Kernel: Built for aggressive attack routines. Prioritizes damage output at the cost of stability. +15% PROC, -10% DEF",
+    "BASL-09": "Bastion Logic Framework: Defensive fortress AI that fortifies its shielding subroutines above all else. +20% DEF, -10% CLK",
     "EQUA-12": "Equilibrium Core Matrix: Balanced core algorithm ensuring even system resource allocation. No buffs or nerfs.",
-    "ADAPT-X": "Adaptive Pattern  Synthesizer: Self-learning AI that adjusts its combat model mid-battle. +10% LOGIC after 2 turns, +5% LUCK, -10% ATK",
-    "RUSH-09": "Rapid Unit Synchronization Hub: An advanced AI core utilizing probabilistic threading for extreme combat reflexes. Fast but fragile. +20% SPEED, -10% DEF",
+    "ADAPT-X": "Adaptive Pattern  Synthesizer: Self-learning AI that adjusts its combat model mid-battle. +10% LOGIC after 2 turns, +5% ENT, -10% PROC",
+    "RUSH-09": "Rapid Unit Synchronization Hub: An advanced AI core utilizing probabilistic threading for extreme combat reflexes. Fast but fragile. +20% CLK, -10% DEF",
     "CHAOS-RND": "Chaotic Execution Driver: Unstable algorithm driven by randomized decision-making. High volatility, unpredictable results. Unstable modifiers each battle"
 }
 
@@ -237,13 +237,13 @@ def bot_details(bot_id):
     bot = Bot.query.get_or_404(bot_id)
 
     base_stats = {
-        "hp": bot.hp,
-        "atk": bot.atk,
+        "int": bot.hp,
+        "proc": bot.atk,
         "def": bot.defense,
-        "spd": bot.speed,
+        "clk": bot.speed,
         "logic": bot.logic,
-        "luck": bot.luck,
-        "energy": bot.energy
+        "ent": bot.luck,
+        "pwr": bot.energy
     }
 
     # lookup effects; default empty dict for algorithms with no static buffs

@@ -3,6 +3,17 @@
 {% block content %}
 <div class="container mt-4">
 
+    {% set stat_tooltips = {
+        "int": "Integrity Core (INT): Your bot's maximum health.",
+        "proc": "Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.",
+        "def": "Defense Matrix (DEF): Reduces incoming damage.",
+        "clk": "Clock Rate (CLK): Turn order + evasion. Faster bots act earlier and dodge more often.",
+        "logic": "Adaptive Logic (LOGIC): AI decision-making efficiency. Improves accuracy and special move success.",
+        "ent": "Entropy Coefficient (ENT): Random bonus events, crit chance, and rare effects. Unpredictable but powerful.",
+        "pwr": "Power Core Capacity (PWR): Resource used for skills or abilities. Higher energy allows more actions."
+    } %}
+
+
     <h2>{{ bot.name }} — Details</h2>
     <p><strong>Algorithm:</strong> {{ bot.algorithm }}</p>
 
@@ -19,7 +30,7 @@
         <tbody>
         {% for stat, base in base_stats.items() %}
             <tr>
-                <td>{{ stat.upper() }}</td>
+                <td data-bs-toggle="tooltip" title="{{ stat_tooltips.get(stat, 'No description available.') }}">{{ stat.upper() }}</td>
                 <td>{{ base }}</td>
 
                 {% set mult = multipliers[stat] %}
