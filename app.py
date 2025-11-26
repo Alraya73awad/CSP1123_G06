@@ -99,7 +99,32 @@ def create_bot():
 @app.route('/bot_list')
 def bot_list():
     bots = Bot.query.all()
-    return render_template('bot_list.html', bots=bots)
+
+    enhanced_bots = []
+    for bot in bots:
+        base_stats = {
+            "int": bot.hp,
+            "proc": bot.atk,
+            "def": bot.defense,
+            "clk": bot.speed,
+            "logic": bot.logic,
+            "ent": bot.luck,
+            "pwr": bot.energy
+        }
+
+        effects = algorithm_effects.get(bot.algorithm, {})
+        final_stats = {}
+
+        for stat, base in base_stats.items():
+            multiplier = effects.get(stat, 1.0)
+            final_stats[stat] = int(base * multiplier)
+
+        enhanced_bots.append({
+            "bot": bot,
+            "final_stats": final_stats
+        })
+
+    return render_template('bot_list.html', bots=enhanced_bots)
 
 @app.route('/delete_bot/<int:bot_id>')
 def delete_bot(bot_id):
