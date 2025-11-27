@@ -1,28 +1,31 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run Flask Server",
+            "name": "FlaskApp",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/app.py",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "args": [],
+            "env": {
+                "FLASK_APP": "app.py",
+                "FLASK_ENV": "development"
+            }
         },
         {
-            "name": "Open Chrome",
+            "name": "Launch Chrome",
             "type": "chrome",
             "request": "launch",
-            "url": "http://localhost:5000",
-            "webRoot": "${workspaceFolder}"
+            "url": "http://127.0.0.1:5000",
+            "webRoot": "${workspaceFolder}",
+            "userDataDir": "${workspaceFolder}/.vscode/chrome"
         }
     ],
     "compounds": [
         {
             "name": "Flask + Chrome",
-            "configurations": ["Run Flask Server", "Open Chrome"]
+            "configurations": ["FlaskApp", "Launch Chrome"]
         }
     ]
 }
