@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2>Preview Changes — {{ bot.name }}</h2>
+
+    <table class="table table-bordered table-striped mt-3">
+        <thead>
+            <tr>
+                <th>Stat</th>
+                <th>Before</th>
+                <th>After</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td data-bs-toggle="tooltip" title="Integrity Core (INT): Your bot's maximum health.">INT</td><td>{{ bot.hp }}</td><td>{{ new_stats.hp }}</td></tr>
+            <tr><td data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC</td><td>{{ bot.atk }}</td><td>{{ new_stats.atk }}</td></tr>
+            <tr><td data-bs-toggle="tooltip" title="Defense Matrix (DEF): Reduces incoming damage.">DEF</td><td>{{ bot.defense }}</td><td>{{ new_stats.defense }}</td></tr>
+            <tr><td data-bs-toggle="tooltip" title="Clock Rate (CLK): Turn order + evasion. Faster bots act earlier and dodge more often.">CLK</td><td>{{ bot.speed }}</td><td>{{ new_stats.speed }}</td></tr>
+            <tr><td data-bs-toggle="tooltip" title="Adaptive Logic (LOGIC): AI decision-making efficiency. Improves accuracy and special move success.">LOGIC</td><td>{{ bot.logic }}</td><td>{{ new_stats.logic }}</td></tr>
+            <tr><td data-bs-toggle="tooltip" title="Entropy Coefficient (ENT): Random bonus events, crit chance, and rare effects. Unpredictable but powerful.">ENT</td><td>{{ bot.luck }}</td><td>{{ new_stats.luck }}</td></tr>
+            <tr><td data-bs-toggle="tooltip" title="Power Core Capacity (PWR): Resource used for skills or abilities. Higher energy allows more actions.">PWR</td><td>{{ bot.energy }}</td><td>{{ new_stats.energy }}</td></tr>
+        </tbody>
+    </table>
+
+    <form method="POST">
+        <!-- Hidden fields for final confirmation -->
+        <input type="hidden" name="name" value="{{ request.form.get('name') }}">
+        <input type="hidden" name="algorithm" value="{{ request.form.get('algorithm') }}">
+        <input type="hidden" name="hp" value="{{ new_stats.hp }}">
+        <input type="hidden" name="energy" value="{{ new_stats.energy }}">
+        <input type="hidden" name="atk" value="{{ new_stats.atk }}">
+        <input type="hidden" name="defense" value="{{ new_stats.defense }}">
+        <input type="hidden" name="speed" value="{{ new_stats.speed }}">
+        <input type="hidden" name="logic" value="{{ new_stats.logic }}">
+        <input type="hidden" name="luck" value="{{ new_stats.luck }}">
+
+        {% for stat, val in new_stats.items() %}
+            <input type="hidden" name="{{ stat }}" value="{{ val }}">
+        {% endfor %}
+
+        <button type="submit" name="confirm" value="1" class="btn btn-success">Confirm Changes</button>
+        <a href="{{ url_for('edit_bot', bot_id=bot.id) }}" class="btn btn-secondary">Back</a>
+    </form>
+
+</div>
+{% endblock %}
