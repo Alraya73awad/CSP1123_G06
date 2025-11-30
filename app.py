@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from extensions import db
-from models import User
+from models import Bot, User
+from flask import session
+
 
 app = Flask(__name__, instance_relative_config=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///clash_of_code.db'
@@ -51,10 +53,15 @@ def register():
     return render_template('register.html')
 
 # DASHBOARD
-@app.route('/dashboard/<int:user_id>')
-def dashboard(user_id):
-    user = User.query.get_or_404(user_id)
-    return render_template('dashboard.html', user=user)
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_bots = Bot.query.filter_by(user_id=session['user_id']).all()
+
+    return render_template('dashboard.html', bots=user_bots)
+
 
 
 # OTHER PAGES
@@ -82,9 +89,37 @@ def play():
 def battle():
     return render_template('battle.html')
 
+#Bot creation
+@app.route('/create_bot', methods=['POST'])
+def create_bot():
+    # make sure user is logged in
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    bot_name = request.form['name']
+    attack = request.form['attack']
+    defense = request.form['defense']
+    speed = request.form['speed']
+
+    new_bot = Bot(
+        name=bot_name,
+        attack=attack,
+        defense=defense,
+        speed=speed,
+        user_id=session['user_id']       # IMPORTANT
+    )
+
+    db.session.add(new_bot)
+    db.session.commit()
+
+    return redirect(url_for('dashboard'))
+
+
 
 # RUN APP
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run(debug=True, host="0.0.0.0", port=5001)
+
+
