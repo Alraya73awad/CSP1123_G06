@@ -1,10 +1,17 @@
 :root {
-  --bg: #111;
-  --card: hsl(0, 0%, 11%);
-  --muted: #ccc;
-  --accent: #4caf50;
+  /* Terminal colors */
+  --terminal-bg: #000a12;          /* dark background */
+  --terminal-screen: #001010;      /* inner terminal */
+  --terminal-text: #00ffaa;        /* bright neon green */
+  --terminal-glow: #00ffaa;        /* neon glow */
+  --terminal-dim: #003322;         /* dim text or borders */
+  --terminal-cursor: #00ffaa;      /* blinking cursor */
+
+  --font-terminal: 'VT323', monospace;
+  --font-code: 'Share Tech Mono', monospace;
 }
 
+/* Reset & Box sizing */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -12,184 +19,167 @@
 }
 
 body {
-  margin: 0;
-  font-family: Inter, Arial, sans-serif;
-  background: var(--bg);
-  color: #fff;
+  background-color: var(--terminal-bg);
+  color: var(--terminal-text);
+  font-family: var(--font-terminal);
   min-height: 100vh;
   display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 2rem;
+  align-items: center;
+  overflow: hidden;
+  cursor: text;
 }
 
-.container {
+/* Terminal container */
+.terminal-container {
   width: 100%;
   max-width: 760px;
-  background: var(--card);
-  padding: 2.25rem;
+  padding: 40px;
+  border: 2px solid var(--terminal-glow);
+  box-shadow: 0 0 15px 5px var(--terminal-glow);
+  position: relative;
+  background-color: var(--terminal-screen);
   border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-  text-align: center;
+  animation: bootFade 1.5s ease-in-out;
 }
 
-h1 {
-  margin-bottom: 0.5rem;
+/* Scanline overlay */
+.terminal-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 255, 170, 0.03),
+    rgba(0, 255, 170, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  opacity: 0.3;
+  z-index: 5;
 }
 
-p {
-  color: var(--muted);
+/* Boot animation */
+@keyframes bootFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.btn {
-  display: inline-block;
-  margin-top: 1.25rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: 10px;
-  text-decoration: none;
-  background: var(--accent);
-  color: white;
-  font-weight: 600;
-  transition: opacity 0.2s;
-}
-
-.btn:hover {
-  opacity: 0.95;
-}
-@import "tailwindcss";
-@import "tw-animate-css";
-
-:root {
-  --bg: #111;
-  --card: hsl(0, 0%, 11%);
-  --muted: #ccc;
-  --accent: #4caf50;
-
-  --color-terminal-bg: #0a0f14;
-  --color-terminal-screen: #0d1117;
-  --color-terminal-text: #a5f3fc; /* Cyan-200 ish */
-  --color-terminal-glow: #0891b2; /* Cyan-600 */
-  --color-terminal-dim: #155e75;
-  --color-terminal-cursor: #22d3ee;
-
-  --font-terminal: 'VT323', monospace;
-  --font-code: 'Share Tech Mono', monospace;
-
-  --animate-flicker: flicker 0.15s infinite;
-  --animate-scanline: scanline 8s linear infinite;
-  --animate-turn-on: turn-on 4s linear forwards;
-}
-
-@keyframes flicker {
-  0% { opacity: 0.97; }
-  5% { opacity: 0.95; }
-  10% { opacity: 0.9; }
-  15% { opacity: 0.95; }
-  20% { opacity: 0.99; }
-  25% { opacity: 0.95; }
-  30% { opacity: 0.9; }
-  35% { opacity: 0.96; }
-  40% { opacity: 0.98; }
-  45% { opacity: 0.95; }
-  50% { opacity: 0.99; }
-  55% { opacity: 0.93; }
-  60% { opacity: 0.9; }
-  65% { opacity: 0.96; }
-  70% { opacity: 1; }
-  75% { opacity: 0.97; }
-  80% { opacity: 0.95; }
-  85% { opacity: 0.92; }
-  90% { opacity: 0.98; }
-  95% { opacity: 0.95; }
-  100% { opacity: 0.97; }
-}
-
+/* Scanline animation */
 @keyframes scanline {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(100%); }
 }
 
-@layer base {
-  body {
-    background-color: #050505;
-    color: #a5f3fc;
-    overflow: hidden;
-    font-family: 'Share Tech Mono', monospace;
-    cursor: text;
-  }
-  
-  /* Custom Scrollbar for Terminal Vibe */
-  ::-webkit-scrollbar {
-    width: 12px;
-    background: #000;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #155e75;
-    border: 2px solid #000;
-  }
+/* Text glow */
+h1, p, label, input, button, a {
+  color: var(--terminal-text);
+  text-shadow: 0 0 5px var(--terminal-glow), 0 0 10px var(--terminal-glow);
 }
 
-@layer utilities {
-  .text-shadow-glow {
-    text-shadow: 0 0 2px var(--color-terminal-glow), 0 0 8px var(--color-terminal-glow);
-  }
-  
-  .text-shadow-sm {
-    text-shadow: 0 0 2px var(--color-terminal-glow);
-  }
-
-  .crt-overlay {
-    background: linear-gradient(
-      rgba(18, 16, 16, 0) 50%, 
-      rgba(0, 0, 0, 0.25) 50%
-    );
-    background-size: 100% 4px;
-    pointer-events: none;
-  }
-
-  .scanline {
-    background: linear-gradient(
-      to bottom,
-      transparent 50%,
-      rgba(0, 0, 0, 0.3) 51%
-    );
-    background-size: 100% 4px;
-    animation: scanline 10s linear infinite;
-  }
-  
-.terminal-input {
-  background: transparent;
-  border-bottom: 2px solid #155e75;
-  color: #a5f3fc;
-  padding-bottom: 0.5rem;
-}
-.terminal-input:focus {
-  border-color: #22d3ee;
-  text-shadow: 0 0 2px var(--color-terminal-glow), 0 0 8px var(--color-terminal-glow);
-}
-
-.terminal-btn {
-  background: rgba(21, 94, 117, 0.2);
-  border: 1px solid #155e75;
-  color: #a5f3fc;
+/* Neon buttons */
+.terminal-btn, .start-game-button
+  .start-game-button {
+  display: inline-block;
+  width: 100%;
+  padding: 12px 20px;
+  margin: 10px 0;
+  background: rgba(0, 255, 170, 0.1) !important;
+  border: 2px solid var(--terminal-glow) !important;
+  color: var(--terminal-text) !important;
   font-family: var(--font-terminal);
-  text-transform: uppercase;
-  font-size: 2rem;
-  letter-spacing: 0.15em;
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
-  padding-left: 2rem;
-  padding-right: 2rem;
-  transition: all 0.3s;
+  font-size: 1.5rem;
+  text-align: center;
   cursor: pointer;
+  transition: all 0.25s;
+  text-decoration: none !important;
 }
-.terminal-btn:hover {
-  background: rgba(34, 211, 238, 0.2);
-  color: #22d3ee;
-  border-color: #22d3ee;
-  text-shadow: 0 0 2px var(--color-terminal-glow), 0 0 8px var(--color-terminal-glow);
+
+.terminal-btn:hover, .start-game-button:hover {
+  background: rgba(0, 255, 170, 0.3) !important;
+  box-shadow: 0 0 20px var(--terminal-glow)!important;
+  transform: scale(1.03);
 }
-.terminal-btn:active {
-  transform: scale(0.98);
+
+/* Inputs */
+input[type="text"], input[type="password"], input[type="email"], textarea, select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--terminal-glow);
+  background: rgba(0, 255, 170, 0.05);
+  border-radius: 6px;
+  color: var(--terminal-text);
+  font-family: var(--font-terminal);
 }
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--terminal-glow);
+  box-shadow: 0 0 10px var(--terminal-glow);
+}
+
+a.start-game-button, a.login-button {
+    display: inline-block;
+    text-decoration: none;
+}
+
+/* Optional: Input focus glow */
+input[type="text"], input[type="password"], input[type="email"], textarea, select {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #00ffaa;
+    background: rgba(0, 255, 170, 0.05);
+    border-radius: 6px;
+    color: #00ffaa;
+    font-family: 'VT323', monospace;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #00ffaa;
+    box-shadow: 0 0 10px #00ffaa;
+}
+
+/* Cursor blink */
+.blink {
+  animation: blinkCursor 1s infinite;
+}
+
+@keyframes blinkCursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Status / footer area */
+.status-area {
+  margin-top: 30px;
+  font-size: 1rem;
+  border-top: 1px solid rgba(0, 255, 170, 0.2);
+  padding-top: 15px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.25rem;
+  margin-bottom: 40px;
+  border-bottom: 1px solid rgba(0, 255, 170, 0.2);
+  padding-bottom: 10px;
+}
+
+/* Matrix Canvas */
+#matrix-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.15;
 }

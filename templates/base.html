@@ -3,236 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block page_title %}Clash of Code Terminal System{% endblock %}</title>
+    <title>{% block page_title %}Clash of Code{% endblock %}</title>
 
-    <!-- Bootstrap 5.3 -->
-<link 
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" 
-    rel="stylesheet">
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom Terminal CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1">
 
-<script 
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js">
-</script>
-
+    <!-- Font -->
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-
-    <style>
-    :root {
-        --terminal-bg: #000a12;
-        --terminal-fg: #00ffaa;
-        --glow-color: #00ffaa;
-        --input-bg: rgba(0, 255, 170, 0.1);
-        --border-color: #00ffaa;
-
-        font-family: 'VT323', monospace;
-        font-size: 16px;
-    }
-
-    body {
-        background-color: var(--terminal-bg);
-        color: var(--terminal-fg);
-        margin: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        overflow: hidden;
-    }
-
-    /* MATRIX FALLING TEXT */
-    #matrix-canvas {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 1;
-        pointer-events: none;
-        opacity: 0.15;
-    }
-
-    .terminal-container {
-        width: 100%;
-        max-width: 800px;
-        padding: 40px;
-        border: 2px solid var(--border-color);
-        box-shadow: 0 0 10px 5px var(--glow-color);
-        position: relative;
-        z-index: 10;
-        box-sizing: border-box;
-        animation: bootFade 1.5s ease-in-out;
-    }
-
-    @keyframes bootFade {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    /* Scanline overlay */
-    .terminal-container::before {
-        content: '';
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: repeating-linear-gradient(
-            to bottom,
-            rgba(0, 255, 170, 0.03),
-            rgba(0, 255, 170, 0.05) 1px,
-            transparent 1px,
-            transparent 3px
-        );
-        pointer-events: none;
-        opacity: 0.5;
-        z-index: 5;
-    }
-
-    .blink {
-        animation: blinkCursor 1s infinite;
-    }
-
-    @keyframes blinkCursor {
-        0% { opacity: 1; }
-        50% { opacity: 0; }
-        100% { opacity: 1; }
-    }
-
-    h1, label, input, button, a, p {
-        text-shadow: 0 0 5px var(--glow-color), 0 0 10px var(--glow-color);
-    }
-
-    .header {
-        display: flex;
-        justify-content: space-between;
-        font-size: 1.25rem;
-        margin-bottom: 50px;
-        border-bottom: 1px solid rgba(0, 255, 170, 0.2);
-        padding-bottom: 10px;
-    }
-
-    .content-area {
-        margin-top: 40px;
-    }
-
-    .status-area {
-        font-size: 1rem;
-        border-top: 1px solid rgba(0, 255, 170, 0.2);
-        padding-top: 15px;
-        margin-top: 40px;
-    }
-
-    input, button {
-        font-family: 'VT323', monospace;
-    }
-
-    button:hover {
-        box-shadow: 0 0 10px var(--glow-color);
-    }
-</style>
-```
-
 </head>
-
-<body>
+<body class="terminal-theme">
 
 <canvas id="matrix-canvas"></canvas>
 
 <div class="terminal-container">
 
-```
-<div class="header">
-    <span>CLASH OF CODE<span class="blink">_</span></span>
-    <span id="datetime-display"></span>
-</div>
+    <div class="header">
+        <span>CLASH OF CODE<span class="blink">_</span></span>
+        <span id="datetime-display"></span>
+    </div>
 
-<div class="content-area">
-    {% block content %}{% endblock %}
-</div>
+    <div class="content-area">
+        {% block content %}{% endblock %}
+    </div>
 
-<div class="status-area">
-    <p id="boot-text">BOOTING AI SYSTEM...</p>
-    <p id="auth-status"></p>
-</div>
-```
+    <div class="status-area">
+        <p id="boot-text">BOOTING AI SYSTEM...</p>
+        <p id="auth-status"></p>
+    </div>
 
 </div>
 
-<!-- matrix fx -->
+<!-- Matrix effect -->
+<script src="{{ url_for('static', filename='js/matrix.js') }}"></script>
 
-<script>
-    const canvas = document.getElementById("matrix-canvas");
-    const ctx = canvas.getContext("2d");
-
-    canvas.height = window.innerHeight;
-    canvas.width = window.innerWidth;
-
-    const letters = "01";
-    const fontSize = 14;
-    const columns = canvas.width / fontSize;
-
-    const drops = [];
-    for (let i = 0; i < columns; i++) {
-        drops[i] = 1;
-    }
-
-    function drawMatrix() {
-        ctx.fillStyle = "rgba(0, 10, 18, 0.08)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = "#00ffaa";
-        ctx.font = fontSize + "px VT323";
-
-        for (let i = 0; i < drops.length; i++) {
-            const letter = letters[Math.floor(Math.random() * letters.length)];
-            ctx.fillText(letter, i * fontSize, drops[i] * fontSize);
-
-            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                drops[i] = 0;
-            }
-
-            drops[i]++;
-        }
-    }
-
-    setInterval(drawMatrix, 40);
-</script>
-
-<!-- datetime feat -->
-
+<!-- Datetime -->
 <script>
     const datetimeDisplay = document.getElementById('datetime-display');
-
     function updateDateTime() {
         const now = new Date();
         datetimeDisplay.textContent =
             now.toLocaleDateString("en-US") + " " +
             now.toLocaleTimeString("en-US", { hour12: false });
     }
-
     setInterval(updateDateTime, 1000);
     updateDateTime();
 </script>
 
-<!-- boot -->
-
+<!-- Boot animation -->
 <script>
     const bootText = document.getElementById("boot-text");
-
     setTimeout(() => bootText.textContent = "AI SYSTEM ONLINE", 1600);
     setTimeout(() => bootText.textContent = "SYSTEM READY", 2600);
-</script>
-
-<!-- Sound fx -->
-
-<script>
-    const typeSound = new Audio("https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3");
-    typeSound.volume = 0.2;
-
-    document.addEventListener("keydown", () => {
-        typeSound.currentTime = 0;
-        typeSound.play();
-    });
 </script>
 
 </body>
