@@ -16,9 +16,9 @@ class BattleBot:
 
 
 def calculate_turn_order(botA, botB):
-    if botA.speed > botB.speed:
+    if botA.clk> botB.clk:
         return [botA, botB]
-    elif botB.speed > botA.speed:
+    elif botB.clk > botA.clk:
         return [botB, botA]
     else:
         return random.sample([botA, botB], 2)  # random order if equal
@@ -79,9 +79,10 @@ def full_battle(botA, botB):
             break
         round_num += 1
 
+#test battle
 if __name__ == "__main__":
-    bot1 = BattleBot("Alpha", hp=100, energy=50, proc=30, defense=10, speed=15, clk=12, luck=15)
-    bot2 = BattleBot("Beta", hp=120, energy=50, proc=25, defense=12, speed=14, clk=14, luck=10)
+    bot1 = BattleBot("Alpha", hp=100, energy=50, proc=30, defense=10, clk=14, luck=15)
+    bot2 = BattleBot("Beta", hp=120, energy=50, proc=25, defense=12, clk=14, luck=10)
     winner = full_battle(bot1, bot2)
   
 
