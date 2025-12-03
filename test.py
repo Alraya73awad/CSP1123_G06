@@ -1,4 +1,11 @@
-from app import db
+from flask_sqlalchemy import SQLAlchemy
+from flask import Flask
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///clash_of_code.db'
+app.config['SECRET_KEY'] = 'dev_secret_key'
+# Initialize database
+db = SQLAlchemy(app)
 
 class Bot(db.Model):
     __tablename__ = "bots"

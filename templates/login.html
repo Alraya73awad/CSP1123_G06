@@ -1,23 +1,27 @@
-<!DOCTYPE html>
-<h2>Login</h2>
+{% extends "base.html" %}
 
-<form method="POST" class="auth-form">
+{% block page_title %}Login - Clash of Code{% endblock %}
 
-    <div class="form-group">
-        <label for="username">Username</label>
-        <input type="text" name="username" id="username" required>
-    </div>
+{% block content %}
+<div class="terminal-container">
+    <h1>Welcome to Clash of Code</h1>
 
-    <div class="form-group">
-        <label for="password">Password</label>
-        <input type="password" name="password" id="password" required>
-    </div>
+    <form id="login-form" method="POST" action="{{ url_for('login') }}">
+        <div class="form-group">
+            <label for="username">Player ID (Username/Email):</label>
+            <input type="text" id="username" name="username" required>
+        </div>
 
-    <button type="submit" class="auth-btn">Login</button>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
 
-    <p class="switch-text">
-        New user?
-        <a href="{{ url_for('register') }}">Create an account</a>
-    </p>
+        <button type="submit" class="login-button">LOGIN</button>
 
-</form>
+        <div class="register-link">
+            Don't have an account? <a href="{{ url_for('register') }}">REGISTER HERE</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
