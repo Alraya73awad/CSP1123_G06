@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div>
+
+    <h2>Battle: {{ bot1.name }} vs {{ bot2.name }}</h2>
+
+    <div>
+        <div style="
+            max-height: 70vh;
+            overflow-y: auto;
+            background: black;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap;
+        ">
+            {% for line in log %}
+                <p>{{ line }}</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if winner %}
+    <div class="alert alert-success mt-3">
+        Winner: {{ winner }}
+    </div>
+    {% endif %}
+
+    <a href="{{ url_for('bot_list') }}" class="btn btn-secondary mt-3">Back</a>
+
+</div>
+{% endblock %}

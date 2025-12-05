@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from test import db
 from test import app
+from battle import BattleBot, full_battle
 
 # Models
 from test import Bot 
@@ -292,3 +293,15 @@ if __name__ == "__main__":
     app = Flask(__name__)
     app.config['DEBUG'] = True
 
+@app.route("/battle/<int:bot1_id>/<int:bot2_id>")
+def battle(bot1_id, bot2_id):
+    bot1 = Bot.query.get_or_404(bot1_id)
+    bot2 = Bot.query.get_or_404(bot2_id)
+
+    # convert database Bot → BattleBot for combat
+    battleA = BattleBot(name=bot1.name, hp=bot1.hp, energy=bot1.energy, proc=bot1.atk, defense=bot1.defense, clk=bot1.speed, luck=bot1.luck)
+    battleB = BattleBot(name=bot2.name, hp=bot2.hp, energy=bot2.energy, proc=bot2.atk, defense=bot2.defense, clk=bot2.speed, luck=bot2.luck)
+
+    winner, log = full_battle(battleA, battleB)
+
+    return render_template("combat_log.html", log=log, winner=winner, bot1=bot1, bot2=bot2)
