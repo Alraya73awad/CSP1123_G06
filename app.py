@@ -293,8 +293,8 @@ if __name__ == "__main__":
     app = Flask(__name__)
     app.config['DEBUG'] = True
 
-@app.route("/battle/<int:bot1_id>/<int:bot2_id>")
-def battle(bot1_id, bot2_id):
+@app.route("/combat_log/<int:bot1_id>/<int:bot2_id>")
+def combat_log(bot1_id, bot2_id):
     bot1 = Bot.query.get_or_404(bot1_id)
     bot2 = Bot.query.get_or_404(bot2_id)
 
@@ -305,3 +305,19 @@ def battle(bot1_id, bot2_id):
     winner, log = full_battle(battleA, battleB)
 
     return render_template("combat_log.html", log=log, winner=winner, bot1=bot1, bot2=bot2)
+
+@app.route("/battle", methods=["GET", "POST"])
+def battle_select():
+    bots = Bot.query.all()
+
+    if request.method == "POST":
+        bot1_id = request.form.get("bot1")
+        bot2_id = request.form.get("bot2")
+
+        if bot1_id == bot2_id:
+            flash("Choose two different bots!", "warning")
+            return redirect(url_for('battle_select'))
+
+        return redirect(url_for('combat_log', bot1_id=bot1_id, bot2_id=bot2_id))
+
+    return render_template("battle.html", bots=bots)
