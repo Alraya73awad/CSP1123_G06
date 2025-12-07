@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block page_title %}Dashboard | Clash of Code{% endblock %}
+
+{% block content %}
+
+<h1>DASHBOARD // COMMAND CENTER</h1>
+
+<!-- flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-area">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+
+<!-- USER BOT LIST -->
+<h2>Your Bots</h2>
+
+{% if bots %}
+    <div class="bot-list">
+        {% for bot in bots %}
+            <div class="bot-card">
+                <h3>{{ bot.name }}</h3>
+                <p>Attack: {{ bot.attack }}</p>
+                <p>Defense: {{ bot.defense }}</p>
+                <p>Speed: {{ bot.speed }}</p>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <p>No bots found. Create one below:</p>
+{% endif %}
+
+
+<!-- CREATE BOT FORM -->
+<h2>Create New Bot</h2>
+
+<form method="POST" action="{{ url_for('create_bot') }}" class="bot-form">
+    <label>Bot Name:</label>
+    <input type="text" name="name" required>
+
+    <label>Attack:</label>
+    <input type="number" name="attack" min="1" max="100" required>
+
+    <label>Defense:</label>
+    <input type="number" name="defense" min="1" max="100" required>
+
+    <label>Speed:</label>
+    <input type="number" name="speed" min="1" max="100" required>
+
+    <button type="submit" class="login-button">CREATE BOT</button>
+</form>
+
+<br>
+
+<!-- NAV -->
+<a href="{{ url_for('manage_bot') }}">Manage Bots</a> |
+<a href="{{ url_for('profile') }}">View Profile</a> |
+<a href="{{ url_for('play') }}">Enter Game</a>
+
+{% endblock %}

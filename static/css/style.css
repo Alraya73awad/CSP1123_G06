@@ -138,6 +138,13 @@ input[type="text"], input[type="password"], input[type="email"], textarea, selec
     font-family: 'VT323', monospace;
 }
 
+.alert {
+    font-family: 'VT323', monospace;
+    color: #00ffea;
+    background: rgba(0, 255, 234, 0.1);
+    border: 1px solid #00ffea;
+}
+
 input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: #00ffaa;
@@ -154,7 +161,7 @@ input:focus, textarea:focus, select:focus {
   50% { opacity: 0; }
 }
 
-/* Status / footer area */
+/* Status, footer area */
 .status-area {
   margin-top: 30px;
   font-size: 1rem;
@@ -195,3 +202,92 @@ input:focus, textarea:focus, select:focus {
     border-color: #0d6efd;
     background-color: #e7f1ff;
 }
+
+/* bot */
+
+.bot-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.bot-card {
+    border: 1px solid #00ff00;
+    padding: 15px;
+    width: 220px;
+    font-family: "VT323", monospace;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.bot-card h3 {
+    color: #00ff80;
+    margin-bottom: 10px;
+}
+
+.bot-form {
+    display: flex;
+    flex-direction: column;
+    width: 300px;
+}
+
+.bot-form input {
+    margin-bottom: 10px;
+}
+
+.flash-area .flash {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-left: 4px solid;
+}
+
+.flash.success { border-color: #00ff00; color: #00ff00; }
+.flash.danger  { border-color: #ff0040; color: #ff0040; }
+.flash.warning { border-color: #ffae00; color: #ffae00; }
+
+.bot-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.action-btn {
+    padding: 5px 10px;
+    border: 1px solid #00ff00;
+    color: #00ff00;
+    text-decoration: none;
+    font-family: "VT323";
+}
+
+.action-btn:hover {
+    background: #00ff00;
+    color: black;
+}
+
+.action-btn.danger {
+    border-color: #ff0040;
+    color: #ff0040;
+}
+
+.action-btn.danger:hover {
+    background: #ff0040;
+    color: black;
+}
+
+#battle-screen {
+    border: 1px solid #00ff00;
+    padding: 15px;
+    height: 300px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.7);
+    font-family: "VT323";
+    color: #00ff00;
+    margin-bottom: 20px;
+}
+
+#battle-log {
+    white-space: pre-wrap;
+    font-size: 18px;
+}
+
+
+
