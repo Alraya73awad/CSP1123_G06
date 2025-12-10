@@ -4,9 +4,9 @@
 
 {% block content %}
 
-<h1>DASHBOARD // COMMAND CENTER</h1>
+<h1>USER DASHBOARD // MAIN INTERFACE</h1>
 
-<!-- flash messages -->
+<!-- Flash Messages -->
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         <div class="flash-area">
@@ -17,50 +17,91 @@
     {% endif %}
 {% endwith %}
 
+<!-- WELCOME HEADER -->
+<div class="dashboard-header cyber-header">
+    <h2>Welcome, <span class="highlight">{{ username }}</span></h2>
+    <p>Access your bots, stats, and battle systems below.</p>
+</div>
 
-<!-- USER BOT LIST -->
+<br>
+
+<!-- PLAYER STATS (CYBER GRID) -->
+<div class="stats-grid cyber-grid">
+
+    <div class="stat-card neon-panel">
+        <h3>LEVEL</h3>
+        <p>{{ level }}</p>
+    </div>
+
+    <div class="stat-card neon-panel">
+        <h3>XP</h3>
+        
+        <!-- XP BAR -->
+        <div class="xp-bar">
+            <div class="xp-fill" style="width: '{{ xp_percent }}%'"></div>
+        </div>
+
+        <p>{{ xp }} XP</p>
+    </div>
+
+    <div class="stat-card neon-panel">
+        <h3>TOKENS</h3>
+        <p>{{ tokens }}</p>
+    </div>
+</div>
+
+<br><br>
+
+
+<!-- BOT LIST -->
 <h2>Your Bots</h2>
 
 {% if bots %}
-    <div class="bot-list">
+    <div class="bot-list hologram-grid">
         {% for bot in bots %}
-            <div class="bot-card">
+            <div class="bot-card holo-card">
+                <div class="holo-glow"></div>
+
                 <h3>{{ bot.name }}</h3>
-                <p>Attack: {{ bot.attack }}</p>
-                <p>Defense: {{ bot.defense }}</p>
-                <p>Speed: {{ bot.speed }}</p>
+                <p>ATK: {{ bot.attack }}</p>
+                <p>DEF: {{ bot.defense }}</p>
+                <p>SPD: {{ bot.speed }}</p>
             </div>
         {% endfor %}
     </div>
 {% else %}
-    <p>No bots found. Create one below:</p>
+    <p>No bots found — create your first bot below.</p>
 {% endif %}
 
+<br><br>
 
 <!-- CREATE BOT FORM -->
-<h2>Create New Bot</h2>
+<h2>Create a New Bot</h2>
 
-<form method="POST" action="{{ url_for('create_bot') }}" class="bot-form">
+<form method="POST" action="{{ url_for('create_bot') }}" class="create-bot-form neon-panel">
     <label>Bot Name:</label>
     <input type="text" name="name" required>
 
     <label>Attack:</label>
-    <input type="number" name="attack" min="1" max="100" required>
+    <input type="number" name="attack" min="0" max="100" required>
 
     <label>Defense:</label>
-    <input type="number" name="defense" min="1" max="100" required>
+    <input type="number" name="defense" min="0" max="100" required>
 
     <label>Speed:</label>
-    <input type="number" name="speed" min="1" max="100" required>
+    <input type="number" name="speed" min="0" max="100" required>
 
     <button type="submit" class="login-button">CREATE BOT</button>
 </form>
 
-<br>
+<br><br>
 
-<!-- NAV -->
-<a href="{{ url_for('manage_bot') }}">Manage Bots</a> |
-<a href="{{ url_for('profile') }}">View Profile</a> |
-<a href="{{ url_for('play') }}">Enter Game</a>
+<!-- ACTION BUTTONS -->
+<div class="action-grid">
+    <a href="{{ url_for('battle') }}" class="action-button">BATTLE</a>
+    <a href="{{ url_for('manage_bot') }}" class="action-button">MANAGE BOTS</a>
+    <a href="{{ url_for('store') }}" class="action-button">STORE</a>
+    <a href="{{ url_for('character') }}" class="action-button">CHARACTER</a>
+</div>
 
 {% endblock %}

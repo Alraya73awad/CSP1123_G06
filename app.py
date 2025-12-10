@@ -101,13 +101,25 @@ def dashboard():
         flash("Please log in to continue.", "warning")
         return redirect(url_for('login'))
 
-    user_bots = Bot.query.filter_by(user_id=session['user_id']).all()
-    return render_template('dashboard.html', bots=user_bots)
+    user = User.query.get(session['user_id'])
+    bots = Bot.query.filter_by(user_id=user.id).all()
+
+    # XP progress (example: level * 100)
+    xp_percent = (user.xp % 100)  # or your own formula
+
+    return render_template(
+        'dashboard.html',
+        username=user.username,
+        level=user.level,
+        xp=user.xp,
+        tokens=user.tokens,
+        xp_percent=xp_percent,
+        bots=bots
+    )
 
 
-# ================================
+
 # CREATE BOT
-# ================================
 @app.route('/create_bot', methods=['POST'])
 def create_bot():
     if 'user_id' not in session:
