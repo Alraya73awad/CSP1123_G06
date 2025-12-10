@@ -298,9 +298,29 @@ def combat_log(bot1_id, bot2_id):
     bot1 = Bot.query.get_or_404(bot1_id)
     bot2 = Bot.query.get_or_404(bot2_id)
 
-    # convert database Bot → BattleBot for combat
-    battleA = BattleBot(name=bot1.name, hp=bot1.hp, energy=bot1.energy, proc=bot1.atk, defense=bot1.defense, clk=bot1.speed, luck=bot1.luck)
-    battleB = BattleBot(name=bot2.name, hp=bot2.hp, energy=bot2.energy, proc=bot2.atk, defense=bot2.defense, clk=bot2.speed, luck=bot2.luck)
+    stats1 = apply_algorithm(bot1)
+    stats2 = apply_algorithm(bot2)
+
+    # convert database Bot → BattleBot for combat (with effective stats)
+    battleA = BattleBot(
+        name=bot1.name,
+        hp=stats1["hp"],
+        energy=stats1["energy"],
+        proc=stats1["proc"],
+        defense=stats1["defense"],
+        clk=stats1["clk"],
+        luck=stats1["luck"]
+    )
+
+    battleB = BattleBot(
+        name=bot2.name,
+        hp=stats2["hp"],
+        energy=stats2["energy"],
+        proc=stats2["proc"],
+        defense=stats2["defense"],
+        clk=stats2["clk"],
+        luck=stats2["luck"]
+    )
 
     winner, log = full_battle(battleA, battleB)
 
@@ -315,9 +335,21 @@ def battle_select():
         bot2_id = request.form.get("bot2")
 
         if bot1_id == bot2_id:
-            flash("Choose two different bots!", "warning")
-            return redirect(url_for('battle_select'))
-
-        return redirect(url_for('combat_log', bot1_id=bot1_id, bot2_id=bot2_id))
+            flash("You must choose two different bots!", "warning") 
+        else:
+            return redirect(url_for('combat_log', bot1_id=bot1_id, bot2_id=bot2_id))
 
     return render_template("battle.html", bots=bots)
+
+def apply_algorithm(bot):
+    effects = algorithm_effects.get(bot.algorithm, {})
+
+    # Return new effective stats
+    return {
+        "hp": int(bot.hp * effects.get("hp", 1.0)),
+        "energy": int(bot.energy * effects.get("energy", 1.0)),
+        "proc": int(bot.atk * effects.get("proc", 1.0)),
+        "defense": int(bot.defense * effects.get("def", 1.0)),
+        "clk": int(bot.speed * effects.get("clk", 1.0)),
+        "luck": int(bot.luck * effects.get("luck", 1.0)),
+    }

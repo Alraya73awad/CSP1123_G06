@@ -28,6 +28,16 @@
             </select>
         </div>
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, msg in messages %}
+                    <div class="alert alert-{{ category }} mt-2">
+                        {{ msg }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         <button type="submit" class="btn btn-primary">Start Battle</button>
         <a href="{{ url_for('bot_list') }}" class="btn btn-secondary">Cancel</a>
 
