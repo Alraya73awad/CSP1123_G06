@@ -14,6 +14,9 @@ class BattleBot:
     def is_alive(self):
         return self.hp > 0 and self.energy > 0
 
+def log_line(log, type, text):
+    log.append((type.strip().lower(), text))
+
 
 def calculate_turn_order(botA, botB, log):
     if botA.clk> botB.clk:
@@ -40,7 +43,7 @@ def calculate_damage(attacker, defender, log):
         dodge_chance = (attacker.clk - defender.clk) * (attacker.luck / 100)
         dodge_roll = random.random()
         if dodge_roll < dodge_chance:
-            log.append(f"{defender.name} dodged the attack!")
+            log_line(log, "dodge",f"{defender.name} dodged the attack!")
             return 0
 
     # Final damage
@@ -60,23 +63,23 @@ def battle_round(botA, botB, log):
         damage = calculate_damage(attacker, defender, log)
         defender.hp -= damage
 
-        log.append(f"{attacker.name} attacks {defender.name} for {damage} damage!")
+        log_line(log, "attack",f"{attacker.name} attacks {defender.name} for {damage} damage!")
         if defender.hp < 0:
             defender.hp = 0
-        log.append(f"{defender.name} HP: {defender.hp}, Energy: {defender.energy}")
+        log_line(log, "status",f"{defender.name} HP: {defender.hp}, Energy: {defender.energy}")
 
         if not defender.is_alive():
-            log.append(f"{defender.name} has been defeated!")
+            log_line(log, "defeat",f"{defender.name} has been defeated!")
             return attacker.name
 
 def full_battle(botA, botB):
     log = []
     round_num = 1
     while botA.is_alive() and botB.is_alive():
-        log.append(f"\n (Round {round_num})")
+        log_line(log, "round",f"\n (Round {round_num})")
         winner = battle_round(botA, botB, log)
         if winner:
-            log.append(f"\nBattle Over! Winner: {winner}")
+            log_line(log, "battleover",f"\nBattle Over! Winner: {winner}")
             print(log)
             return winner, log 
             break

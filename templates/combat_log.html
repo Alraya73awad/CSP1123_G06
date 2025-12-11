@@ -15,8 +15,8 @@
             border: 1px solid #ddd;
             white-space: pre-wrap;
         ">
-            {% for line in log %}
-                <p>{{ line }}</p>
+            {% for type, line in log %}
+                <span class="log-text {{type}}">{{ line }}</span>
             {% endfor %}
         </div>
     </div>
