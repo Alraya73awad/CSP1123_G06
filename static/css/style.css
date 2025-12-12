@@ -208,3 +208,9 @@ input:focus, textarea:focus, select:focus {
 .log-text.defeat { color:purple; }
 .log-text.round { color:#00ffaa; }
 .log-text.battleover { color:#00ffaa; }
+
+.stats-comparison td, .stats-comparison th, .stats-comparison tr {
+  background-color: transparent !important;
+  border-color: #00ffaa;
+  color: #00ffaa;
+}

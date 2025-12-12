@@ -5,6 +5,45 @@
 
     <h2>Battle: {{ bot1.name }} vs {{ bot2.name }}</h2>
 
+    <h3 class="mt-4">Starting Stats Comparison</h3>
+
+        <table class="stats-comparison table table-bordered text-center mb-4">
+            <thead>
+                <tr>
+                    <th>Stat</th>
+                    <th>{{ bot1.name }}</th>
+                    <th>{{ bot2.name }}</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for stat in ["hp", "proc", "defense", "clk", "luck", "energy"] %}
+
+                {% set val1 = stats1[stat] %}
+                {% set val2 = stats2[stat] %}
+
+                {# Determine CSS classes #}
+                {% if val1 > val2 %}
+                    {% set class1 = "text-success fw-bold" %}
+                    {% set class2 = "text-danger" %}
+                {% elif val2 > val1 %}
+                    {% set class1 = "text-danger" %}
+                    {% set class2 = "text-success fw-bold" %}
+                {% else %}
+                    {% set class1 = "text-light" %}
+                    {% set class2 = "text-light" %}
+                {% endif %}
+
+                <tr>
+                    <td>{{ stat.upper() }}</td>
+                    <td class="{{ class1 }}">{{ val1 }}</td>
+                    <td class="{{ class2 }}">{{ val2 }}</td>
+                </tr>
+
+                {% endfor %}
+            </tbody>
+        </table>
+
     <div>
         <div style="
             max-height: 70vh;

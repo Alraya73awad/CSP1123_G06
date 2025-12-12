@@ -323,7 +323,7 @@ def combat_log(bot1_id, bot2_id):
     )
 
     winner, log = full_battle(battleA, battleB)
-    return render_template("combat_log.html", log=log, winner=winner, bot1=bot1, bot2=bot2)
+    return render_template("combat_log.html", log=log, winner=winner, bot1=bot1, bot2=bot2, stats1 = stats1, stats2 = stats2)
 
 @app.route("/battle", methods=["GET", "POST"])
 def battle_select():
