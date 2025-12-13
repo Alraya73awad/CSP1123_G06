@@ -1,11 +1,16 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
-from test import db
-from test import app
+from extensions import db
 from battle import BattleBot, full_battle
 
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///clash_of_code.db'
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config['SECRET_KEY'] = 'dev_secret_key'
+
+db.init_app(app)
+
 # Models
-from test import Bot 
+from models import Bot, History, HistoryLog
 
 # Stat Min/Max Values
 STAT_LIMITS = {
@@ -285,14 +290,6 @@ def bot_details(bot_id):
         final_stats=final_stats
     )
 
-# Run server
-if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
-    app = Flask(__name__)
-    app.config['DEBUG'] = True
-
 @app.route("/combat_log/<int:bot1_id>/<int:bot2_id>")
 def combat_log(bot1_id, bot2_id):
     bot1 = Bot.query.get_or_404(bot1_id)
@@ -323,6 +320,26 @@ def combat_log(bot1_id, bot2_id):
     )
 
     winner, log = full_battle(battleA, battleB)
+
+    # create history entry
+    history = History(
+        bot1_id=bot1.id,
+        bot2_id=bot2.id,
+        winner=winner
+    )
+    db.session.add(history)
+    db.session.flush()  # assigns history.id
+
+    # save combat log lines
+    for type, text in log:
+        entry = HistoryLog(
+            history_id=history.id,
+            type=type,
+            text=text
+        )
+        db.session.add(entry)
+
+    db.session.commit()
     return render_template("combat_log.html", log=log, winner=winner, bot1=bot1, bot2=bot2, stats1 = stats1, stats2 = stats2)
 
 @app.route("/battle", methods=["GET", "POST"])
@@ -352,3 +369,25 @@ def apply_algorithm(bot):
         "clk": int(bot.speed * effects.get("clk", 1.0)),
         "luck": int(bot.luck * effects.get("luck", 1.0)),
     }
+
+@app.route("/history")
+def history():
+    battles = History.query.order_by(History.timestamp.desc()).all()
+    return render_template("history.html", battles = battles)
+
+@app.route("/history/<int:history_id>")
+def view_history(history_id):
+    history = History.query.get_or_404(history_id)
+    bot1 = Bot.query.get(history.bot1_id)
+    bot2 = Bot.query.get(history.bot2_id)
+    stats1 = apply_algorithm(bot1)
+    stats2 = apply_algorithm(bot2)
+    logs = HistoryLog.query.filter_by(history_id=history.id).all()
+
+    return render_template("combat_log.html", log=[(l.type, l.text) for l in logs], winner = history.winner, bot1 = bot1, bot2 = bot2, stats1 = stats1, stats2 = stats2)
+
+# Run server
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)
