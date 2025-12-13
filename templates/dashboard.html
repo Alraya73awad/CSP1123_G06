@@ -19,7 +19,7 @@
 
 <!-- WELCOME HEADER -->
 <div class="dashboard-header cyber-header">
-    <h2>Welcome, <span class="highlight">{{ username }}</span></h2>
+    <h2>Welcome, <span class="highlight">{{ current_user.username }}</span></h2>
     <p>Access your bots, stats, and battle systems below.</p>
 </div>
 
@@ -28,30 +28,33 @@
 <!-- PLAYER STATS (CYBER GRID) -->
 <div class="stats-grid cyber-grid">
 
+    <!-- LEVEL -->
     <div class="stat-card neon-panel">
         <h3>LEVEL</h3>
-        <p>{{ level }}</p>
+        <p>{{ current_user.level }}</p>
     </div>
 
+    <!-- XP -->
     <div class="stat-card neon-panel">
         <h3>XP</h3>
-        
-        <!-- XP BAR -->
-        <div class="xp-bar">
-            <div class="xp-fill" style="width: '{{ xp_percent }}%'"></div>
-        </div>
+        {% set xp_required = current_user.level * 100 %}
+        {% set xp_percent = ((current_user.xp / xp_required) * 100) | round(2) | default(0) %}
 
-        <p>{{ xp }} XP</p>
+        <div class="xp-bar" style="--xp-width: {{ xp_percent }}%;">
+            <div class="xp-fill"></div>
+        </div>
+        <p>{{ current_user.xp }} / {{ xp_required }} XP</p>
     </div>
 
+    <!-- TOKENS -->
     <div class="stat-card neon-panel">
         <h3>TOKENS</h3>
-        <p>{{ tokens }}</p>
+        <p>{{ current_user.tokens }}</p>
     </div>
+
 </div>
 
 <br><br>
-
 
 <!-- BOT LIST -->
 <h2>Your Bots</h2>
@@ -61,7 +64,6 @@
         {% for bot in bots %}
             <div class="bot-card holo-card">
                 <div class="holo-glow"></div>
-
                 <h3>{{ bot.name }}</h3>
                 <p>ATK: {{ bot.attack }}</p>
                 <p>DEF: {{ bot.defense }}</p>
@@ -103,5 +105,25 @@
     <a href="{{ url_for('store') }}" class="action-button">STORE</a>
     <a href="{{ url_for('character') }}" class="action-button">CHARACTER</a>
 </div>
+
+<!-- LEVEL UP POPUP -->
+<div id="level-up-popup" class="level-up-popup hidden">
+    <h1>LEVEL UP!</h1>
+    <p>You reached Level <span id="new-level"></span>!</p>
+</div>
+
+<audio id="level-up-sound">
+    <source src="{{ url_for('static', filename='sounds/level_up.mp3') }}" type="audio/mpeg">
+</audio>
+
+<div class="xp-ring-container">
+    <svg class="xp-ring" width="150" height="150">
+        <circle class="xp-bg" cx="75" cy="75" r="60" />
+        <circle class="xp-progress" cx="75" cy="75" r="60" 
+                style="--percent: {{ xp_percent }}%;" />
+    </svg>
+    <p>{{ xp }} / {{ level * 100 }} XP</p>
+</div>
+
 
 {% endblock %}
