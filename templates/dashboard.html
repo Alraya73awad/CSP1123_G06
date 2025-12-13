@@ -106,7 +106,39 @@
     <a href="{{ url_for('character') }}" class="action-button">CHARACTER</a>
 </div>
 
-<!-- LEVEL UP POPUP -->
+<a href="{{ url_for('home') }}" class="btn btn-secondary">
+    <i class="fa fa-arrow-left"></i> Back to Home
+</a>
+
+<style>
+.btn-terminal {
+    padding: 12px 30px;
+    border: 2px solid #00ffaa;
+    border-radius: 10px;
+    color: #00ffaa;
+    background: rgba(0,0,10,0.7);
+    font-family: 'VT323', monospace;
+    font-size: 1.3rem;
+    text-decoration: none;
+    text-shadow: 0 0 5px #00ffaa;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-terminal:hover {
+    background: rgba(0,255,170,0.1);
+    box-shadow: 0 0 15px #00ffaa;
+    transform: scale(1.05);
+}
+.btn-terminal i {
+    margin-right: 10px;
+}
+</style>
+
+
+
+<!-- level up -->
 <div id="level-up-popup" class="level-up-popup hidden">
     <h1>LEVEL UP!</h1>
     <p>You reached Level <span id="new-level"></span>!</p>

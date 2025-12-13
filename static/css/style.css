@@ -9,7 +9,6 @@
 
   --font-terminal: 'VT323', monospace;
   --font-code: 'Share Tech Mono', monospace;
-}
 
 /* Reset & Box sizing */
 * {
@@ -28,6 +27,11 @@ body {
   align-items: center;
   overflow: hidden;
   cursor: text;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto; 
+}
+
 }
 
 /* Terminal container */
@@ -163,10 +167,10 @@ input:focus, textarea:focus, select:focus {
 
 /* Status, footer area */
 .status-area {
-  margin-top: 30px;
-  font-size: 1rem;
-  border-top: 1px solid rgba(0, 255, 170, 0.2);
-  padding-top: 15px;
+    border-top: 1px solid rgba(0, 255, 170, 0.2);
+    padding-top: 12px;
+    font-size: 1.1rem;
+    margin-top: 20px; /* add spacing from items */
 }
 
 /* Header */
@@ -289,9 +293,7 @@ input:focus, textarea:focus, select:focus {
     font-size: 18px;
 }
 
-/* ============================================
-   CYBERPUNK DASHBOARD ENHANCEMENTS
-   ============================================ */
+/* CYBERPUNK DASHBOARD ENHANCEMENTS */
 
 /* Main dashboard wrapper */
 .dashboard-header {
@@ -517,5 +519,47 @@ select:focus {
     border-color: var(--glow-color);
     animation: neonPulse 1.5s infinite;
 }
+.back-button {
+    position: fixed;       /* Stay in place even when scrolling */
+    top: 20px;             /* Distance from the top */
+    left: 20px;            /* Distance from the left */
+    background-color: #007bff; /* Bootstrap primary blue */
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    z-index: 1000;         /* Make sure it’s above other elements */
+    transition: background-color 0.2s;
+}
 
+.back-button:hover {
+    background-color: #0056b3; /* Darker on hover */
+}
 
+.dashboard {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.scroll-section {
+    max-height: 80vh; 
+    overflow-y: auto;
+    padding-right: 10px;
+    border: 1px solid #333;
+}
+.store-item {
+    border: 2px solid #39ff14; 
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: rgba(0, 0, 0, 0.3); 
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.bot-dropdown, .buy-btn {
+    width: 100%;          
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}

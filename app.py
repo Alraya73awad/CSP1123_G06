@@ -32,7 +32,7 @@ with app.app_context():
 
 
 
-# HOME PAGE
+# homepage
 @app.route("/")
 def home():
     user_id = session.get("user_id")
@@ -47,7 +47,7 @@ def home():
 
 
 
-# LOGIN
+# login
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -57,17 +57,14 @@ def login():
 
         user = User.query.filter_by(username=username).first()
 
-        # if User does not exist
         if not user:
             flash("Username does not exist.", "danger")
             return redirect(url_for("login"))
 
-        # if Incorrect password
         if not check_password_hash(user.password, password):
             flash("Incorrect password.", "danger")
             return redirect(url_for("login"))
 
-        # Success
         session["user_id"] = user.id
         flash("Successfully logged in!", "success")
         return redirect(url_for("dashboard"))
@@ -75,7 +72,7 @@ def login():
     return render_template("login.html")
 
 
-# REGISTER
+# register
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -83,17 +80,14 @@ def register():
         email = request.form['email']
         password = request.form['password']
 
-        # if Username already exists
         if User.query.filter_by(username=username).first():
             flash("Username already exists.", "danger")
             return redirect(url_for("register"))
 
-        # if Email already used
         if User.query.filter_by(email=email).first():
             flash("Email already exists.", "danger")
             return redirect(url_for("register"))
 
-        # Create user
         hashed_password = generate_password_hash(password)
         new_user = User(username=username, email=email, password=hashed_password)
 
@@ -117,7 +111,7 @@ def dashboard():
     user = User.query.get(session['user_id'])
     bots = Bot.query.filter_by(user_id=user.id).all()
 
-    # XP progress (example: level * 100)
+    # XP progress 
     xp_percent = int((user.xp / (user.level * 100)) * 100)
 
     return render_template(
@@ -132,7 +126,7 @@ def dashboard():
 
 
 
-# CREATE BOT
+# Create bot
 @app.route('/create_bot', methods=['POST'])
 def create_bot():
     if 'user_id' not in session:
@@ -181,7 +175,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# OTHER PAGES
+# Other pages
 @app.route('/store')
 @login_required
 def store():
@@ -210,7 +204,7 @@ def battle():
 
 
 
-# PROFILE PAGE
+# profile page
 @app.route('/profile')
 def profile():
     user_id = session.get('user_id')
@@ -290,4 +284,4 @@ def buy():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5001)
+    app.run(debug=True, host="0.0.0.0", port=5000)
