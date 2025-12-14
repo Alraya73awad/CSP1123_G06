@@ -1,10 +1,21 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
-from test import db
-from test import app
+from extention import db
+from models import Bot, Modules
 
 # Models
-from test import Bot 
+def create_app():
+    app = Flask(__name__)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Modules.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db.init_app(app)
+
+    with app.app_context():
+        db.create_all()
+
+    return app
+
+app = create_app()
 
 # Stat Min/Max Values
 STAT_LIMITS = {
@@ -62,6 +73,8 @@ algorithm_descriptions = {
     "RUSH-09": "Rapid Unit Synchronization Hub: An advanced AI core utilizing probabilistic threading for extreme combat reflexes. Fast but fragile. +20% CLK, -10% DEF",
     "CHAOS-RND": "Chaotic Execution Driver: Unstable algorithm driven by randomized decision-making. High volatility, unpredictable results. Unstable modifiers each battle"
 }
+
+
 
 
 # Routes

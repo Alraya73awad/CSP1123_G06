@@ -1,22 +1,27 @@
 import random
+from app import create_app
+from extention import db
+from models import Bot
+
+app = create_app()
 
 class BattleBot:
-    def __init__(self=10, name=10, energy=10, proc=10, defense=10, speed=10, clk=10 , luck=10, hp=100):
-        self.name = name
-        self.hp = hp
-        self.energy = energy
-        self.proc = proc       # Attack power
-        self.defense = defense
-        self.speed = speed
-        self.clk = clk         # Reflex/clock stat
-        self.luck = luck       # % chance for crit/dodge
+    def __init__(self, bot_model: Bot):
+        self.id = bot_model.id
+        self.hp = bot_model.hp
+        self.energy = bot_model.energy
+        self.proc = bot_model.proc
+        self.defense = bot_model.defense
+        self.clk = bot_model.clk
+        self.luck = bot_model.luck
+        self.algorithm_id = bot_model.algorithm_id
 
     def is_alive(self):
         return self.hp > 0 and self.energy > 0
 
 
 def calculate_turn_order(botA, botB):
-    if botA.clk> botB.clk:
+    if botA.clk > botB.clk:
         return [botA, botB]
     elif botB.clk > botA.clk:
         return [botB, botA]
@@ -26,7 +31,7 @@ def calculate_turn_order(botA, botB):
 
 def calculate_damage(attacker, defender):
     # Base damage
-    base_proc = attacker.proc - (defender.defense * 0.7)
+    base_proc = attacker.proc - (defender.defense * 0.5)
     if base_proc < 0:
         base_proc = 0
 
@@ -37,11 +42,13 @@ def calculate_damage(attacker, defender):
     # Dodge check
     dodge_chance = 0
     if defender.clk > attacker.clk:
-        dodge_chance = (attacker.clk - defender.clk) * (attacker.luck / 100)
-        dodge_roll = random.random()
-        if dodge_roll < dodge_chance:
-            print(f"{defender.name} dodged the attack!")
+        dodge_chance = (defender.clk - attacker.clk) * (defender.luck / 100)
+        if random.random() < dodge_chance:
+            print(f"{defender.algorithm_id} dodged the attack!")
             return 0
+
+    if crit_trigger:
+        print(f"💥 Critical Hit! {attacker.algorithm_id} lands a devastating strike!")
 
     # Final damage
     final_damage = base_proc + (base_proc * crit_rate)
@@ -57,17 +64,27 @@ def battle_round(botA, botB):
         if not defender.is_alive():
             break
 
+        attacker.energy -= 10
+        if attacker.energy < 0:
+            attacker.energy = 0
+
+        if not attacker.is_alive():
+            print(f"{attacker.algorithm_id} has been defeated (out of energy)!")
+            return defender.algorithm_id
+
         damage = calculate_damage(attacker, defender)
         defender.hp -= damage
 
-        print(f"{attacker.name} attacks {defender.name} for {damage} damage!")
+        print(f"{attacker.algorithm_id} attacks {defender.algorithm_id} for {damage} damage!")
+        print(f"{attacker.algorithm_id} Energy: {attacker.energy}")
         if defender.hp < 0:
             defender.hp = 0
-        print(f"{defender.name} HP: {defender.hp}, Energy: {defender.energy}")
+        print(f"{defender.algorithm_id} HP: {round(defender.hp, 0)}, Energy: {defender.energy}")
 
         if not defender.is_alive():
-            print(f"{defender.name} has been defeated!")
-            return attacker.name
+            print(f"{defender.algorithm_id} has been defeated!")
+            return attacker.algorithm_id
+
 
 def full_battle(botA, botB):
     round_num = 1
@@ -79,10 +96,18 @@ def full_battle(botA, botB):
             break
         round_num += 1
 
-#test battle
-if __name__ == "__main__":
-    bot1 = BattleBot("Alpha", hp=100, energy=50, proc=30, defense=10, clk=14, luck=15)
-    bot2 = BattleBot("Beta", hp=120, energy=50, proc=25, defense=12, clk=14, luck=10)
-    winner = full_battle(bot1, bot2)
-  
 
+# Test battle using DB bots
+if __name__ == "__main__":
+    with app.app_context():
+        # Fetch two bots from DB by name or ID
+        bot1_model = Bot.query.filter_by(name="VEX").first()
+        bot2_model = Bot.query.filter_by(name="BASL").first()
+
+        if not bot1_model or not bot2_model:
+            print("Bots not found in database. Seed them first!")
+        else:
+            bot1 = BattleBot(bot1_model)
+            bot2 = BattleBot(bot2_model)
+
+            full_battle(bot1, bot2)
