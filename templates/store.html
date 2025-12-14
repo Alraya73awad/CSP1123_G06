@@ -52,10 +52,11 @@
         {% endfor %}
     </div>
 
-    <!-- Back Button -->
     <div style="text-align:center; margin-top: 50px;">
-        <a href="{{ url_for('dashboard') }}" class="back-btn">Return</a>
+        <a href="{{ url_for('home') }}" class="back-btn">Return</a>
     </div>
+
+
 
     <!-- Status Area -->
     <div class="status-area">
@@ -197,38 +198,6 @@
     font-size: 1.1rem;
 }
 </style>
-
-{% for item in store_items %}
-<div class="store-item">
-    <h3>{{ item.name }}</h3>
-    <p>
-        {% if item.stat %}
-            +{{ item.amount }} {{ item.stat|capitalize }}
-        {% else %}
-            {{ item.desc }}
-        {% endif %}
-    </p>
-    <p>Cost: {{ item.cost }} Credits</p>
-    
-    <form method="POST" 
-          action="{% if (item.id ~ '').startswith('u') %}{{ url_for('buy') }}{% else %}{{ url_for('buy', item_id=item.id) }}{% endif %}">
-        
-        <label for="bot-select-{{ item.id }}">Select Bot:</label>
-        <select name="bot_id" id="bot-select-{{ item.id }}" class="bot-dropdown" 
-                {% if bots|length == 0 %}disabled{% endif %}>
-            {% for bot in bots %}
-                <option value="{{ bot.id }}">{{ bot.name }}</option>
-            {% endfor %}
-        </select>
-        
-        <button type="submit" class="buy-btn" {% if bots|length == 0 %}disabled{% endif %}>
-            Purchase
-        </button>
-    </form>
-</div>
-
-
-{% endfor %}
 
 <!-- DateTime Script -->
 <script>

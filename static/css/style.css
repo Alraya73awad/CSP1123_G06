@@ -84,6 +84,13 @@ h1, p, label, input, button, a {
   color: var(--terminal-text);
   text-shadow: 0 0 5px var(--terminal-glow), 0 0 10px var(--terminal-glow);
 }
+button,
+a,
+input[type="submit"] {
+    background: transparent;
+    border: none;
+    outline: none;
+}
 
 /* Neon buttons */
 .terminal-btn, .start-game-button
@@ -420,10 +427,11 @@ input:focus, textarea:focus, select:focus {
 }
 
 .login-button {
-    padding: 12px;
+    padding: 10px;
     font-size: 1.3rem;
-    border: 2px solid cyan;
+    border: 1px solid cyan;
     background: rgba(0,255,255,0.1);
+    margin-top: 20px;
 }
 
 .login-button:hover {
@@ -447,6 +455,8 @@ input:focus, textarea:focus, select:focus {
     text-decoration: none;
     color: cyan;
     transition: 0.2s;
+    margin-top: -40px;
+    margin-bottom: 20px;
 }
 
 .action-button:hover {
@@ -562,4 +572,49 @@ select:focus {
     width: 100%;          
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
+}
+.neon-btn {
+    background: transparent !important;
+    border: 2px solid #00ffff;
+    color: #00ffff;
+    box-shadow: 0 0 10px #00ffff;
+    text-shadow: 0 0 5px #00ffff;
+    transition: all 0.2s ease-in-out;
+    width: 20%;
+}
+
+.neon-btn:hover {
+    background: rgba(0, 255, 255, 0.15) !important;
+    box-shadow: 0 0 20px #00ffff;
+    color: #ffffff;
+}
+.back-home-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 70px;
+}
+.icon-btn {
+    background: transparent;
+    border: 2px solid #00fff0;
+    color: #00fff0;
+    padding: 10px;
+    border-radius: 20%;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0,255,240,0.4);
+    transition: all 0.25s ease;
+}
+
+.icon-btn:hover {
+    box-shadow: 0 0 20px #00fff0, 0 0 40px rgba(0,255,240,0.6);
+    transform: scale(1.1);
+}
+
+.icon-btn i {
+    pointer-events: none;
+}
+.settings-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
 }

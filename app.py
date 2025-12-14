@@ -153,7 +153,7 @@ def create_bot():
     return redirect(url_for('dashboard'))
 
 
-# MANAGE BOT
+# manage bot
 @app.route('/manage_bot')
 def manage_bot():
     if 'user_id' not in session:
@@ -196,7 +196,7 @@ def character():
 
 @app.route('/play')
 def play():
-    return render_template('play.html')
+    return render_template('battle.html')
 
 @app.route('/battle')
 def battle():
@@ -243,7 +243,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-#BUT ITEM AND UPGRADE PURCHASE FUNC
+# Buy item and upgrade purchase function
 @app.route("/buy", methods=["POST"])
 @login_required
 def buy():
@@ -278,6 +278,25 @@ def buy():
 
     db.session.commit()
     return redirect(url_for("store"))
+
+@app.route("/update_settings", methods=["POST"])
+@login_required
+def update_settings():
+    user = User.query.get(session["user_id"])
+    username = request.form.get("username")
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    if username:
+        user.username = username
+    if email:
+        user.email = email
+    if password:
+        user.password = generate_password_hash(password)
+
+    db.session.commit()
+    flash("Settings updated successfully!", "success")
+    return redirect(url_for("dashboard"))
 
 
 
