@@ -325,6 +325,8 @@ def combat_log(bot1_id, bot2_id):
     history = History(
         bot1_id=bot1.id,
         bot2_id=bot2.id,
+        bot1_name = bot1.name,
+        bot2_name = bot2.name,
         winner=winner
     )
     db.session.add(history)

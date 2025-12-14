@@ -25,6 +25,9 @@ class History(db.Model):
     bot1_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
     bot2_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
 
+    bot1_name = db.Column(db.String(50), nullable=False)
+    bot2_name = db.Column(db.String(50), nullable=False)
+
     winner = db.Column(db.String(50))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 

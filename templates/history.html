@@ -16,7 +16,7 @@
         {% for h in battles %}
         <tr>
             <td>{{ h.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
-            <td>Bot {{ h.bot1_id }} vs Bot {{ h.bot2_id }}</td>
+            <td>Bot {{ h.bot1_name }} vs Bot {{ h.bot2_name }}</td>
             <td>{{ h.winner }}</td>
             <td>
                 <a href="{{ url_for('view_history', history_id=h.id) }}"
