@@ -1,6 +1,6 @@
 import random
 from app import create_app
-from extention import db
+from extensions import db
 from models import Bot
 
 app = create_app()

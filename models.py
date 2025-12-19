@@ -1,4 +1,4 @@
-from extention import db
+from extensions import db
 
 class Bot(db.Model):
     __tablename__ = "bots"
