@@ -70,6 +70,67 @@ algorithm_descriptions = {
 }
 
 
+# Models
+from models import Bot 
+
+# Stat Min/Max Values
+STAT_LIMITS = {
+    "hp": (100, 999),
+    "energy": (100, 999),
+    "atk": (10, 999),
+    "defense": (10, 999),
+    "speed": (10, 999),
+    "logic": (10, 999),
+    "luck": (10, 999)
+}
+
+#ALGORITHMS
+algorithms = {
+    "VEX-01": "Aggressive",
+    "BASL-09": "Defensive",
+    "EQUA-12": "Balanced",
+    "ADAPT-X": "Adaptive",
+    "RUSH-09": "Speed",
+    "CHAOS-RND": "Random"
+    }
+
+#ALGORITHM BUFFS/NERFS
+algorithm_effects = {
+    "VEX-01": {
+        "proc": 1.15,
+        "def": 0.9
+    },
+    "BASL-09": {
+        "def": 1.2,
+        "clk": 0.9
+    },
+    "EQUA-12": {
+
+    },
+    "ADAPT-X": {    
+        "ent": 1.05,
+        "proc": 0.9
+    },
+    "RUSH-09": {    
+        "clk": 1.2,
+        "def": 0.9
+    },
+    "CHAOS-RND": {  
+
+    }
+}
+
+#ALGORITHM DESCRIPTIONS
+algorithm_descriptions = {
+    "VEX-01": "Vexor Assault Kernel: Built for aggressive attack routines. Prioritizes damage output at the cost of stability. +15% PROC, -10% DEF",
+    "BASL-09": "Bastion Logic Framework: Defensive fortress AI that fortifies its shielding subroutines above all else. +20% DEF, -10% CLK",
+    "EQUA-12": "Equilibrium Core Matrix: Balanced core algorithm ensuring even system resource allocation. No buffs or nerfs.",
+    "ADAPT-X": "Adaptive Pattern  Synthesizer: Self-learning AI that adjusts its combat model mid-battle. +10% LOGIC after 2 turns, +5% ENT, -10% PROC",
+    "RUSH-09": "Rapid Unit Synchronization Hub: An advanced AI core utilizing probabilistic threading for extreme combat reflexes. Fast but fragile. +20% CLK, -10% DEF",
+    "CHAOS-RND": "Chaotic Execution Driver: Unstable algorithm driven by randomized decision-making. High volatility, unpredictable results. Unstable modifiers each battle"
+}
+
+
 # Routes
 @app.route('/')
 def index():
