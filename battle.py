@@ -63,10 +63,10 @@ def battle_round(botA, botB, log):
         damage = calculate_damage(attacker, defender, log)
         defender.hp -= damage
 
-        log_line(log, "attack",f"{attacker.name} attacks {defender.name} for {damage} damage!")
+        log_line(log, "attack",f"{attacker.name} attacks {defender.name} for {damage:.2f} damage!")
         if defender.hp < 0:
             defender.hp = 0
-        log_line(log, "status",f"{defender.name} HP: {defender.hp}, Energy: {defender.energy}")
+        log_line(log, "status",f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
 
         if not defender.is_alive():
             log_line(log, "defeat",f"{defender.name} has been defeated!")
