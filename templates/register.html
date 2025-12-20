@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block page_title %}Register | Clash of Code{% endblock %}
+
+{% block content %}
+<h1>REGISTER // NEW USER</h1>
+
+<form method="POST" action="{{ url_for('register') }}">
+
+    <label>Username:</label>
+    <input type="text" name="username" required>
+
+    <br><br>
+
+    <label>Email:</label>
+    <input type="email" name="email" required>
+
+    <br><br>
+
+    <label>Password:</label>
+    <input type="password" name="password" required>
+
+    <br><br>
+
+    <button class="login-button" type="submit">CREATE ACCOUNT</button>
+
+</form>
+
+<br>
+
+<a href="{{ url_for('login') }}">RETURN TO LOGIN</a>
+
+{% endblock %}

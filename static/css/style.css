@@ -1,3 +1,189 @@
+:root {
+  /* Terminal colors */
+  --terminal-bg: #000a12;          /* dark background */
+  --terminal-screen: #001010;      /* inner terminal */
+  --terminal-text: #00ffaa;        /* bright neon green */
+  --terminal-glow: #00ffaa;        /* neon glow */
+  --terminal-dim: #003322;         /* dim text or borders */
+  --terminal-cursor: #00ffaa;      /* blinking cursor */
+
+  --font-terminal: 'VT323', monospace;
+  --font-code: 'Share Tech Mono', monospace;
+}
+
+/* Reset & Box sizing */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--terminal-bg);
+  color: var(--terminal-text);
+  font-family: var(--font-terminal);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: auto;
+  cursor: text;
+}
+
+/* Terminal container */
+.terminal-container {
+  width: 100%;
+  max-width: 760px;
+  padding: 40px;
+  border: 2px solid var(--terminal-glow);
+  box-shadow: 0 0 15px 5px var(--terminal-glow);
+  position: relative;
+  background-color: var(--terminal-screen);
+  border-radius: 12px;
+  animation: bootFade 1.5s ease-in-out;
+}
+
+/* Scanline overlay */
+.terminal-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 255, 170, 0.03),
+    rgba(0, 255, 170, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  opacity: 0.3;
+  z-index: 5;
+}
+
+/* Boot animation */
+@keyframes bootFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Scanline animation */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+/* Text glow */
+h1, p, label, input, button, a, .log-text {
+  color: var(--terminal-text);
+  text-shadow: 0 0 5px var(--terminal-glow), 0 0 10px var(--terminal-glow);
+}
+
+/* Neon buttons */
+.terminal-btn, .start-game-button
+  .start-game-button {
+  display: inline-block;
+  width: 100%;
+  padding: 12px 20px;
+  margin: 10px 0;
+  background: rgba(0, 255, 170, 0.1) !important;
+  border: 2px solid var(--terminal-glow) !important;
+  color: var(--terminal-text) !important;
+  font-family: var(--font-terminal);
+  font-size: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-decoration: none !important;
+}
+
+.terminal-btn:hover, .start-game-button:hover {
+  background: rgba(0, 255, 170, 0.3) !important;
+  box-shadow: 0 0 20px var(--terminal-glow)!important;
+  transform: scale(1.03);
+}
+
+/* Inputs */
+input[type="text"], input[type="password"], input[type="email"], textarea, select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--terminal-glow);
+  background: rgba(0, 255, 170, 0.05);
+  border-radius: 6px;
+  color: var(--terminal-text);
+  font-family: var(--font-terminal);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--terminal-glow);
+  box-shadow: 0 0 10px var(--terminal-glow);
+}
+
+a.start-game-button, a.login-button {
+    display: inline-block;
+    text-decoration: none;
+}
+
+/* Optional: Input focus glow */
+input[type="text"], input[type="password"], input[type="email"], textarea, select {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #00ffaa;
+    background: rgba(0, 255, 170, 0.05);
+    border-radius: 6px;
+    color: #00ffaa;
+    font-family: 'VT323', monospace;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #00ffaa;
+    box-shadow: 0 0 10px #00ffaa;
+}
+
+/* Cursor blink */
+.blink {
+  animation: blinkCursor 1s infinite;
+}
+
+@keyframes blinkCursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Status / footer area */
+.status-area {
+  margin-top: 30px;
+  font-size: 1rem;
+  border-top: 1px solid rgba(0, 255, 170, 0.2);
+  padding-top: 15px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.25rem;
+  margin-bottom: 40px;
+  border-bottom: 1px solid rgba(0, 255, 170, 0.2);
+  padding-bottom: 10px;
+}
+
+/* Matrix Canvas */
+#matrix-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.15;
+}
+
 .algorithm-card {
     border: 2px solid #ccc;
     border-radius: 8px;
@@ -8,4 +194,23 @@
 .algorithm-radio:checked + .algorithm-card {
     border-color: #0d6efd;
     background-color: #e7f1ff;
+}
+
+/* Combat Log CSS */
+.log-text {
+    color: var(--terminal-text);
+    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+}
+
+.log-text.attack { color:red; }
+.log-text.status { color:lightblue; }
+.log-text.dodge { color:pink; }
+.log-text.defeat { color:purple; }
+.log-text.round { color:#00ffaa; }
+.log-text.battleover { color:#00ffaa; }
+
+.stats-comparison td, .stats-comparison th, .stats-comparison tr {
+  background-color: transparent !important;
+  border-color: #00ffaa;
+  color: #00ffaa;
 }
