@@ -9,7 +9,6 @@
 
   --font-terminal: 'VT323', monospace;
   --font-code: 'Share Tech Mono', monospace;
-}
 
 /* Reset & Box sizing */
 * {
@@ -28,6 +27,11 @@ body {
   align-items: center;
   overflow: auto;
   cursor: text;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto; 
+}
+
 }
 
 /* Terminal container */
@@ -79,6 +83,13 @@ body {
 h1, p, label, input, button, a, .log-text {
   color: var(--terminal-text);
   text-shadow: 0 0 5px var(--terminal-glow), 0 0 10px var(--terminal-glow);
+}
+button,
+a,
+input[type="submit"] {
+    background: transparent;
+    border: none;
+    outline: none;
 }
 
 /* Neon buttons */
@@ -138,6 +149,13 @@ input[type="text"], input[type="password"], input[type="email"], textarea, selec
     font-family: 'VT323', monospace;
 }
 
+.alert {
+    font-family: 'VT323', monospace;
+    color: #00ffea;
+    background: rgba(0, 255, 234, 0.1);
+    border: 1px solid #00ffea;
+}
+
 input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: #00ffaa;
@@ -154,12 +172,12 @@ input:focus, textarea:focus, select:focus {
   50% { opacity: 0; }
 }
 
-/* Status / footer area */
+/* Status, footer area */
 .status-area {
-  margin-top: 30px;
-  font-size: 1rem;
-  border-top: 1px solid rgba(0, 255, 170, 0.2);
-  padding-top: 15px;
+    border-top: 1px solid rgba(0, 255, 170, 0.2);
+    padding-top: 12px;
+    font-size: 1.1rem;
+    margin-top: 20px; /* add spacing from items */
 }
 
 /* Header */
@@ -196,6 +214,410 @@ input:focus, textarea:focus, select:focus {
     background-color: #e7f1ff;
 }
 
+/* bot */
+
+.bot-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.bot-card {
+    border: 1px solid #00ff00;
+    padding: 15px;
+    width: 220px;
+    font-family: "VT323", monospace;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.bot-card h3 {
+    color: #00ff80;
+    margin-bottom: 10px;
+}
+
+.bot-form {
+    display: flex;
+    flex-direction: column;
+    width: 300px;
+}
+
+.bot-form input {
+    margin-bottom: 10px;
+}
+
+.flash-area .flash {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-left: 4px solid;
+}
+
+.flash.success { border-color: #00ff00; color: #00ff00; }
+.flash.danger  { border-color: #ff0040; color: #ff0040; }
+.flash.warning { border-color: #ffae00; color: #ffae00; }
+
+.bot-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+}
+
+.action-btn {
+    padding: 5px 10px;
+    border: 1px solid #00ff00;
+    color: #00ff00;
+    text-decoration: none;
+    font-family: "VT323";
+}
+
+.action-btn:hover {
+    background: #00ff00;
+    color: black;
+}
+
+.action-btn.danger {
+    border-color: #ff0040;
+    color: #ff0040;
+}
+
+.action-btn.danger:hover {
+    background: #ff0040;
+    color: black;
+}
+
+#battle-screen {
+    border: 1px solid #00ff00;
+    padding: 15px;
+    height: 300px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.7);
+    font-family: "VT323";
+    color: #00ff00;
+    margin-bottom: 20px;
+}
+
+#battle-log {
+    white-space: pre-wrap;
+    font-size: 18px;
+}
+
+/* CYBERPUNK DASHBOARD ENHANCEMENTS */
+
+/* Main dashboard wrapper */
+.dashboard-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* Username highlight */
+.highlight {
+    color: #00ffea;
+    font-size: 1.8rem;
+    text-shadow: 0 0 10px #00ffee;
+}
+
+/* Cyber neon stat grid */
+.cyber-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    padding: 10px;
+    margin-top: 15px;
+}
+
+.neon-panel {
+    padding: 20px;
+    border: 2px solid rgba(0,255,255,0.4);
+    background: rgba(0, 20, 30, 0.5);
+    box-shadow: 0 0 12px cyan, inset 0 0 18px rgba(0,255,255,0.3);
+    border-radius: 12px;
+    text-align: center;
+}
+/* Grids  */
+.stats-grid, .action-grid, .bot-list {
+    display: grid;
+    gap: 15px;
+}
+
+.stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.bot-list {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+/* --- XP BAR --- */
+.xp-bar {
+    background-color: #222;
+    width: 100%;
+    height: 20px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.xp-fill {
+    height: 100%;
+    width: var(--xp-width);
+    background: linear-gradient(90deg, #00f0ff, #00ff9f);
+    transition: width 0.5s ease-in-out;
+}
+
+@keyframes xpGlow {
+    from { box-shadow: 0 0 6px cyan; }
+    to   { box-shadow: 0 0 20px cyan; }
+}
+
+/* HOLOGRAM BOT CARDS */
+
+.hologram-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 25px;
+    margin-top: 20px;
+}
+
+.holo-card {
+    position: relative;
+    background: rgba(0, 8, 12, 0.55);
+    padding: 20px;
+    border-radius: 14px;
+    border: 1px solid rgba(0,255,255,0.4);
+    backdrop-filter: blur(4px);
+    transform-style: preserve-3d;
+    transition: transform 0.4s ease, box-shadow 0.3s ease;
+}
+
+.holo-card:hover {
+    transform: rotateX(12deg) rotateY(-12deg) scale(1.05);
+    box-shadow: 0 0 28px cyan;
+}
+
+.holo-card h3 {
+    color: cyan;
+    font-size: 1.5rem;
+    text-shadow: 0 0 12px cyan;
+}
+
+.holo-glow {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(0,255,255,0.2), transparent);
+    animation: holoMove 4s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes holoMove {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+}
+
+/*CREATE BOT FORM*/
+
+.create-bot-form {
+    display: grid;
+    gap: 12px;
+    width: 350px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.create-bot-form input {
+    border: 2px solid cyan;
+    background: rgba(0,255,255,0.05);
+}
+
+.login-button {
+    padding: 10px;
+    font-size: 1.3rem;
+    border: 1px solid cyan;
+    background: rgba(0,255,255,0.1);
+    margin-top: 20px;
+}
+
+.login-button:hover {
+    background: rgba(0,255,255,0.25);
+    box-shadow: 0 0 20px cyan;
+}
+
+/*ACTION BUTTONS*/
+
+.action-grid {
+    margin-top: 25px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.action-button {
+    padding: 12px 24px;
+    border: 2px solid cyan;
+    font-size: 1.3rem;
+    text-decoration: none;
+    color: cyan;
+    transition: 0.2s;
+    margin-top: -40px;
+    margin-bottom: 20px;
+}
+
+.action-button:hover {
+    background: cyan;
+    color: black;
+    transform: scale(1.05);
+    box-shadow: 0 0 18px cyan;
+}
+.level-up-popup {
+    position: fixed;
+    top: 35%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,255,255,0.1);
+    border: 3px solid cyan;
+    padding: 40px 70px;
+    border-radius: 12px;
+    text-align: center;
+    z-index: 9999;
+    color: cyan;
+    font-size: 2.5rem;
+    text-shadow: 0 0 15px cyan;
+    box-shadow: 0 0 40px cyan;
+    animation: popGlow 1s ease-out;
+}
+
+.hidden {
+    display: none;
+}
+
+@keyframes popGlow {
+    0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+    50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.xp-ring-container {
+    text-align: center;
+}
+
+.xp-ring {
+    transform: rotate(-90deg);
+}
+
+.xp-bg {
+    fill: none;
+    stroke: rgba(0, 255, 255, 0.1);
+    stroke-width: 12;
+}
+
+.xp-progress {
+    fill: none;
+    stroke: cyan;
+    stroke-width: 12;
+    stroke-linecap: round;
+    stroke-dasharray: 377; /* 2πr */
+    stroke-dashoffset: calc(377 - (377 * var(--percent) / 100));
+    transition: stroke-dashoffset 1s ease;
+    filter: drop-shadow(0 0 10px cyan);
+}
+/* Neon glow for dropdown */
+@keyframes neonPulse {
+    0% { box-shadow: 0 0 5px var(--glow-color); }
+    50% { box-shadow: 0 0 15px var(--glow-color); }
+    100% { box-shadow: 0 0 5px var(--glow-color); }
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--glow-color);
+    animation: neonPulse 1.5s infinite;
+}
+.back-button {
+    position: fixed;       /* Stay in place even when scrolling */
+    top: 20px;             /* Distance from the top */
+    left: 20px;            /* Distance from the left */
+    background-color: #007bff; /* Bootstrap primary blue */
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    z-index: 1000;         /* Make sure it’s above other elements */
+    transition: background-color 0.2s;
+}
+
+.back-button:hover {
+    background-color: #0056b3; /* Darker on hover */
+}
+
+.dashboard {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.scroll-section {
+    max-height: 80vh; 
+    overflow-y: auto;
+    padding-right: 10px;
+    border: 1px solid #333;
+}
+.store-item {
+    border: 2px solid #39ff14; 
+    border-radius: 8px;
+    padding: 1rem;
+    background-color: rgba(0, 0, 0, 0.3); 
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.bot-dropdown, .buy-btn {
+    width: 100%;          
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.neon-btn {
+    background: transparent !important;
+    border: 2px solid #00ffff;
+    color: #00ffff;
+    box-shadow: 0 0 10px #00ffff;
+    text-shadow: 0 0 5px #00ffff;
+    transition: all 0.2s ease-in-out;
+    width: 20%;
+}
+
+.neon-btn:hover {
+    background: rgba(0, 255, 255, 0.15) !important;
+    box-shadow: 0 0 20px #00ffff;
+    color: #ffffff;
+}
+.back-home-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 70px;
+}
+.icon-btn {
+    background: transparent;
+    border: 2px solid #00fff0;
+    color: #00fff0;
+    padding: 10px;
+    border-radius: 20%;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0,255,240,0.4);
+    transition: all 0.25s ease;
+}
+
+.icon-btn:hover {
+    box-shadow: 0 0 20px #00fff0, 0 0 40px rgba(0,255,240,0.6);
+    transform: scale(1.1);
+}
+
+.icon-btn i {
+    pointer-events: none;
+}
+.settings-btn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+}
 /* Combat Log CSS */
 .log-text {
     color: var(--terminal-text);

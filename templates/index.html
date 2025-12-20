@@ -1,5 +1,28 @@
 {% extends "base.html" %}
 
+{% block page_title %}Home - Clash of Code{% endblock %}
+
+{% block content %}
+<h1>Welcome, Player!</h1>
+<p>Choose your next action:</p>
+
+<div class="form-group">
+    <a href="{{ url_for('login') }}" class="terminal-btn">LOGIN</a>
+</div>
+
+<div class="form-group">
+    <a href="{{ url_for('play') }}" class="terminal-btn">START GAME</a>
+</div>
+
+<div class="form-group">
+    <a href="{{ url_for('store') }}" class="terminal-btn">STORE</a>
+</div>
+
+<div class="form-group">
+    <a href="{{ url_for('profile') }}" class="terminal-btn">PROFILE</a>
+</div>
+
+
 {% block content %}
     <h1>Welcome to Clash of Code</h1>
 {% endblock %}
