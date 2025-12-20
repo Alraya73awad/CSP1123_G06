@@ -59,4 +59,47 @@ document.getElementById("start-battle").onclick = async () => {
 };
 </script>
 
+{% block content %}
+<div class="container mt-4">
+    <h2>Select Bots to Battle</h2>
+
+    <form method="POST" class="mt-3">
+
+        <!-- Bot 1 dropdown -->
+        <div class="mb-3">
+            <label class="form-label">Choose Fighter 1</label>
+            <select name="bot1" class="form-select" required>
+                <option value="" disabled selected>Select a bot</option>
+                {% for bot in bots %}
+                    <option value="{{ bot.id }}">{{ bot.name }} ({{ bot.algorithm }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Bot 2 dropdown -->
+        <div class="mb-3">
+            <label class="form-label">Choose Fighter 2</label>
+            <select name="bot2" class="form-select" required>
+                <option value="" disabled selected>Select a bot</option>
+                {% for bot in bots %}
+                    <option value="{{ bot.id }}">{{ bot.name }} ({{ bot.algorithm }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, msg in messages %}
+                    <div class="alert alert-{{ category }} mt-2">
+                        {{ msg }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <button type="submit" class="btn btn-primary">Start Battle</button>
+        <a href="{{ url_for('bot_list') }}" class="btn btn-secondary">Cancel</a>
+
+    </form>
+</div>
 {% endblock %}

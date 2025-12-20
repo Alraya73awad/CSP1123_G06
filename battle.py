@@ -1,36 +1,93 @@
-from app import db
-from flask_login import current_user
+import random
 
-def add_xp_and_rewards(user, result):
-    xp_rewards = {
-        "win": 50,
-        "lose": 20,
-        "draw": 30
-    }
+class BattleBot:
+    def __init__(self=10, name=10, energy=10, proc=10, defense=10, speed=10, clk=10 , luck=10, hp=100):
+        self.name = name
+        self.hp = hp
+        self.energy = energy
+        self.proc = proc       # Attack power
+        self.defense = defense
+        self.speed = speed
+        self.clk = clk         # Reflex/clock stat
+        self.luck = luck       # % chance for crit/dodge
 
-    token_rewards = {
-        "win": 10,
-        "lose": 3,
-        "draw": 5
-    }
+    def is_alive(self):
+        return self.hp > 0 and self.energy > 0
 
-    user.xp += xp_rewards[result]
-    user.tokens += token_rewards[result]
+def log_line(log, type, text):
+    log.append((type.strip().lower(), text))
 
-    # Level up
-    while user.xp >= user.level * 100:
-        user.xp -= user.level * 100
-        user.level += 1
 
-    db.session.commit()
-
-def process_battle_result(winner):
-    if winner == "player":
-        add_xp_and_rewards(current_user, "win")
-    elif winner == "bot":
-        add_xp_and_rewards(current_user, "lose")
+def calculate_turn_order(botA, botB, log):
+    if botA.clk> botB.clk:
+        return [botA, botB]
+    elif botB.clk > botA.clk:
+        return [botB, botA]
     else:
-        add_xp_and_rewards(current_user, "draw")
+        return random.sample([botA, botB], 2)  # random order if equal
 
-winner = process_battle_result
-process_battle_result(winner)
+
+def calculate_damage(attacker, defender, log):
+    # Base damage
+    base_proc = attacker.proc - (defender.defense * 0.7)
+    if base_proc < 0:
+        base_proc = 0
+
+    # Critical hit check
+    crit_trigger = random.randint(1, 100) <= attacker.luck
+    crit_rate = 1 if crit_trigger else 0
+
+    # Dodge check
+    dodge_chance = 0
+    if defender.clk > attacker.clk:
+        dodge_chance = (attacker.clk - defender.clk) * (attacker.luck / 100)
+        dodge_roll = random.random()
+        if dodge_roll < dodge_chance:
+            log_line(log, "dodge",f"{defender.name} dodged the attack!")
+            return 0
+
+    # Final damage
+    final_damage = base_proc + (base_proc * crit_rate)
+    return final_damage
+
+
+def battle_round(botA, botB, log):
+    turn_order = calculate_turn_order(botA, botB, log)
+
+    for attacker in turn_order:
+        defender = botA if attacker == botB else botB
+
+        if not defender.is_alive():
+            break
+
+        damage = calculate_damage(attacker, defender, log)
+        defender.hp -= damage
+
+        log_line(log, "attack",f"{attacker.name} attacks {defender.name} for {damage:.2f} damage!")
+        if defender.hp < 0:
+            defender.hp = 0
+        log_line(log, "status",f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
+
+        if not defender.is_alive():
+            log_line(log, "defeat",f"{defender.name} has been defeated!")
+            return attacker.name
+
+def full_battle(botA, botB):
+    log = []
+    round_num = 1
+    while botA.is_alive() and botB.is_alive():
+        log_line(log, "round",f"\n (Round {round_num})")
+        winner = battle_round(botA, botB, log)
+        if winner:
+            log_line(log, "battleover",f"\nBattle Over! Winner: {winner}")
+            print(log)
+            return winner, log 
+            break
+        round_num += 1
+
+#test battle
+if __name__ == "__main__":
+    bot1 = BattleBot("Alpha", hp=100, energy=50, proc=30, defense=10, clk=14, luck=15)
+    bot2 = BattleBot("Beta", hp=120, energy=50, proc=25, defense=12, clk=14, luck=10)
+    winner = full_battle(bot1, bot2)
+  

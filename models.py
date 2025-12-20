@@ -31,6 +31,7 @@ class Bot(db.Model):
     speed = db.Column(db.Integer, default=0)
 
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+from datetime import datetime 
 
     def __repr__(self):
         return f"<Bot {self.name}>"
@@ -51,3 +52,35 @@ class Bot(db.Model):
         db.session.commit()
 
         return user.level > old_level  # True = level-up happened
+    def __repr__(self):
+        return f"<Bot {self.name}>"
+
+class History(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    bot1_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
+    bot2_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
+
+    bot1_name = db.Column(db.String(50), nullable=False)
+    bot2_name = db.Column(db.String(50), nullable=False)
+
+    winner = db.Column(db.String(50))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    logs = db.relationship(
+        "HistoryLog",
+        backref="history",
+        cascade="all, delete-orphan"
+    )
+
+class HistoryLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    history_id = db.Column(
+        db.Integer,
+        db.ForeignKey("history.id"),
+        nullable=False
+    )
+
+    type = db.Column(db.String(20))  # round, attack, status, defeat, etc
+    text = db.Column(db.Text)

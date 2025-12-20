@@ -25,7 +25,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden;
+  overflow: auto;
   cursor: text;
   margin: 0;
   padding: 0;
@@ -80,7 +80,7 @@ body {
 }
 
 /* Text glow */
-h1, p, label, input, button, a {
+h1, p, label, input, button, a, .log-text {
   color: var(--terminal-text);
   text-shadow: 0 0 5px var(--terminal-glow), 0 0 10px var(--terminal-glow);
 }
@@ -617,4 +617,22 @@ select:focus {
     position: absolute;
     bottom: 20px;
     right: 20px;
+}
+/* Combat Log CSS */
+.log-text {
+    color: var(--terminal-text);
+    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+}
+
+.log-text.attack { color:red; }
+.log-text.status { color:lightblue; }
+.log-text.dodge { color:pink; }
+.log-text.defeat { color:purple; }
+.log-text.round { color:#00ffaa; }
+.log-text.battleover { color:#00ffaa; }
+
+.stats-comparison td, .stats-comparison th, .stats-comparison tr {
+  background-color: transparent !important;
+  border-color: #00ffaa;
+  color: #00ffaa;
 }
