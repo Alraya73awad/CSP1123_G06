@@ -1,21 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
-from extention import db
-from models import Bot, Modules
+from extensions import db
+from extension2 import create_app
+from battle import BattleBot, full_battle
 
-# Models
-def create_app():
-    app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Modules.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    db.init_app(app)
-
-    with app.app_context():
-        db.create_all()
-
-    return app
 
 app = create_app()
+
+# Models
+from models import Bot, History, HistoryLog
 
 # Stat Min/Max Values
 STAT_LIMITS = {
@@ -75,8 +67,6 @@ algorithm_descriptions = {
 }
 
 
-
-
 # Routes
 @app.route('/')
 def index():
@@ -111,9 +101,9 @@ def bot_list():
     for bot in bots:
         base_stats = {
             "int": bot.hp,
-            "proc": bot.atk,
+            "proc": bot.proc,
             "def": bot.defense,
-            "clk": bot.speed,
+            "clk": bot.clk,
             "logic": bot.logic,
             "ent": bot.luck,
             "pwr": bot.energy
@@ -236,9 +226,9 @@ def edit_bot(bot_id):
                 bot.algorithm != new_algorithm or
                 bot.hp != final_stats['hp'] or
                 bot.energy != final_stats['energy'] or
-                bot.atk != final_stats['atk'] or
+                bot.proc != final_stats['atk'] or
                 bot.defense != final_stats['defense'] or
-                bot.speed != final_stats['speed'] or
+                bot.clk != final_stats['speed'] or
                 bot.logic != final_stats['logic'] or
                 bot.luck != final_stats['luck']
             )
@@ -252,9 +242,9 @@ def edit_bot(bot_id):
             
             bot.hp = final_stats['hp']
             bot.energy = final_stats['energy']
-            bot.atk = final_stats['atk']
+            bot.proc = final_stats['atk']
             bot.defense = final_stats['defense']
-            bot.speed = final_stats['speed']
+            bot.clk = final_stats['speed']
             bot.logic = final_stats['logic']
             bot.luck = final_stats['luck']
 
@@ -270,16 +260,16 @@ def bot_details(bot_id):
 
     base_stats = {
         "int": bot.hp,
-        "proc": bot.atk,
+        "proc": bot.proc,
         "def": bot.defense,
-        "clk": bot.speed,
+        "clk": bot.clk,
         "logic": bot.logic,
         "ent": bot.luck,
         "pwr": bot.energy
     }
 
     # lookup effects; default empty dict for algorithms with no static buffs
-    effects = algorithm_effects.get(bot.algorithm, {})
+    effects = algorithm_effects.get(bot.algorithm_id, {})
 
     final_stats = {}
     multipliers = {}
@@ -297,11 +287,94 @@ def bot_details(bot_id):
         final_stats=final_stats
     )
 
+@app.route("/combat_log/<int:bot1_id>/<int:bot2_id>")
+def combat_log(bot1_id, bot2_id):
+    bot1 = Bot.query.get_or_404(bot1_id)
+    bot2 = Bot.query.get_or_404(bot2_id)
+
+    stats1 = apply_algorithm(bot1)
+    stats2 = apply_algorithm(bot2)
+
+    # convert database Bot → BattleBot for combat (with effective stats)
+    bot1 = Bot.query.get(bot1_id)
+    bot2 = Bot.query.get(bot2_id)
+
+    battleA = BattleBot(bot1)
+    battleB = BattleBot(bot2)
+
+
+    winner, log = full_battle(battleA, battleB)
+
+    # create history entry
+    history = History(
+        bot1_id=bot1.id,
+        bot2_id=bot2.id,
+        bot1_name = bot1.name,
+        bot2_name = bot2.name,
+        winner=winner
+    )
+    db.session.add(history)
+    db.session.flush()  # assigns history.id
+
+    # save combat log lines
+    for type, text in log:
+        entry = HistoryLog(
+            history_id=history.id,
+            type=type,
+            text=text
+        )
+        db.session.add(entry)
+
+    db.session.commit()
+    return render_template("combat_log.html", log=log, winner=winner, bot1=bot1, bot2=bot2, stats1 = stats1, stats2 = stats2)
+
+@app.route("/battle", methods=["GET", "POST"])
+def battle_select():
+    bots = Bot.query.all()
+
+    if request.method == "POST":
+        bot1_id = request.form.get("bot1")
+        bot2_id = request.form.get("bot2")
+
+        if bot1_id == bot2_id:
+            flash("You must choose two different bots!", "warning") 
+        else:
+            return redirect(url_for('combat_log', bot1_id=bot1_id, bot2_id=bot2_id))
+
+    return render_template("battle.html", bots=bots)
+
+def apply_algorithm(bot):
+    effects = algorithm_effects.get(bot.algorithm_id, {})
+
+    # Return new effective stats
+    return {
+        "name": bot.name,
+        "hp": int(bot.hp * effects.get("hp", 1.0)),
+        "energy": int(bot.energy * effects.get("energy", 1.0)),
+        "proc": int(bot.proc * effects.get("proc", 1.0)),
+        "defense": int(bot.defense * effects.get("def", 1.0)),
+        "clk": int(bot.clk * effects.get("clk", 1.0)),
+        "luck": int(bot.luck * effects.get("luck", 1.0)),
+    }
+
+@app.route("/history")
+def history():
+    battles = History.query.order_by(History.timestamp.desc()).all()
+    return render_template("history.html", battles = battles)
+
+@app.route("/history/<int:history_id>")
+def view_history(history_id):
+    history = History.query.get_or_404(history_id)
+    bot1 = Bot.query.get(history.bot1_id)
+    bot2 = Bot.query.get(history.bot2_id)
+    stats1 = apply_algorithm(bot1)
+    stats2 = apply_algorithm(bot2)
+    logs = HistoryLog.query.filter_by(history_id=history.id).all()
+
+    return render_template("combat_log.html", log=[(l.type, l.text) for l in logs], winner = history.winner, bot1 = bot1, bot2 = bot2, stats1 = stats1, stats2 = stats2)
+
 # Run server
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run(debug=True)
-    app = Flask(__name__)
-    app.config['DEBUG'] = True
-

@@ -1,7 +1,7 @@
 import random
-from app import create_app
-from extention import db
-from models import Bot
+from extension2 import create_app
+from extensions import db
+from models import Bot, BattleBot
 
 app = create_app()
 
@@ -97,15 +97,15 @@ def full_battle(botA, botB):
         round_num += 1
 
 
-# Test battle using DB bots
+# Test battle 
 if __name__ == "__main__":
     with app.app_context():
-        # Fetch two bots from DB by name or ID
-        bot1_model = Bot.query.filter_by(name="VEX").first()
+        # Fetch two bots from Modules.db by name
+        bot1_model = Bot.query.filter_by(name="EQUA").first()
         bot2_model = Bot.query.filter_by(name="BASL").first()
 
         if not bot1_model or not bot2_model:
-            print("Bots not found in database. Seed them first!")
+            print("Bots not found in database.")
         else:
             bot1 = BattleBot(bot1_model)
             bot2 = BattleBot(bot2_model)
