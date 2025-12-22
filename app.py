@@ -1,16 +1,28 @@
+import os
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_migrate import Migrate
+
 from extensions import db
 from models import User, Bot
-import os
-from flask_migrate import Migrate
-from constants import UPGRADES
-from constants import STORE_ITEMS
+from constants import UPGRADES, STORE_ITEMS
+from battle import BattleBot, full_battle
 
-from models import User
-from flask import session
 
 app = Flask(__name__, instance_relative_config=True)
+
+app.config["SECRET_KEY"] = "dev_secret_key"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///clash_of_code.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db.init_app(app)
+migrate = Migrate(app, db)
+
+# Create tables
+with app.app_context():
+    db.create_all()
+
 
 @app.context_processor
 def inject_current_user():
@@ -19,42 +31,17 @@ def inject_current_user():
         user = User.query.get(session["user_id"])
     return dict(current_user=user)
 
-from flask import Flask, render_template, request, redirect, url_for, flash
-from extensions import db
-from battle import BattleBot, full_battle
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///clash_of_code.db'
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config['SECRET_KEY'] = 'dev_secret_key'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db.init_app(app)
-migrate = Migrate(app, db)
-
-# Create tables 
-with app.app_context():
-    db.create_all()
-
-
-
-# homepage
+#routes
 @app.route("/")
 def home():
-    user_id = session.get("user_id")
-    username = None
+    user = None
+    if "user_id" in session:
+        user = User.query.get(session["user_id"])
 
-    if user_id:
-        user = User.query.get(user_id)
-        if user:
-            username = user.username
+    return render_template("index.html", username=user.username if user else None)
 
-    return render_template("index.html", username=username)
-
-
-
-# login
-
+#login
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -77,14 +64,13 @@ def login():
 
     return render_template("login.html")
 
-
-# register
-@app.route('/register', methods=['GET', 'POST'])
+#register
+@app.route("/register", methods=["GET", "POST"])
 def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
+    if request.method == "POST":
+        username = request.form["username"]
+        email = request.form["email"]
+        password = request.form["password"]
 
         if User.query.filter_by(username=username).first():
             flash("Username already exists.", "danger")
@@ -95,20 +81,35 @@ def register():
             return redirect(url_for("register"))
 
         hashed_password = generate_password_hash(password)
-        new_user = User(username=username, email=email, password=hashed_password)
+        user = User(username=username, email=email, password=hashed_password)
 
-        db.session.add(new_user)
+        db.session.add(user)
         db.session.commit()
 
         flash("Account created successfully!", "success")
-        return redirect(url_for('login'))
+        return redirect(url_for("login"))
 
-    return render_template('register.html')
+    return render_template("register.html")
 
 
+#dashboard
+@app.route("/dashboard")
+def dashboard():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
-# DASHBOARD (User Bots Only)
-@app.route('/dashboard')
+    user = User.query.get(session["user_id"])
+    bots = user.bots if user else []
+
+    return render_template("dashboard.html", user=user, bots=bots)
+
+
+#logout
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("Logged out successfully.", "info")
+    return redirect(url_for("home"))
 def dashboard():
     if 'user_id' not in session:
         flash("Please log in to continue.", "warning")
@@ -135,9 +136,14 @@ def dashboard():
 # Create bot
 @app.route('/create_bot', methods=['POST'])
 def create_bot():
+    
+    flash("Bot created successfully!", "success")
+    return redirect(url_for("dashboard"))
+    
     if 'user_id' not in session:
         flash("Please log in first.", "warning")
         return redirect(url_for('login'))
+
 
     bot_name = request.form['name']
     attack = int(request.form['attack'])
@@ -247,21 +253,23 @@ algorithm_effects = {
         "clk": 0.9
     },
     "EQUA-12": {
-
-    flash("Bot created successfully!", "success")
-    return redirect(url_for('dashboard'))
+        "proc": 1.0,
+        "def": 1.0,
+        "clk": 1.0,
+        "ent": 1.0
     },
-    "ADAPT-X": {    
+    "ADAPT-X": {
         "ent": 1.05,
         "proc": 0.9
     },
-    "RUSH-09": {    
+    "RUSH-09": {
         "clk": 1.2,
         "def": 0.9
     },
-    "CHAOS-RND": {  
-
+    "CHAOS-RND": {
+        # effects handled randomly in logic
     }
+
 }
 
 # manage bot
