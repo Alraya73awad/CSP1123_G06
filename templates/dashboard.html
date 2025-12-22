@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block page_title %}Dashboard | Clash of Code{% endblock %}
+
+{% block content %}
+
+<h1>USER DASHBOARD // MAIN INTERFACE</h1>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-area">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- WELCOME HEADER -->
+<div class="dashboard-header cyber-header">
+    <h2>Welcome, <span class="highlight">{{ current_user.username }}</span></h2>
+    <p>Access your bots, stats, and battle systems below.</p>
+</div>
+
+<br>
+
+
+<!-- PLAYER STATS (CYBER GRID) -->
+<div class="stats-grid cyber-grid">
+
+    <!-- LEVEL -->
+    <div class="stat-card neon-panel">
+        <h3>LEVEL</h3>
+        <p>{{ current_user.level }}</p>
+    </div>
+
+    <!-- XP -->
+    <div class="stat-card neon-panel">
+        <h3>XP</h3>
+        {% set xp_required = current_user.level * 100 %}
+        {% set xp_percent = ((current_user.xp / xp_required) * 100) | round(2) | default(0) %}
+
+        <div class="xp-bar" style="--xp-width: {{ xp_percent }}%;">
+            <div class="xp-fill"></div>
+        </div>
+        <p>{{ current_user.xp }} / {{ xp_required }} XP</p>
+    </div>
+
+    <!-- TOKENS -->
+    <div class="stat-card neon-panel">
+        <h3>TOKENS</h3>
+        <p>{{ current_user.tokens }}</p>
+    </div>
+
+</div>
+
+<br><br>
+
+<!-- BOT LIST -->
+<h2>Your Bots</h2>
+
+{% if bots %}
+    <div class="bot-list hologram-grid">
+        {% for bot in bots %}
+            <div class="bot-card holo-card">
+                <div class="holo-glow"></div>
+                <h3>{{ bot.name }}</h3>
+                <p>ATK: {{ bot.attack }}</p>
+                <p>DEF: {{ bot.defense }}</p>
+                <p>SPD: {{ bot.speed }}</p>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <p>No bots found — create your first bot below.</p>
+{% endif %}
+
+<br><br>
+
+<!-- CREATE BOT FORM -->
+<h2>Create a New Bot</h2>
+
+<form method="POST" action="{{ url_for('create_bot') }}" class="create-bot-form neon-panel">
+    <label>Bot Name:</label>
+    <input type="text" name="name" required>
+
+    <label>Attack:</label>
+    <input type="number" name="attack" min="0" max="100" required>
+
+    <label>Defense:</label>
+    <input type="number" name="defense" min="0" max="100" required>
+
+    <label>Speed:</label>
+    <input type="number" name="speed" min="0" max="100" required>
+
+    <button type="submit" class="login-button">CREATE BOT</button>
+</form>
+
+<br><br>
+
+<!-- ACTION BUTTONS -->
+<div class="action-grid">
+    <a href="{{ url_for('battle') }}" class="action-button">BATTLE</a>
+    <a href="{{ url_for('manage_bot') }}" class="action-button">MANAGE BOTS</a>
+    <a href="{{ url_for('store') }}" class="action-button">STORE</a>
+    <a href="{{ url_for('character') }}" class="action-button">CHARACTER</a>
+</div>
+
+<a href="{{ url_for('home') }}" class="icon-btn back-home-btn">
+    <i class="fa-solid fa-house"></i>
+</a>
+
+
+
+<style>
+.btn-terminal {
+    padding: 12px 30px;
+    border: 2px solid #00ffaa;
+    border-radius: 10px;
+    color: #00ffaa;
+    background: rgba(0,0,10,0.7);
+    font-family: 'VT323', monospace;
+    font-size: 1.3rem;
+    text-decoration: none;
+    text-shadow: 0 0 5px #00ffaa;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-terminal:hover {
+    background: rgba(0,255,170,0.1);
+    box-shadow: 0 0 15px #00ffaa;
+    transform: scale(1.05);
+}
+.btn-terminal i {
+    margin-right: 10px;
+}
+</style>
+
+
+
+<!-- level up -->
+<div id="level-up-popup" class="level-up-popup hidden">
+    <h1>LEVEL UP!</h1>
+    <p>You reached Level <span id="new-level"></span>!</p>
+</div>
+
+<audio id="level-up-sound">
+    <source src="{{ url_for('static', filename='sounds/level_up.mp3') }}" type="audio/mpeg">
+</audio>
+
+<div class="xp-ring-container">
+    <svg class="xp-ring" width="150" height="150">
+        <circle class="xp-bg" cx="75" cy="75" r="60" />
+        <circle class="xp-progress" cx="75" cy="75" r="60" 
+                style="--percent: {{ xp_percent }}%;" />
+    </svg>
+    <p>{{ xp }} / {{ level * 100 }} XP</p>
+</div>
+
+<!-- Dashboard Header -->
+<div class="dashboard-header d-flex justify-content-between align-items-center">
+     <button class="icon-btn settings-btn" data-bs-toggle="modal" data-bs-target="#settingsModal">
+    <i class="fa-solid fa-gear"></i>
+</button>
+
+
+</div>
+
+<!-- Settings Modal -->
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('update_settings') }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="settingsModalLabel">Account Settings</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" name="username" id="username" value="{{ current_user.username }}" class="form-control">
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" name="email" id="email" value="{{ current_user.email }}" class="form-control">
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">New Password</label>
+                <input type="password" name="password" id="password" class="form-control">
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary neon-btn" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary neon-btn">Update Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

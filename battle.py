@@ -19,9 +19,12 @@ class BattleBot:
     def is_alive(self):
         return self.hp > 0 and self.energy > 0
 
+def log_line(log, type, text):
+    log.append((type.strip().lower(), text))
 
-def calculate_turn_order(botA, botB):
-    if botA.clk > botB.clk:
+
+def calculate_turn_order(botA, botB, log):
+    if botA.clk> botB.clk:
         return [botA, botB]
     elif botB.clk > botA.clk:
         return [botB, botA]
@@ -29,7 +32,7 @@ def calculate_turn_order(botA, botB):
         return random.sample([botA, botB], 2)  # random order if equal
 
 
-def calculate_damage(attacker, defender):
+def calculate_damage(attacker, defender, log):
     # Base damage
     base_proc = attacker.proc - (defender.defense * 0.5)
     if base_proc < 0:
@@ -42,9 +45,10 @@ def calculate_damage(attacker, defender):
     # Dodge check
     dodge_chance = 0
     if defender.clk > attacker.clk:
-        dodge_chance = (defender.clk - attacker.clk) * (defender.luck / 100)
-        if random.random() < dodge_chance:
-            print(f"{defender.algorithm_id} dodged the attack!")
+        dodge_chance = (attacker.clk - defender.clk) * (attacker.luck / 100)
+        dodge_roll = random.random()
+        if dodge_roll < dodge_chance:
+            log_line(log, "dodge",f"{defender.name} dodged the attack!")
             return 0
 
     if crit_trigger:
@@ -55,8 +59,8 @@ def calculate_damage(attacker, defender):
     return final_damage
 
 
-def battle_round(botA, botB):
-    turn_order = calculate_turn_order(botA, botB)
+def battle_round(botA, botB, log):
+    turn_order = calculate_turn_order(botA, botB, log)
 
     for attacker in turn_order:
         defender = botA if attacker == botB else botB
@@ -72,27 +76,28 @@ def battle_round(botA, botB):
             print(f"{attacker.algorithm_id} has been defeated (out of energy)!")
             return defender.algorithm_id
 
-        damage = calculate_damage(attacker, defender)
+        damage = calculate_damage(attacker, defender, log)
         defender.hp -= damage
 
-        print(f"{attacker.algorithm_id} attacks {defender.algorithm_id} for {damage} damage!")
-        print(f"{attacker.algorithm_id} Energy: {attacker.energy}")
+        log_line(log, "attack",f"{attacker.name} attacks {defender.name} for {damage:.2f} damage!")
         if defender.hp < 0:
             defender.hp = 0
-        print(f"{defender.algorithm_id} HP: {round(defender.hp, 0)}, Energy: {defender.energy}")
+        log_line(log, "status",f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
 
         if not defender.is_alive():
-            print(f"{defender.algorithm_id} has been defeated!")
-            return attacker.algorithm_id
-
+            log_line(log, "defeat",f"{defender.name} has been defeated!")
+            return attacker.name
 
 def full_battle(botA, botB):
+    log = []
     round_num = 1
     while botA.is_alive() and botB.is_alive():
-        print(f"\n (Round {round_num})")
-        winner = battle_round(botA, botB)
+        log_line(log, "round",f"\n (Round {round_num})")
+        winner = battle_round(botA, botB, log)
         if winner:
-            print(f"\nBattle Over! Winner: {winner}")
+            log_line(log, "battleover",f"\nBattle Over! Winner: {winner}")
+            print(log)
+            return winner, log 
             break
         round_num += 1
 
