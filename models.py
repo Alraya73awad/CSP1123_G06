@@ -1,5 +1,8 @@
-from extensions import db
+from datetime import datetime
+
 from flask_login import UserMixin
+from extensions import db
+
 
 class User(db.Model, UserMixin):
     __tablename__ = "user"
@@ -19,6 +22,9 @@ class User(db.Model, UserMixin):
     def get_id(self):
         return str(self.id)
 
+    def __repr__(self):
+        return f"<User {self.username}>"
+
 
 class Bot(db.Model):
     __tablename__ = "bot"
@@ -31,11 +37,10 @@ class Bot(db.Model):
     speed = db.Column(db.Integer, default=0)
 
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-from datetime import datetime 
 
     def __repr__(self):
         return f"<Bot {self.name}>"
-    
+
     def award_battle_rewards(self, user, result):
         xp_gain = {"win": 50, "lose": 20, "draw": 30}
         token_gain = {"win": 10, "lose": 3, "draw": 5}
@@ -51,16 +56,14 @@ from datetime import datetime
 
         db.session.commit()
 
-        return user.level > old_level  # True = level-up happened
-    def __repr__(self):
-        return f"<Bot {self.name}>"
+        return user.level > old_level
+
 
 class History(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    bot1_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
-    bot2_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
-
+    bot1_id = db.Column(db.Integer, db.ForeignKey("bot.id"), nullable=False)
+    bot2_id = db.Column(db.Integer, db.ForeignKey("bot.id"), nullable=False)
     bot1_name = db.Column(db.String(50), nullable=False)
     bot2_name = db.Column(db.String(50), nullable=False)
 
@@ -73,6 +76,7 @@ class History(db.Model):
         cascade="all, delete-orphan"
     )
 
+
 class HistoryLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -82,5 +86,5 @@ class HistoryLog(db.Model):
         nullable=False
     )
 
-    type = db.Column(db.String(20))  # round, attack, status, defeat, etc
+    type = db.Column(db.String(20))
     text = db.Column(db.Text)
