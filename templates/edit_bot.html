@@ -91,6 +91,18 @@
         </div>
 
         <h5>Adjust Stats</h5>
+        <!-- ATK -->
+        <div class="mb-3 stat-row">
+            <label class="form-label" data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC</label>
+            <select name="weapon_id">
+                <option value="">No Weapon</option>
+                {% for w in weapons %}
+                    <option value="{{ w.id }}"{% if bot.weapon_id == w.id %}selected{% endif %}>
+                    {{ w.name }} (+{{ w.atk_bonus }} ATK)
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
 
         <!-- HP -->
         <div class="mb-3 stat-row" >
@@ -100,16 +112,6 @@
             <input type="number" class="form-control mt-2 stat-number"
                    name="hp_number" value="{{ bot.hp }}"
                    min="{{ stat_limits.hp[0] }}" max="{{ stat_limits.hp[1] }}">
-        </div>
-
-        <!-- ATK -->
-        <div class="mb-3 stat-row">
-            <label class="form-label" data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC ({{ stat_limits.atk[0] }}–{{ stat_limits.atk[1] }})</label>
-            <input type="range" name="atk" class="form-range stat-slider"
-                   min="{{ stat_limits.atk[0] }}" max="{{ stat_limits.atk[1] }}" value="{{ bot.atk }}">
-            <input type="number" class="form-control mt-2 stat-number"
-                   name="atk_number" value="{{ bot.atk }}"
-                   min="{{ stat_limits.atk[0] }}" max="{{ stat_limits.atk[1] }}">
         </div>
 
         <!-- DEF -->

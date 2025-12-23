@@ -10,7 +10,7 @@ app.config['SECRET_KEY'] = 'dev_secret_key'
 db.init_app(app)
 
 # Models
-from models import Bot, History, HistoryLog
+from models import Bot, History, HistoryLog, Weapon
 
 # Stat Min/Max Values
 STAT_LIMITS = {
@@ -197,8 +197,12 @@ def delete_bot(bot_id):
 @app.route('/edit-bot/<int:bot_id>', methods=['GET', 'POST'])
 def edit_bot(bot_id):
     bot = Bot.query.get_or_404(bot_id)
+    weapons = Weapon.query.all()
 
     if request.method == 'POST':
+        bot.weapon_id = request.form.get("weapon_id") or None
+        db.session.commit()
+
         def read_stat(name):
             raw_num = request.form.get(f"{name}_number", "").strip()
             raw_slider = request.form.get(name, "").strip()
@@ -316,7 +320,7 @@ def edit_bot(bot_id):
             flash("Bot updated successfully.", "success")
             return redirect(url_for('bot_list') + "?flash=1")
 
-    return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, algorithms = algorithms, algorithm_descriptions=algorithm_descriptions, show_flashes = False)
+    return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, algorithms = algorithms, algorithm_descriptions=algorithm_descriptions, weapons = weapons, show_flashes = False)
 
 @app.route('/bot/<int:bot_id>')
 def bot_details(bot_id):
@@ -448,6 +452,11 @@ def view_history(history_id):
     logs = HistoryLog.query.filter_by(history_id=history.id).all()
 
     return render_template("combat_log.html", log=[(l.type, l.text) for l in logs], winner = history.winner, bot1 = bot1, bot2 = bot2, stats1 = stats1, stats2 = stats2)
+
+@app.route("/weapons")
+def weapons_shop():
+    weapons = Weapon.query.all()
+    return render_template("weapons.html", weapons=weapons)
 
 # Run server
 if __name__ == "__main__":

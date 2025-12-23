@@ -29,7 +29,7 @@ def calculate_turn_order(botA, botB, log):
 
 def calculate_damage(attacker, defender, log):
     # Base damage
-    base_proc = attacker.proc - (defender.defense * 0.7)
+    base_proc = get_effective_proc(attacker) - (defender.defense * 0.7)
     if base_proc < 0:
         base_proc = 0
 
@@ -50,6 +50,12 @@ def calculate_damage(attacker, defender, log):
     final_damage = base_proc + (base_proc * crit_rate)
     return final_damage
 
+# adding weapon dmg to proc
+def get_effective_proc(bot):
+    base = bot.proc
+    if bot.weapon:
+        return base + bot.weapon.atk_bonus
+    return base 
 
 def battle_round(botA, botB, log):
     turn_order = calculate_turn_order(botA, botB, log)
