@@ -1,7 +1,7 @@
 import random
 
 class BattleBot:
-    def __init__(self=10, name=10, energy=10, proc=10, defense=10, speed=10, clk=10 , luck=10, hp=100):
+    def __init__(self, name, hp, energy, proc, defense, speed=0, clk=0 , luck=0, weapon_atk = 0, weapon_type = None):
         self.name = name
         self.hp = hp
         self.energy = energy
@@ -10,6 +10,8 @@ class BattleBot:
         self.speed = speed
         self.clk = clk         # Reflex/clock stat
         self.luck = luck       # % chance for crit/dodge
+        self.weapon_atk = weapon_atk
+        self.weapon_type = weapon_type
 
     def is_alive(self):
         return self.hp > 0 and self.energy > 0
@@ -53,9 +55,8 @@ def calculate_damage(attacker, defender, log):
 # adding weapon dmg to proc
 def get_effective_proc(bot):
     base = bot.proc
-    if bot.weapon:
-        return base + bot.weapon.atk_bonus
-    return base 
+    weapon = bot.weapon_atk if bot.weapon_atk else 0
+    return base + weapon
 
 def battle_round(botA, botB, log):
     turn_order = calculate_turn_order(botA, botB, log)

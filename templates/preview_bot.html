@@ -15,6 +15,19 @@
         </thead>
         <tbody>
             <tr><td data-bs-toggle="tooltip" title="Integrity Core (INT): Your bot's maximum health.">INT</td><td>{{ bot.hp }}</td><td>{{ new_stats.hp }}</td></tr>
+            
+            <tr>
+                <td>Weapon</td>
+                <td>
+                    {{ old_weapon.name if old_weapon else "None" }}
+                    {% if old_weapon %}(+{{ old_weapon.atk_bonus }} ATK){% endif %}
+                </td>
+                <td>
+                    {{ new_weapon.name if new_weapon else "None" }}
+                    {% if new_weapon %}(+{{ new_weapon.atk_bonus }} ATK){% endif %}
+                </td>
+            </tr>
+
             <tr><td data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC</td><td>{{ bot.atk }}</td><td>{{ new_stats.atk }}</td></tr>
             <tr><td data-bs-toggle="tooltip" title="Defense Matrix (DEF): Reduces incoming damage.">DEF</td><td>{{ bot.defense }}</td><td>{{ new_stats.defense }}</td></tr>
             <tr><td data-bs-toggle="tooltip" title="Clock Rate (CLK): Turn order + evasion. Faster bots act earlier and dodge more often.">CLK</td><td>{{ bot.speed }}</td><td>{{ new_stats.speed }}</td></tr>
@@ -35,6 +48,8 @@
         <input type="hidden" name="speed" value="{{ new_stats.speed }}">
         <input type="hidden" name="logic" value="{{ new_stats.logic }}">
         <input type="hidden" name="luck" value="{{ new_stats.luck }}">
+        <input type="hidden" name="weapon_id" value="{{ weapon_id }}">
+
 
         {% for stat, val in new_stats.items() %}
             <input type="hidden" name="{{ stat }}" value="{{ val }}">

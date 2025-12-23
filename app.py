@@ -70,67 +70,6 @@ algorithm_descriptions = {
 }
 
 
-# Models
-from models import Bot 
-
-# Stat Min/Max Values
-STAT_LIMITS = {
-    "hp": (100, 999),
-    "energy": (100, 999),
-    "atk": (10, 999),
-    "defense": (10, 999),
-    "speed": (10, 999),
-    "logic": (10, 999),
-    "luck": (10, 999)
-}
-
-#ALGORITHMS
-algorithms = {
-    "VEX-01": "Aggressive",
-    "BASL-09": "Defensive",
-    "EQUA-12": "Balanced",
-    "ADAPT-X": "Adaptive",
-    "RUSH-09": "Speed",
-    "CHAOS-RND": "Random"
-    }
-
-#ALGORITHM BUFFS/NERFS
-algorithm_effects = {
-    "VEX-01": {
-        "proc": 1.15,
-        "def": 0.9
-    },
-    "BASL-09": {
-        "def": 1.2,
-        "clk": 0.9
-    },
-    "EQUA-12": {
-
-    },
-    "ADAPT-X": {    
-        "ent": 1.05,
-        "proc": 0.9
-    },
-    "RUSH-09": {    
-        "clk": 1.2,
-        "def": 0.9
-    },
-    "CHAOS-RND": {  
-
-    }
-}
-
-#ALGORITHM DESCRIPTIONS
-algorithm_descriptions = {
-    "VEX-01": "Vexor Assault Kernel: Built for aggressive attack routines. Prioritizes damage output at the cost of stability. +15% PROC, -10% DEF",
-    "BASL-09": "Bastion Logic Framework: Defensive fortress AI that fortifies its shielding subroutines above all else. +20% DEF, -10% CLK",
-    "EQUA-12": "Equilibrium Core Matrix: Balanced core algorithm ensuring even system resource allocation. No buffs or nerfs.",
-    "ADAPT-X": "Adaptive Pattern  Synthesizer: Self-learning AI that adjusts its combat model mid-battle. +10% LOGIC after 2 turns, +5% ENT, -10% PROC",
-    "RUSH-09": "Rapid Unit Synchronization Hub: An advanced AI core utilizing probabilistic threading for extreme combat reflexes. Fast but fragile. +20% CLK, -10% DEF",
-    "CHAOS-RND": "Chaotic Execution Driver: Unstable algorithm driven by randomized decision-making. High volatility, unpredictable results. Unstable modifiers each battle"
-}
-
-
 # Routes
 @app.route('/')
 def index():
@@ -200,8 +139,6 @@ def edit_bot(bot_id):
     weapons = Weapon.query.all()
 
     if request.method == 'POST':
-        bot.weapon_id = request.form.get("weapon_id") or None
-        db.session.commit()
 
         def read_stat(name):
             raw_num = request.form.get(f"{name}_number", "").strip()
@@ -238,12 +175,22 @@ def edit_bot(bot_id):
                 for e in errors:
                     flash(e, "danger")
                 return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
+            
+            weapon_id = request.form.get("weapon_id")
+            weapon = Weapon.query.get(int(weapon_id)) if weapon_id else None
+            effective_atk = new_stats["atk"] + (weapon.atk_bonus if weapon else 0)
+            new_stats["atk"] = effective_atk
+            old_weapon = Weapon.query.get(bot.weapon_id) if bot.weapon_id else None
+            new_weapon = Weapon.query.get(int(weapon_id)) if weapon_id else None
 
-            return render_template('preview_bot.html', bot=bot, new_stats=new_stats)
+            return render_template('preview_bot.html', bot=bot, new_stats=new_stats, weapon_id=weapon_id, old_weapon=old_weapon, new_weapon=new_weapon)
 
         if "confirm" in request.form:
             new_name = request.form.get("name", "").strip()
             new_algorithm = request.form.get("algorithm", "").strip()
+            new_weapon_id = request.form.get("weapon_id")
+            new_weapon_id = int(new_weapon_id) if new_weapon_id else None
+
 
             if not new_name:
                 flash("Bot name cannot be empty.", "danger")
@@ -298,7 +245,8 @@ def edit_bot(bot_id):
                 bot.defense != final_stats['defense'] or
                 bot.speed != final_stats['speed'] or
                 bot.logic != final_stats['logic'] or
-                bot.luck != final_stats['luck']
+                bot.luck != final_stats['luck'] or
+                bot.weapon_id != new_weapon_id
             )
 
             if not changed:
@@ -315,6 +263,9 @@ def edit_bot(bot_id):
             bot.speed = final_stats['speed']
             bot.logic = final_stats['logic']
             bot.luck = final_stats['luck']
+
+            weapon_id = request.form.get("weapon_id")
+            bot.weapon_id = int(weapon_id) if weapon_id else None
 
             db.session.commit()
             flash("Bot updated successfully.", "success")
@@ -362,6 +313,8 @@ def combat_log(bot1_id, bot2_id):
 
     stats1 = apply_algorithm(bot1)
     stats2 = apply_algorithm(bot2)
+    weapon1 = bot1.weapon
+    weapon2 = bot2.weapon
 
     # convert database Bot → BattleBot for combat (with effective stats)
     battleA = BattleBot(
@@ -371,7 +324,9 @@ def combat_log(bot1_id, bot2_id):
         proc=stats1["proc"],
         defense=stats1["defense"],
         clk=stats1["clk"],
-        luck=stats1["luck"]
+        luck=stats1["luck"],
+        weapon_atk=weapon1.atk_bonus if weapon1 else 0,
+        weapon_type=weapon1.type if weapon1 else None
     )
 
     battleB = BattleBot(
@@ -381,7 +336,9 @@ def combat_log(bot1_id, bot2_id):
         proc=stats2["proc"],
         defense=stats2["defense"],
         clk=stats2["clk"],
-        luck=stats2["luck"]
+        luck=stats2["luck"],
+        weapon_atk=weapon2.atk_bonus if weapon2 else 0,
+        weapon_type=weapon2.type if weapon2 else None
     )
 
     winner, log = full_battle(battleA, battleB)
@@ -426,6 +383,8 @@ def battle_select():
 
 def apply_algorithm(bot):
     effects = algorithm_effects.get(bot.algorithm, {})
+    weapon = Weapon.query.get(bot.weapon_id) if bot.weapon_id else None
+    weapon_bonus = weapon.atk_bonus if weapon else 0
 
     # Return new effective stats
     return {
