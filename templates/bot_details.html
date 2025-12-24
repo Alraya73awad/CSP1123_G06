@@ -16,6 +16,14 @@
 
     <h2>{{ bot.name }} — Details</h2>
     <p><strong>Algorithm:</strong> {{ bot.algorithm }}</p>
+    <p>
+        <strong>Weapon:</strong>
+        {% if bot.weapon %}
+            {{ bot.weapon.name }} (+{{ bot.weapon.atk_bonus }} PROC)
+        {% else %}
+            None
+        {% endif %}
+    </p>
 
     <table class="table table-bordered mt-3">
         <thead class="table-light">

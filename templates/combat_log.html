@@ -17,6 +17,24 @@
             </thead>
 
             <tbody>
+                <tr>
+                    <td>WEAPON</td>
+                    <td>
+                        {% if bot1.weapon %}
+                            {{ bot1.weapon.name }} (+{{ bot1.weapon.atk_bonus }} PROC)
+                        {% else %}
+                            None
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if bot2.weapon %}
+                            {{ bot2.weapon.name }} (+{{ bot2.weapon.atk_bonus }} PROC)
+                        {% else %}
+                            None
+                        {% endif %}
+                    </td>
+                </tr>
+                
                 {% for stat in ["hp", "proc", "defense", "clk", "luck", "energy"] %}
 
                 {% set val1 = stats1[stat] %}
