@@ -34,17 +34,23 @@ def calculate_damage(attacker, defender, log):
     base_proc = get_effective_proc(attacker) - (defender.defense * 0.7)
     if base_proc < 0:
         base_proc = 0
+    
+    # Ranged damage
+    if attacker.weapon_type == "ranged":
+        variance = random.uniform(0.85, 1.15)
+        base_proc *= variance
 
     # Critical hit check
     crit_trigger = random.randint(1, 100) <= attacker.luck
     crit_rate = 1 if crit_trigger else 0
+    if crit_trigger:
+        log_line(log, "crit", f"💥 Critical Hit! {attacker.name} lands a devastating strike!")
 
     # Dodge check
     dodge_chance = 0
     if defender.clk > attacker.clk:
-        dodge_chance = (attacker.clk - defender.clk) * (attacker.luck / 100)
-        dodge_roll = random.random()
-        if dodge_roll < dodge_chance:
+        dodge_chance = (defender.clk - attacker.clk) * (defender.luck / 100)
+        if random.random() < dodge_chance:
             log_line(log, "dodge",f"{defender.name} dodged the attack!")
             return 0
 
@@ -66,6 +72,14 @@ def battle_round(botA, botB, log):
 
         if not defender.is_alive():
             break
+
+        attacker.energy -= 10
+        if attacker.energy < 0:
+            attacker.energy = 0
+
+        if not attacker.is_alive():
+            log_line(log, "energy", f"{attacker.name} has been defeated (out of energy)!")
+            return defender.name
 
         damage = calculate_damage(attacker, defender, log)
         defender.hp -= damage

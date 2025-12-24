@@ -203,9 +203,11 @@ input:focus, textarea:focus, select:focus {
 }
 
 .log-text.attack { color:red; }
+.log-text.crit { color:yellow; }
+.log-text.energy { color:orangered }
 .log-text.status { color:lightblue; }
-.log-text.dodge { color:pink; }
-.log-text.defeat { color:purple; }
+.log-text.dodge { color:cyan; }
+.log-text.defeat { color:magenta; }
 .log-text.round { color:#00ffaa; }
 .log-text.battleover { color:#00ffaa; }
 
