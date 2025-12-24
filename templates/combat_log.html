@@ -21,14 +21,14 @@
                     <td>WEAPON</td>
                     <td>
                         {% if bot1.weapon %}
-                            {{ bot1.weapon.name }} (+{{ bot1.weapon.atk_bonus }} PROC)
+                            {{ bot1.weapon.name }} (+{{ bot1.weapon.effective_atk()}} PROC)
                         {% else %}
                             None
                         {% endif %}
                     </td>
                     <td>
                         {% if bot2.weapon %}
-                            {{ bot2.weapon.name }} (+{{ bot2.weapon.atk_bonus }} PROC)
+                            {{ bot2.weapon.name }} (+{{ bot2.weapon.effective_atk()}} PROC)
                         {% else %}
                             None
                         {% endif %}

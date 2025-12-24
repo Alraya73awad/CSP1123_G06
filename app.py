@@ -139,6 +139,16 @@ def edit_bot(bot_id):
     weapons = Weapon.query.all()
 
     if request.method == 'POST':
+        if "weapon_level_up" in request.form:
+            weapon_id = int(request.form["weapon_level_up"])
+            weapon = Weapon.query.get_or_404(weapon_id)
+
+            if weapon.level < weapon.max_level:
+                weapon.level += 1
+                db.session.commit()
+                flash("Weapon leveled up!", "success")
+
+            return redirect(url_for("edit_bot", bot_id=bot.id))
 
         def read_stat(name):
             raw_num = request.form.get(f"{name}_number", "").strip()
@@ -182,6 +192,9 @@ def edit_bot(bot_id):
             new_stats["atk"] = effective_atk
             old_weapon = Weapon.query.get(bot.weapon_id) if bot.weapon_id else None
             new_weapon = Weapon.query.get(int(weapon_id)) if weapon_id else None
+
+            if weapon:
+                new_stats["atk"] += weapon.effective_atk()
 
             return render_template('preview_bot.html', bot=bot, new_stats=new_stats, weapon_id=weapon_id, old_weapon=old_weapon, new_weapon=new_weapon)
 
@@ -325,7 +338,7 @@ def combat_log(bot1_id, bot2_id):
         defense=stats1["defense"],
         clk=stats1["clk"],
         luck=stats1["luck"],
-        weapon_atk=weapon1.atk_bonus if weapon1 else 0,
+        weapon_atk=weapon1.effective_atk() if weapon1 else 0,
         weapon_type=weapon1.type if weapon1 else None
     )
 
@@ -337,7 +350,7 @@ def combat_log(bot1_id, bot2_id):
         defense=stats2["defense"],
         clk=stats2["clk"],
         luck=stats2["luck"],
-        weapon_atk=weapon2.atk_bonus if weapon2 else 0,
+        weapon_atk=weapon2.effective_atk() if weapon2 else 0,
         weapon_type=weapon2.type if weapon2 else None
     )
 
@@ -416,6 +429,17 @@ def view_history(history_id):
 def weapons_shop():
     weapons = Weapon.query.all()
     return render_template("weapons.html", weapons=weapons)
+
+@app.route("/weapon/<int:weapon_id>/level_up", methods=["POST"])
+def level_up_weapon(weapon_id):
+    weapon = Weapon.query.get_or_404(weapon_id)
+
+    if weapon.level < weapon.max_level:
+        weapon.level += 1
+        db.session.commit()
+
+    return redirect(url_for("edit_bot", bot_id=weapon.bot_id))
+
 
 # Run server
 if __name__ == "__main__":

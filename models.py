@@ -61,3 +61,19 @@ class Weapon(db.Model):
     tier = db.Column(db.Integer, default=1)
     description = db.Column(db.String(200), nullable=False)
     price = db.Column(db.Integer, default=0)
+    level = db.Column(db.Integer, default=1)
+    max_level = db.Column(db.Integer, default=5)
+
+    def effective_atk(self):
+        tier_stats = {
+            1: {"base": 5, "per_level": 1},
+            2: {"base": 8, "per_level": 2},
+            3: {"base": 16, "per_level": 5},
+            4: {"base": 33, "per_level": 7},
+            5: {"base": 55, "per_level": 14},
+            6: {"base": 100, "per_level": 20},
+        }
+
+        stats = tier_stats[self.tier]
+
+        return stats["base"] + (self.level - 1) * stats["per_level"]

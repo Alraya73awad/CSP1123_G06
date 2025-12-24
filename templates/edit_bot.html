@@ -102,6 +102,23 @@
                     </option>
                 {% endfor %}
             </select>
+            {% if bot.weapon %}
+                <p>
+                    <strong>Weapon:</strong>
+                    {{ bot.weapon.name }} (Lv {{ bot.weapon.level }}/{{ bot.weapon.max_level }})
+                </p>
+                <button
+                    type="submit"
+                    name="weapon_level_up"
+                    value="{{ bot.weapon.id }}"
+                    class="btn btn-sm btn-warning"
+                    {% if bot.weapon.level >= bot.weapon.max_level %}disabled{% endif %}
+                >
+                    Level Up Weapon
+                </button>
+            {% else %}
+                <p><strong>Weapon:</strong> None</p>
+            {% endif %}
         </div>
 
         <!-- HP -->
