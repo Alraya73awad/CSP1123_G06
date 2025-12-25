@@ -1,10 +1,9 @@
 from extensions import db
 from flask_login import UserMixin
-from datetime import datetime 
+from datetime import datetime
 
 class User(db.Model, UserMixin):
     __tablename__ = "user"
-    __table_args__ = {"extend_existing": True}
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -23,36 +22,44 @@ class User(db.Model, UserMixin):
 
 class Bot(db.Model):
     __tablename__ = "bots"
-    __table_args__ = {"extend_existing": True}
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
-    attack = db.Column(db.Integer, default=0)
-    defense = db.Column(db.Integer, default=0)
-    speed = db.Column(db.Integer, default=0)
+
+    algorithm = db.Column(db.String(50), nullable=False)
+
+    hp = db.Column(db.Integer, default=100)
+    atk = db.Column(db.Integer, default=10)
+    defense = db.Column(db.Integer, default=10)
+    speed = db.Column(db.Integer, default=10)
+    logic = db.Column(db.Integer, default=10)
+    luck = db.Column(db.Integer, default=10)
+    energy = db.Column(db.Integer, default=100)
 
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
+    weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"))
+    weapon = db.relationship("Weapon", backref="bots")
 
     def __repr__(self):
         return f"<Bot {self.name}>"
-    
+
     def award_battle_rewards(self, user, result):
         xp_gain = {"win": 50, "lose": 20, "draw": 30}
         token_gain = {"win": 10, "lose": 3, "draw": 5}
 
         old_level = user.level
 
-        user.xp += xp_gain[result]
-        user.tokens += token_gain[result]
+        user.xp += xp_gain.get(result, 0)
+        user.tokens += token_gain.get(result, 0)
 
         while user.xp >= user.level * 100:
             user.xp -= user.level * 100
             user.level += 1
 
         db.session.commit()
+        return user.level > old_level
 
-        return user.level > old_level  # True = level-up happened
 
 class History(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -72,6 +79,7 @@ class History(db.Model):
         cascade="all, delete-orphan"
     )
 
+
 class HistoryLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -81,5 +89,33 @@ class HistoryLog(db.Model):
         nullable=False
     )
 
-    type = db.Column(db.String(20))  # round, attack, status, defeat, etc
+    type = db.Column(db.String(20))
     text = db.Column(db.Text)
+
+
+
+class Weapon(db.Model):
+    __tablename__ = "weapons"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    type = db.Column(db.String(20), nullable=False)
+
+    atk_bonus = db.Column(db.Integer, default=0)
+    tier = db.Column(db.Integer, default=1)
+    description = db.Column(db.String(200), nullable=False)
+    price = db.Column(db.Integer, default=0)
+    level = db.Column(db.Integer, default=1)
+    max_level = db.Column(db.Integer, default=5)
+
+    def effective_atk(self):
+        tier_stats = {
+            1: {"base": 5, "per_level": 1},
+            2: {"base": 8, "per_level": 2},
+            3: {"base": 16, "per_level": 5},
+            4: {"base": 33, "per_level": 7},
+            5: {"base": 55, "per_level": 14},
+            6: {"base": 100, "per_level": 20},
+        }
+        stats = tier_stats[self.tier]
+        return stats["base"] + (self.level - 1) * stats["per_level"]
