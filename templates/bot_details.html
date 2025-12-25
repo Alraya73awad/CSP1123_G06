@@ -19,7 +19,7 @@
     <p>
         <strong>Weapon:</strong>
         {% if bot.weapon %}
-            {{ bot.weapon.name }} (+{{ bot.weapon.atk_bonus }} PROC)
+            {{ bot.weapon.name }} (+{{ bot.weapon.effective_atk() }} PROC)
         {% else %}
             None
         {% endif %}

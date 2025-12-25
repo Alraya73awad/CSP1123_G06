@@ -136,19 +136,8 @@ def delete_bot(bot_id):
 @app.route('/edit-bot/<int:bot_id>', methods=['GET', 'POST'])
 def edit_bot(bot_id):
     bot = Bot.query.get_or_404(bot_id)
-    weapons = Weapon.query.all()
 
     if request.method == 'POST':
-        if "weapon_level_up" in request.form:
-            weapon_id = int(request.form["weapon_level_up"])
-            weapon = Weapon.query.get_or_404(weapon_id)
-
-            if weapon.level < weapon.max_level:
-                weapon.level += 1
-                db.session.commit()
-                flash("Weapon leveled up!", "success")
-
-            return redirect(url_for("edit_bot", bot_id=bot.id))
 
         def read_stat(name):
             raw_num = request.form.get(f"{name}_number", "").strip()
@@ -185,24 +174,12 @@ def edit_bot(bot_id):
                 for e in errors:
                     flash(e, "danger")
                 return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
-            
-            weapon_id = request.form.get("weapon_id")
-            weapon = Weapon.query.get(int(weapon_id)) if weapon_id else None
-            effective_atk = new_stats["atk"] + (weapon.atk_bonus if weapon else 0)
-            new_stats["atk"] = effective_atk
-            old_weapon = Weapon.query.get(bot.weapon_id) if bot.weapon_id else None
-            new_weapon = Weapon.query.get(int(weapon_id)) if weapon_id else None
 
-            if weapon:
-                new_stats["atk"] += weapon.effective_atk()
-
-            return render_template('preview_bot.html', bot=bot, new_stats=new_stats, weapon_id=weapon_id, old_weapon=old_weapon, new_weapon=new_weapon)
+            return render_template('preview_bot.html', bot=bot, new_stats=new_stats)
 
         if "confirm" in request.form:
             new_name = request.form.get("name", "").strip()
             new_algorithm = request.form.get("algorithm", "").strip()
-            new_weapon_id = request.form.get("weapon_id")
-            new_weapon_id = int(new_weapon_id) if new_weapon_id else None
 
 
             if not new_name:
@@ -258,8 +235,7 @@ def edit_bot(bot_id):
                 bot.defense != final_stats['defense'] or
                 bot.speed != final_stats['speed'] or
                 bot.logic != final_stats['logic'] or
-                bot.luck != final_stats['luck'] or
-                bot.weapon_id != new_weapon_id
+                bot.luck != final_stats['luck'] 
             )
 
             if not changed:
@@ -277,14 +253,12 @@ def edit_bot(bot_id):
             bot.logic = final_stats['logic']
             bot.luck = final_stats['luck']
 
-            weapon_id = request.form.get("weapon_id")
-            bot.weapon_id = int(weapon_id) if weapon_id else None
 
             db.session.commit()
             flash("Bot updated successfully.", "success")
             return redirect(url_for('bot_list') + "?flash=1")
 
-    return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, algorithms = algorithms, algorithm_descriptions=algorithm_descriptions, weapons = weapons, show_flashes = False)
+    return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, algorithms = algorithms, algorithm_descriptions=algorithm_descriptions, show_flashes = False)
 
 @app.route('/bot/<int:bot_id>')
 def bot_details(bot_id):
@@ -440,6 +414,39 @@ def level_up_weapon(weapon_id):
 
     return redirect(url_for("edit_bot", bot_id=weapon.bot_id))
 
+@app.route('/gear/<int:bot_id>', methods=['GET', 'POST'])
+def gear(bot_id):
+    bot = Bot.query.get_or_404(bot_id)
+    weapons = Weapon.query.all()
+
+    if request.method == "POST":
+        # Equip weapon
+        if "equip_weapon" in request.form:
+            weapon_id = request.form.get("equip_weapon")
+            bot.weapon_id = int(weapon_id) if weapon_id else None
+            if bot.weapon_id:
+                weapon = Weapon.query.get(bot.weapon_id)
+                bot.atk = 10 + weapon.effective_atk()  
+            else:
+                bot.atk = 10  
+            db.session.commit()
+            flash("Weapon equipped successfully!", "success")
+            return redirect(url_for("gear", bot_id=bot.id))
+
+        # Level up weapon
+        if "weapon_id" in request.form:
+            weapon_id = int(request.form.get("weapon_id"))
+            weapon = Weapon.query.get_or_404(weapon_id)
+            if weapon.level < weapon.max_level:
+                weapon.level += 1
+                db.session.commit()
+                flash(f"{weapon.name} leveled up to Lv {weapon.level}!", "success")
+            else:
+                flash(f"{weapon.name} is already at max level.", "warning")
+            return redirect(url_for('gear', bot_id=bot.id))
+
+
+    return render_template('gear.html', bot=bot, weapons=weapons)
 
 # Run server
 if __name__ == "__main__":

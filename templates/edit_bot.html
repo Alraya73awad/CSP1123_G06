@@ -92,33 +92,9 @@
 
         <h5>Adjust Stats</h5>
         <!-- ATK -->
-        <div class="mb-3 stat-row">
-            <label class="form-label" data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC</label>
-            <select name="weapon_id">
-                <option value="">No Weapon</option>
-                {% for w in weapons %}
-                    <option value="{{ w.id }}"{% if bot.weapon_id and bot.weapon_id|int == w.id|int %} selected {% endif %}>
-                    {{ w.name }} (+{{ w.atk_bonus }} ATK)
-                    </option>
-                {% endfor %}
-            </select>
-            {% if bot.weapon %}
-                <p>
-                    <strong>Weapon:</strong>
-                    {{ bot.weapon.name }} (Lv {{ bot.weapon.level }}/{{ bot.weapon.max_level }})
-                </p>
-                <button
-                    type="submit"
-                    name="weapon_level_up"
-                    value="{{ bot.weapon.id }}"
-                    class="btn btn-sm btn-warning"
-                    {% if bot.weapon.level >= bot.weapon.max_level %}disabled{% endif %}
-                >
-                    Level Up Weapon
-                </button>
-            {% else %}
-                <p><strong>Weapon:</strong> None</p>
-            {% endif %}
+        <div style="display:flex; flex-direction: column;" class="mb-3 stat-row">
+            <label data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC</label>
+            <a href="{{ url_for('gear', bot_id=bot.id) }}">Go to Gear</a>
         </div>
 
         <!-- HP -->
