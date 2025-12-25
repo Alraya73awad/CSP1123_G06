@@ -22,7 +22,7 @@ class User(db.Model, UserMixin):
 
 
 class Bot(db.Model):
-    __tablename__ = "bot"
+    __tablename__ = "bots"
     __table_args__ = {"extend_existing": True}
 
     id = db.Column(db.Integer, primary_key=True)
@@ -53,8 +53,6 @@ class Bot(db.Model):
         db.session.commit()
 
         return user.level > old_level  # True = level-up happened
-    def __repr__(self):
-        return f"<Bot {self.name}>"
 
 class History(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -3,9 +3,8 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
-
+from functools import wraps
 from extensions import db
-from models import User, Bot
 from constants import UPGRADES, STORE_ITEMS
 from battle import BattleBot, full_battle
 
@@ -134,12 +133,8 @@ def dashboard():
 
 
 # Create bot
-@app.route('/create_bot', methods=['POST'])
+@app.route('/create_bot', methods=['GET', 'POST'])
 def create_bot():
-    
-    flash("Bot created successfully!", "success")
-    return redirect(url_for("dashboard"))
-    
     if 'user_id' not in session:
         flash("Please log in first.", "warning")
         return redirect(url_for('login'))
@@ -157,8 +152,24 @@ def create_bot():
         speed=speed,
         user_id=session['user_id']
     )
+
+    if request.method == 'POST':
+        name = request.form.get('name')
+        algorithm = request.form["algorithm"]
+
+        new_bot = Bot(name=name, algorithm=algorithm)
+
+        db.session.add(new_bot)
+        db.session.commit()
+
+        return redirect(url_for('bot_list'))
+    
+    
+
+    return render_template('create_bot.html', algorithms = algorithms, algorithm_descriptions=algorithm_descriptions)
+
 # Models
-from models import Bot, History, HistoryLog
+from models import User, Bot, History, HistoryLog
 
 # Stat Min/Max Values
 STAT_LIMITS = {
@@ -218,60 +229,6 @@ algorithm_descriptions = {
 }
 
 
-# Models
-from models import Bot 
-
-# Stat Min/Max Values
-STAT_LIMITS = {
-    "hp": (100, 999),
-    "energy": (100, 999),
-    "atk": (10, 999),
-    "defense": (10, 999),
-    "speed": (10, 999),
-    "logic": (10, 999),
-    "luck": (10, 999)
-}
-
-#ALGORITHMS
-algorithms = {
-    "VEX-01": "Aggressive",
-    "BASL-09": "Defensive",
-    "EQUA-12": "Balanced",
-    "ADAPT-X": "Adaptive",
-    "RUSH-09": "Speed",
-    "CHAOS-RND": "Random"
-    }
-
-#ALGORITHM BUFFS/NERFS
-algorithm_effects = {
-    "VEX-01": {
-        "proc": 1.15,
-        "def": 0.9
-    },
-    "BASL-09": {
-        "def": 1.2,
-        "clk": 0.9
-    },
-    "EQUA-12": {
-        "proc": 1.0,
-        "def": 1.0,
-        "clk": 1.0,
-        "ent": 1.0
-    },
-    "ADAPT-X": {
-        "ent": 1.05,
-        "proc": 0.9
-    },
-    "RUSH-09": {
-        "clk": 1.2,
-        "def": 0.9
-    },
-    "CHAOS-RND": {
-        # effects handled randomly in logic
-    }
-
-}
-
 # manage bot
 @app.route('/manage_bot')
 def manage_bot():
@@ -282,9 +239,6 @@ def manage_bot():
     user_bots = Bot.query.filter_by(user_id=session['user_id']).all()
     return render_template('manage_bot.html', bots=user_bots)
 
-
-from functools import wraps
-
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -293,25 +247,6 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
-#ALGORITHM DESCRIPTIONS
-algorithm_descriptions = {
-    "VEX-01": "Vexor Assault Kernel: Built for aggressive attack routines. Prioritizes damage output at the cost of stability. +15% PROC, -10% DEF",
-    "BASL-09": "Bastion Logic Framework: Defensive fortress AI that fortifies its shielding subroutines above all else. +20% DEF, -10% CLK",
-    "EQUA-12": "Equilibrium Core Matrix: Balanced core algorithm ensuring even system resource allocation. No buffs or nerfs.",
-    "ADAPT-X": "Adaptive Pattern  Synthesizer: Self-learning AI that adjusts its combat model mid-battle. +10% LOGIC after 2 turns, +5% ENT, -10% PROC",
-    "RUSH-09": "Rapid Unit Synchronization Hub: An advanced AI core utilizing probabilistic threading for extreme combat reflexes. Fast but fragile. +20% CLK, -10% DEF",
-    "CHAOS-RND": "Chaotic Execution Driver: Unstable algorithm driven by randomized decision-making. High volatility, unpredictable results. Unstable modifiers each battle"
-}
-
-
-# Routes
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/game')
-def game():
-    return render_template('game.html')
 
 # Other pages
 @app.route('/store')
@@ -335,12 +270,6 @@ def character():
 @app.route('/play')
 def play():
     return render_template('battle.html')
-
-@app.route('/battle')
-def battle():
-    return render_template('battle.html')
-
-
 
 # profile page
 @app.route('/profile')
@@ -369,17 +298,6 @@ def profile():
 def store():
     for upgrade in UPGRADES:
         print(upgrade["name"], upgrade["cost"])
-
-from functools import wraps
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash("Please log in to continue.", "warning")
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
 
 # Buy item and upgrade purchase function
 @app.route("/buy", methods=["POST"])
@@ -538,7 +456,6 @@ def view_history(history_id):
     return render_template("combat_log.html", log=[(l.type, l.text) for l in logs], winner = history.winner, bot1 = bot1, bot2 = bot2, stats1 = stats1, stats2 = stats2)
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
     with app.app_context():
         db.create_all()
     app.run(debug=True)
