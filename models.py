@@ -1,5 +1,6 @@
 from extensions import db
 from flask_login import UserMixin
+from datetime import datetime 
 
 class User(db.Model, UserMixin):
     __tablename__ = "user"
@@ -31,7 +32,7 @@ class Bot(db.Model):
     speed = db.Column(db.Integer, default=0)
 
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-from datetime import datetime 
+
 
     def __repr__(self):
         return f"<Bot {self.name}>"

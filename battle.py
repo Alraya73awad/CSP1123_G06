@@ -32,7 +32,7 @@ def log_line(log, type, text):
 
 
 #turn order
-    def calculate_turn_order(botA, botB):
+def calculate_turn_order(botA, botB):
     if botA.clk > botB.clk:
         return [botA, botB]
     elif botB.clk > botA.clk:
@@ -96,20 +96,20 @@ def full_battle(botA, botB):
         "log": log
     }
 
-        if not defender.is_alive():
-            break
+    if not defender.is_alive():
+        #break
 
         damage = calculate_damage(attacker, defender, log)
         defender.hp -= damage
 
         log_line(log, "attack",f"{attacker.name} attacks {defender.name} for {damage:.2f} damage!")
-        if defender.hp < 0:
-            defender.hp = 0
-        log_line(log, "status",f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
+    if defender.hp < 0:
+        defender.hp = 0
+    log_line(log, "status",f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
 
-        if not defender.is_alive():
-            log_line(log, "defeat",f"{defender.name} has been defeated!")
-            return attacker.name
+    if not defender.is_alive():
+        log_line(log, "defeat",f"{defender.name} has been defeated!")
+        return attacker.name
 
 def full_battle(botA, botB):
     log = []
