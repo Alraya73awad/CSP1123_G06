@@ -1,103 +1,85 @@
 import random
 
-
 class BattleBot:
-    def __init__(
-        self,
-        name,
-        energy=10,
-        proc=10,
-        defense=10,
-        speed=10,
-        clk=10,
-        luck=10,
-        hp=100
-    ):
+    def __init__(self, name, hp, energy, proc, defense, speed=0, clk=0 , luck=0, weapon_atk = 0, weapon_type = None):
         self.name = name
         self.hp = hp
         self.energy = energy
-        self.proc = proc
+        self.proc = proc       # Attack power
         self.defense = defense
         self.speed = speed
-        self.clk = clk
-        self.luck = luck
+        self.clk = clk         # Reflex/clock stat
+        self.luck = luck       # % chance for crit/dodge
+        self.weapon_atk = weapon_atk
+        self.weapon_type = weapon_type
 
     def is_alive(self):
         return self.hp > 0 and self.energy > 0
 
-
-# ---------------- LOGGING ----------------
 def log_line(log, type, text):
     log.append((type.strip().lower(), text))
 
 
-#turn order
-    def calculate_turn_order(botA, botB):
-    if botA.clk > botB.clk:
+def calculate_turn_order(botA, botB, log):
+    if botA.clk> botB.clk:
         return [botA, botB]
     elif botB.clk > botA.clk:
         return [botB, botA]
     else:
-        return random.sample([botA, botB], 2)
+        return random.sample([botA, botB], 2)  # random order if equal
 
 
-# damage
 def calculate_damage(attacker, defender, log):
-    base_damage = attacker.proc - (defender.defense * 0.7)
-    base_damage = max(0, int(base_damage))
+    # Base damage
+    base_proc = get_effective_proc(attacker) - (defender.defense * 0.7)
+    if base_proc < 0:
+        base_proc = 0
+    
+    # Ranged damage
+    if attacker.weapon_type == "ranged":
+        variance = random.uniform(0.85, 1.15)
+        base_proc *= variance
 
-    # Critical hit
-    if random.randint(1, 100) <= attacker.luck:
-        base_damage = int(base_damage * 1.5)
-        log_line(log, "crit", f"{attacker.name} lands a critical hit!")
+    # Critical hit check
+    crit_trigger = random.randint(1, 100) <= attacker.luck
+    crit_rate = 1 if crit_trigger else 0
+    if crit_trigger:
+        log_line(log, "crit", f"💥 Critical Hit! {attacker.name} lands a devastating strike!")
 
-    defender.hp -= base_damage
-    attacker.energy -= 1
+    # Dodge check
+    dodge_chance = 0
+    if defender.clk > attacker.clk:
+        dodge_chance = (defender.clk - attacker.clk) * (defender.luck / 100)
+        if random.random() < dodge_chance:
+            log_line(log, "dodge",f"{defender.name} dodged the attack!")
+            return 0
 
-    log_line(
-        log,
-        "attack",
-        f"{attacker.name} deals {base_damage} damage to {defender.name}"
-    )
+    # Final damage
+    final_damage = base_proc + (base_proc * crit_rate)
+    return final_damage
 
-    return base_damage
+# adding weapon dmg to proc
+def get_effective_proc(bot):
+    base = bot.proc
+    weapon = bot.weapon_atk if bot.weapon_atk else 0
+    return base + weapon
 
+def battle_round(botA, botB, log):
+    turn_order = calculate_turn_order(botA, botB, log)
 
-# full battke
-def full_battle(botA, botB):
-    log = []
-
-    log_line(log, "start", f"Battle starts: {botA.name} vs {botB.name}")
-
-    while botA.is_alive() and botB.is_alive():
-        turn_order = calculate_turn_order(botA, botB)
-
-        for attacker in turn_order:
-            defender = botB if attacker == botA else botA
-
-            if not attacker.is_alive() or not defender.is_alive():
-                break
-
-            calculate_damage(attacker, defender, log)
-
-    # Determine winner
-    if botA.is_alive():
-        winner = botA
-        loser = botB
-    else:
-        winner = botB
-        loser = botA
-
-    log_line(log, "end", f"{winner.name} defeats {loser.name}")
-
-    return {
-        "winner": winner.name,
-        "loser": loser.name,
-        "log": log
-    }
+    for attacker in turn_order:
+        defender = botA if attacker == botB else botB
 
         if not defender.is_alive():
             break
+
+        attacker.energy -= 10
+        if attacker.energy < 0:
+            attacker.energy = 0
+
+        if not attacker.is_alive():
+            log_line(log, "energy", f"{attacker.name} has been defeated (out of energy)!")
+            return defender.name
 
         damage = calculate_damage(attacker, defender, log)
         defender.hp -= damage
