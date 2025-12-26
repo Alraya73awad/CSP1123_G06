@@ -1,7 +1,7 @@
 import random
 
 class BattleBot:
-    def __init__(self=10, name=10, energy=10, proc=10, defense=10, speed=10, clk=10 , luck=10, hp=100):
+    def __init__(self, name, hp, energy, proc, defense, speed=0, clk=0 , luck=0, weapon_atk = 0, weapon_type = None):
         self.name = name
         self.hp = hp
         self.energy = energy
@@ -10,6 +10,8 @@ class BattleBot:
         self.speed = speed
         self.clk = clk         # Reflex/clock stat
         self.luck = luck       # % chance for crit/dodge
+        self.weapon_atk = weapon_atk
+        self.weapon_type = weapon_type
 
     def is_alive(self):
         return self.hp > 0 and self.energy > 0
@@ -29,20 +31,26 @@ def calculate_turn_order(botA, botB, log):
 
 def calculate_damage(attacker, defender, log):
     # Base damage
-    base_proc = attacker.proc - (defender.defense * 0.7)
+    base_proc = get_effective_proc(attacker) - (defender.defense * 0.7)
     if base_proc < 0:
         base_proc = 0
+    
+    # Ranged damage
+    if attacker.weapon_type == "ranged":
+        variance = random.uniform(0.85, 1.15)
+        base_proc *= variance
 
     # Critical hit check
     crit_trigger = random.randint(1, 100) <= attacker.luck
     crit_rate = 1 if crit_trigger else 0
+    if crit_trigger:
+        log_line(log, "crit", f"💥 Critical Hit! {attacker.name} lands a devastating strike!")
 
     # Dodge check
     dodge_chance = 0
     if defender.clk > attacker.clk:
-        dodge_chance = (attacker.clk - defender.clk) * (attacker.luck / 100)
-        dodge_roll = random.random()
-        if dodge_roll < dodge_chance:
+        dodge_chance = (defender.clk - attacker.clk) * (defender.luck / 100)
+        if random.random() < dodge_chance:
             log_line(log, "dodge",f"{defender.name} dodged the attack!")
             return 0
 
@@ -50,6 +58,11 @@ def calculate_damage(attacker, defender, log):
     final_damage = base_proc + (base_proc * crit_rate)
     return final_damage
 
+# adding weapon dmg to proc
+def get_effective_proc(bot):
+    base = bot.proc
+    weapon = bot.weapon_atk if bot.weapon_atk else 0
+    return base + weapon
 
 def battle_round(botA, botB, log):
     turn_order = calculate_turn_order(botA, botB, log)
@@ -59,6 +72,14 @@ def battle_round(botA, botB, log):
 
         if not defender.is_alive():
             break
+
+        attacker.energy -= 10
+        if attacker.energy < 0:
+            attacker.energy = 0
+
+        if not attacker.is_alive():
+            log_line(log, "energy", f"{attacker.name} has been defeated (out of energy)!")
+            return defender.name
 
         damage = calculate_damage(attacker, defender, log)
         defender.hp -= damage

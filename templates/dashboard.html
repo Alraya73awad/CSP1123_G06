@@ -2,6 +2,27 @@
 
 {% block page_title %}Dashboard | Clash of Code{% endblock %}
 
+<style>
+.algorithm-card {
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.algorithm-card:hover {
+    border-color: #0d6efd;
+    background-color: #f0f8ff;
+}
+
+.algorithm-radio:checked + .algorithm-card {
+    border-color: #0d6efd;
+    background-color: #e7f1ff;
+    box-shadow: 0 0 8px rgba(13, 110, 253, 0.4);
+}
+
+</style>
+
 {% block content %}
 
 <h1>USER DASHBOARD // MAIN INTERFACE</h1>
@@ -62,14 +83,15 @@
 
 {% if bots %}
     <div class="bot-list hologram-grid">
-        {% for bot in bots %}
-            <div class="bot-card holo-card">
-                <div class="holo-glow"></div>
-                <h3>{{ bot.name }}</h3>
-                <p>ATK: {{ bot.attack }}</p>
-                <p>DEF: {{ bot.defense }}</p>
-                <p>SPD: {{ bot.speed }}</p>
-            </div>
+    {% for item in bots %}
+        {% set bot = item.bot %}
+        {% set final = item.final_stats %}
+
+        <div class="bot-card holo-card">
+            <div class="holo-glow"></div>
+            <h3>{{ bot.name }} ({{ bot.algorithm }})</h3>
+            <p>INT: {{ final.int }} | PROC: {{ final.proc }} | DEF: {{ final.def }} | CLK: {{ final.clk }} | LOGIC: {{ final.logic }} | ENT: {{ final.ent }} | PWR: {{ final.pwr }}</p>
+        </div>
         {% endfor %}
     </div>
 {% else %}
@@ -81,27 +103,53 @@
 <!-- CREATE BOT FORM -->
 <h2>Create a New Bot</h2>
 
-<form method="POST" action="{{ url_for('create_bot') }}" class="create-bot-form neon-panel">
-    <label>Bot Name:</label>
-    <input type="text" name="name" required>
+<form method="POST">
+<div class="mb-3">
+    <label for="name">Bot Name:</label><br>
+    <input type="text" id="name" name="name" required class="form-control"><br><br>
+</div>
 
-    <label>Attack:</label>
-    <input type="number" name="attack" min="0" max="100" required>
+<div class="container">
 
-    <label>Defense:</label>
-    <input type="number" name="defense" min="0" max="100" required>
+    <label class="form-label fw-bold">Select Algorithm:</label>
 
-    <label>Speed:</label>
-    <input type="number" name="speed" min="0" max="100" required>
+    <div class="row row-cols-1 row-cols-md-3 g-3">
 
-    <button type="submit" class="login-button">CREATE BOT</button>
+        {% for code, label in algorithms.items() %}
+        <div class="col">
+
+            <!-- Hidden radio input -->
+            <input type="radio"
+                   id="{{ code }}"
+                   name="algorithm"
+                   value="{{ code }}"
+                   class="d-none algorithm-radio"
+                   required>
+
+            <!-- The card acts as the label -->
+            <label for="{{ code }}" class="card algorithm-card text-center p-3" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ algorithm_descriptions[code] }}">
+                <h5 class="fw-bold">{{ code }}</h5>
+                <p class="text-muted">{{ label }}</p>
+            </label>
+
+        </div>
+        {% endfor %}
+
+    </div>
+
+</div>
+
+
+
+    <button type="submit" class="btn btn-outline-primary mt-4">Create Bot</button>
+
 </form>
 
 <br><br>
 
 <!-- ACTION BUTTONS -->
 <div class="action-grid">
-    <a href="{{ url_for('battle') }}" class="action-button">BATTLE</a>
+    <a href="{{ url_for('battle_select') }}" class="action-button">BATTLE</a>
     <a href="{{ url_for('manage_bot') }}" class="action-button">MANAGE BOTS</a>
     <a href="{{ url_for('store') }}" class="action-button">STORE</a>
     <a href="{{ url_for('character') }}" class="action-button">CHARACTER</a>
@@ -157,7 +205,7 @@
         <circle class="xp-progress" cx="75" cy="75" r="60" 
                 style="--percent: {{ xp_percent }}%;" />
     </svg>
-    <p>{{ xp }} / {{ level * 100 }} XP</p>
+    <p>{{ current_user.xp }} / {{ current_user.level * 100 }} XP</p>
 </div>
 
 <!-- Dashboard Header -->
