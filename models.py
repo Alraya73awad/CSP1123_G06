@@ -18,7 +18,9 @@ class User(db.Model, UserMixin):
     rating = db.Column(db.Integer, default=600)  # ELO-style rating
     wins = db.Column(db.Integer, default=0)
     losses = db.Column(db.Integer, default=0)
-    
+
+    bots = db.relationship("Bot", backref="user", lazy=True)
+
     @property
     def win_rate(self):
         total = self.wins + self.losses
@@ -26,7 +28,6 @@ class User(db.Model, UserMixin):
             return 0
         return (self.wins / total) * 100
 
-    bots = db.relationship("Bot", backref="user", lazy=True)
 
     def get_id(self):
         return str(self.id)
@@ -56,7 +57,7 @@ class Bot(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
 
     weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"), nullable=True)
-    weapon = db.relationship("Weapon", backref="bots")
+    weapon = db.relationship("Weapon", backref="bots", lazy=True)
 
     @property
     def equipped_weapon(self):
@@ -65,48 +66,24 @@ class Bot(db.Model):
                 return ow
         return None
 
-    @property
-    def total_proc(self):
-        base = self.atk
-        ow = self.equipped_weapon
-        if ow and ow.weapon:
-            return base + ow.weapon.effective_atk()
-        return base
-
-    def __repr__(self):
-        return f"<Bot {self.name}>"
+@property
+def total_proc(self):
+    base = self.atk
+    ow = self.equipped_weapon
+    if ow and ow.weapon:
+        return base + ow.weapon.effective_atk()
+    return base
 
 def __repr__(self):
-        return f"<Bot {self.name}>"
-
-def award_battle_rewards(self, user, result):
-        xp_gain = {"win": 50, "lose": 20, "draw": 30}
-        token_gain = {"win": 10, "lose": 3, "draw": 5}
-
-        old_level = user.level
-
-        user.xp += xp_gain.get(result, 0)
-        user.tokens += token_gain.get(result, 0)
-
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-
-    # Weapon rslp
-    weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"))
-    weapon = db.relationship("Weapon", backref="bots")
-
-    def __repr__(self):
-        return f"<Bot {self.name} Lv.{self.level}>"
-
-        db.session.commit()
-        return user.level > old_level
+    return f"<Bot {self.name}>"
 
 class History(db.Model):
     __tablename__ = "history"
 
     id = db.Column(db.Integer, primary_key=True)
 
-    bot1_id = db.Column(db.Integer, db.ForeignKey("bot.id"), nullable=False)
-    bot2_id = db.Column(db.Integer, db.ForeignKey("bot.id"), nullable=False)
+    bot1_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
+    bot2_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
 
     bot1_name = db.Column(db.String(50), nullable=False)
     bot2_name = db.Column(db.String(50), nullable=False)
@@ -167,6 +144,11 @@ class WeaponOwnership(db.Model):
     __tablename__ = "weapon_ownership"
 
 
+    logs = db.relationship(
+        "HistoryLog",
+        backref="history",
+        cascade="all, delete-orphan"
+    )
 class HistoryLog(db.Model):
     __tablename__ = "history_log"
 
@@ -216,7 +198,7 @@ class Weapon(db.Model):
     # Which bot this weapon is equipped to (NULL = unequipped)
     bot_id = db.Column(
         db.Integer,
-        db.ForeignKey("bot.id"),
+        db.ForeignKey("bots.id"),
         nullable=True
     )
 
