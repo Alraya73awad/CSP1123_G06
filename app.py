@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from functools import wraps
 from extensions import db
-from constants import UPGRADES, STORE_ITEMS
+from constants import UPGRADES, STORE_ITEMS, PASSIVE_ITEMS
 from battle import BattleBot, full_battle
 
 # Models
@@ -20,10 +20,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 migrate = Migrate(app, db)
 
-# Create tables
 with app.app_context():
     db.create_all()
-
 
 @app.context_processor
 def inject_current_user():
@@ -276,13 +274,40 @@ def store():
     user = User.query.get(session['user_id'])
     bots = Bot.query.filter_by(user_id=user.id).all()
     credits = user.tokens
+
     return render_template(
         "store.html",
-        store_items=STORE_ITEMS,
+        store_items=STORE_ITEMS,     
+        passive_items=PASSIVE_ITEMS, 
         bots=bots,
         credits=credits
     )
 
+@app.route('/buy_passive/<int:passive_id>', methods=['POST'])
+@login_required
+def buy_passive(passive_id):
+    user = User.query.get(session['user_id'])
+    bot_id = request.form.get('bot_id')
+    bot = Bot.query.get(bot_id)
+
+    passive = next((p for p in PASSIVE_ITEMS if p["id"] == passive_id), None)
+    if not passive:
+        flash("Passive not found", "danger")
+        return redirect(url_for("store"))
+
+    if user.tokens < passive["cost"]:
+        flash("Not enough credits!", "danger")
+        return redirect(url_for("store"))
+
+    # Deduct credits
+    user.tokens -= passive["cost"]
+
+    # Assign passive to bot
+    bot.passive_effect = passive["name"]
+
+    db.session.commit()
+    flash(f"{bot.name} learned passive: {passive['name']}", "success")
+    return redirect(url_for("store"))
 
 @app.route('/character')
 def character():
@@ -556,6 +581,28 @@ def bot_details(bot_id):
         multipliers=multipliers,
         final_stats=final_stats
     )
+
+@app.route("/bots")
+def bot_list():
+    user_id = session["user_id"]
+    bots = Bot.query.filter_by(user_id=user_id).all()
+
+    items = []
+    for bot in bots:
+        base_stats = {
+            "int": bot.hp,
+            "proc": bot.atk,
+            "def": bot.defense,
+            "clk": bot.speed,
+            "logic": bot.logic,
+            "ent": bot.luck,
+            "pwr": bot.energy
+        }
+        effects = algorithm_effects.get(bot.algorithm, {})
+        final_stats = {stat: int(value * effects.get(stat, 1.0)) for stat, value in base_stats.items()}
+        items.append({"bot": bot, "final_stats": final_stats})
+
+    return render_template("dashboard.html", bots=items, algorithms=algorithms, algorithm_descriptions=algorithm_descriptions)
 
 @app.route("/combat_log/<int:bot1_id>/<int:bot2_id>")
 def combat_log(bot1_id, bot2_id):
