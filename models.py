@@ -21,11 +21,10 @@ class User(db.Model, UserMixin):
 
 
 class Bot(db.Model):
-    __tablename__ = "bots"
+    __tablename__ = "bot"
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
-
     algorithm = db.Column(db.String(50), nullable=False)
 
     hp = db.Column(db.Integer, default=100)
@@ -35,18 +34,23 @@ class Bot(db.Model):
     logic = db.Column(db.Integer, default=10)
     luck = db.Column(db.Integer, default=10)
     energy = db.Column(db.Integer, default=100)
-    weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"))
-    weapon = db.relationship("Weapon", backref="bots")
+    special_effect = db.Column(db.String(100), nullable=True)
+    extra_attacks = db.Column(db.Integer, default=0)
+    ability_used = db.Column(db.Boolean, default=False)
+    special_damage = db.Column(db.Integer, default=0)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
 
-    weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"))
+    weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"), nullable=True)
     weapon = db.relationship("Weapon", backref="bots")
 
     def __repr__(self):
         return f"<Bot {self.name}>"
 
-    def award_battle_rewards(self, user, result):
+def __repr__(self):
+        return f"<Bot {self.name}>"
+
+def award_battle_rewards(self, user, result):
         xp_gain = {"win": 50, "lose": 20, "draw": 30}
         token_gain = {"win": 10, "lose": 3, "draw": 5}
 
@@ -62,12 +66,13 @@ class Bot(db.Model):
         db.session.commit()
         return user.level > old_level
 
-
 class History(db.Model):
+    __tablename__ = "history"
+
     id = db.Column(db.Integer, primary_key=True)
 
-    bot1_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
-    bot2_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
+    bot1_id = db.Column(db.Integer, db.ForeignKey("bot.id"), nullable=False)
+    bot2_id = db.Column(db.Integer, db.ForeignKey("bot.id"), nullable=False)
 
     bot1_name = db.Column(db.String(50), nullable=False)
     bot2_name = db.Column(db.String(50), nullable=False)
@@ -83,6 +88,8 @@ class History(db.Model):
 
 
 class HistoryLog(db.Model):
+    __tablename__ = "history_log"
+
     id = db.Column(db.Integer, primary_key=True)
 
     history_id = db.Column(

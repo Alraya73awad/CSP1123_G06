@@ -16,4 +16,11 @@ STORE_ITEMS = [
     {"id": 4, "name": "AI Logic Module", "stat": None, "amount": 0, "cost": 100, "desc": "Custom AI enhancement"},
     {"id": 5, "name": "Armor Plating", "stat": "defense", "amount": 10, "cost": 75, "desc": None},
     {"id": 6, "name": "Energy Core", "stat": None, "amount": 0, "cost": 120, "desc": "Power boost module"},
+    
+]
+PASSIVE_ITEMS = [
+    {"id": 1, "name": "Steady Core", "desc": "Immune to random stat drops.", "cost": 25},
+    {"id": 2, "name": "Efficient Circuit", "desc": "Uses 10% less Energy for abilities.", "cost": 50},
+    {"id": 3, "name": "Critical Logic", "desc": "+10% Crit damage.", "cost": 60},
+    {"id": 4, "name": "Backup OS", "desc": "Survive with 1 HP once per battle.", "cost": 150},
 ]
