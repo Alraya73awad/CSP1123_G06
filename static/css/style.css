@@ -22,9 +22,6 @@ body {
   color: var(--terminal-text);
   font-family: var(--font-terminal);
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   overflow: auto;
   cursor: text;
   margin: 0;
@@ -181,13 +178,13 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* Header */
-.header {
+header {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; 
+  position: sticky;
   font-size: 1.25rem;
-  margin-bottom: 40px;
-  border-bottom: 1px solid rgba(0, 255, 170, 0.2);
-  padding-bottom: 10px;
 }
 
 /* Matrix Canvas */
@@ -625,9 +622,11 @@ select:focus {
 }
 
 .log-text.attack { color:red; }
+.log-text.crit { color:yellow; }
+.log-text.energy { color:orangered }
 .log-text.status { color:lightblue; }
-.log-text.dodge { color:pink; }
-.log-text.defeat { color:purple; }
+.log-text.dodge { color:cyan; }
+.log-text.defeat { color:magenta; }
 .log-text.round { color:#00ffaa; }
 .log-text.battleover { color:#00ffaa; }
 
@@ -635,4 +634,26 @@ select:focus {
   background-color: transparent !important;
   border-color: #00ffaa;
   color: #00ffaa;
+}
+
+/* Weapon Shop CSS */
+.weapons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.weapon-card {
+  border: 2px solid var(--terminal-glow);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(0, 255, 170, 0.05);
+  box-shadow: 0 0 8px rgba(0, 255, 170, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.weapon-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 15px var(--terminal-glow);
 }

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Gear — {{ bot.name }}</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} mt-2">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <h4>Equip Weapon</h4>
+        <form method="POST">
+            <div class="mb-3">
+                <label for="equip_weapon">Select Weapon:</label>
+                <select name="equip_weapon" id="equip_weapon" class="form-select">
+                    <option value="">-- None --</option>
+                    {% for w in weapons %}
+                        <option value="{{ w.id }}" {% if bot.weapon_id == w.id %}selected{% endif %}>
+                            {{ w.name }} (Lv {{ w.level }}, ATK {{ w.effective_atk() }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Equip</button>
+        </form>
+
+    {% if weapons %}
+    <table class="table table-bordered mt-3">
+        <thead class="table-light">
+            <tr>
+                <th>Weapon</th>
+                <th>Level</th>
+                <th>Effective ATK</th>
+                <th>Max Level</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for w in weapons %}
+            <tr>
+                <td>{{ w.name }}</td>
+                <td>{{ w.level }}</td>
+                <td>{{ w.effective_atk() }}</td>
+                <td>{{ w.max_level }}</td>
+                <td>
+                    <form method="POST" style="display:inline;">
+                        <input type="hidden" name="weapon_id" value="{{ w.id }}">
+                        <button type="submit" class="btn btn-sm btn-warning"
+                            {% if w.level >= w.max_level %} disabled {% endif %}>
+                            Level Up
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p>This bot has no equipped weapons.</p>
+    {% endif %}
+
+    <a href="{{ url_for('bot_list') }}" class="btn btn-secondary mt-3">Back to Bot List</a>
+</div>
+{% endblock %}

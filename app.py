@@ -564,6 +564,8 @@ def combat_log(bot1_id, bot2_id):
 
     stats1 = apply_algorithm(bot1)
     stats2 = apply_algorithm(bot2)
+    weapon1 = bot1.weapon
+    weapon2 = bot2.weapon
 
     # convert database Bot → BattleBot for combat (with effective stats)
     battleA = BattleBot(
@@ -573,7 +575,9 @@ def combat_log(bot1_id, bot2_id):
         proc=stats1["proc"],
         defense=stats1["defense"],
         clk=stats1["clk"],
-        luck=stats1["luck"]
+        luck=stats1["luck"],
+        weapon_atk=weapon1.effective_atk() if weapon1 else 0,
+        weapon_type=weapon1.type if weapon1 else None
     )
 
     battleB = BattleBot(
@@ -583,7 +587,9 @@ def combat_log(bot1_id, bot2_id):
         proc=stats2["proc"],
         defense=stats2["defense"],
         clk=stats2["clk"],
-        luck=stats2["luck"]
+        luck=stats2["luck"],
+        weapon_atk=weapon2.effective_atk() if weapon2 else 0,
+        weapon_type=weapon2.type if weapon2 else None
     )
 
     winner, log = full_battle(battleA, battleB)
@@ -628,6 +634,8 @@ def battle_select():
 
 def apply_algorithm(bot):
     effects = algorithm_effects.get(bot.algorithm, {})
+    weapon = Weapon.query.get(bot.weapon_id) if bot.weapon_id else None
+    weapon_bonus = weapon.atk_bonus if weapon else 0
 
     # Return new effective stats
     return {
@@ -655,6 +663,56 @@ def view_history(history_id):
 
     return render_template("combat_log.html", log=[(l.type, l.text) for l in logs], winner = history.winner, bot1 = bot1, bot2 = bot2, stats1 = stats1, stats2 = stats2)
 
+@app.route("/weapons")
+def weapons_shop():
+    weapons = Weapon.query.all()
+    return render_template("weapons.html", weapons=weapons)
+
+@app.route("/weapon/<int:weapon_id>/level_up", methods=["POST"])
+def level_up_weapon(weapon_id):
+    weapon = Weapon.query.get_or_404(weapon_id)
+
+    if weapon.level < weapon.max_level:
+        weapon.level += 1
+        db.session.commit()
+
+    return redirect(url_for("edit_bot", bot_id=weapon.bot_id))
+
+@app.route('/gear/<int:bot_id>', methods=['GET', 'POST'])
+def gear(bot_id):
+    bot = Bot.query.get_or_404(bot_id)
+    weapons = Weapon.query.all()
+
+    if request.method == "POST":
+        # Equip weapon
+        if "equip_weapon" in request.form:
+            weapon_id = request.form.get("equip_weapon")
+            bot.weapon_id = int(weapon_id) if weapon_id else None
+            if bot.weapon_id:
+                weapon = Weapon.query.get(bot.weapon_id)
+                bot.atk = 10 + weapon.effective_atk()  
+            else:
+                bot.atk = 10  
+            db.session.commit()
+            flash("Weapon equipped successfully!", "success")
+            return redirect(url_for("gear", bot_id=bot.id))
+
+        # Level up weapon
+        if "weapon_id" in request.form:
+            weapon_id = int(request.form.get("weapon_id"))
+            weapon = Weapon.query.get_or_404(weapon_id)
+            if weapon.level < weapon.max_level:
+                weapon.level += 1
+                db.session.commit()
+                flash(f"{weapon.name} leveled up to Lv {weapon.level}!", "success")
+            else:
+                flash(f"{weapon.name} is already at max level.", "warning")
+            return redirect(url_for('gear', bot_id=bot.id))
+
+
+    return render_template('gear.html', bot=bot, weapons=weapons)
+
+# Run server
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()

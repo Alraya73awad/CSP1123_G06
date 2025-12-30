@@ -35,6 +35,8 @@ class Bot(db.Model):
     logic = db.Column(db.Integer, default=10)
     luck = db.Column(db.Integer, default=10)
     energy = db.Column(db.Integer, default=100)
+    weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"))
+    weapon = db.relationship("Weapon", backref="bots")
 
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
@@ -92,15 +94,12 @@ class HistoryLog(db.Model):
     type = db.Column(db.String(20))
     text = db.Column(db.Text)
 
-
-
 class Weapon(db.Model):
     __tablename__ = "weapons"
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
     type = db.Column(db.String(20), nullable=False)
-
     atk_bonus = db.Column(db.Integer, default=0)
     tier = db.Column(db.Integer, default=1)
     description = db.Column(db.String(200), nullable=False)
@@ -117,5 +116,7 @@ class Weapon(db.Model):
             5: {"base": 55, "per_level": 14},
             6: {"base": 100, "per_level": 20},
         }
+
         stats = tier_stats[self.tier]
+
         return stats["base"] + (self.level - 1) * stats["per_level"]
