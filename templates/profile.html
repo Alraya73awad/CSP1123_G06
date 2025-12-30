@@ -1,7 +1,17 @@
 {% extends "base.html" %}
 
+{% block page_title %}Profile - Clash of Code{% endblock %}
+
 {% block content %}
-<h1>Game Screen</h1>
-<p>Play screen placeholder</p>
-<a class="btn btn-primary" href="{{ url_for('/') }}">Home</a>
+
+<h1>{{ username }}'s Profile</h1>
+
+<p><strong>Username:</strong> {{ username }}</p>
+<p><strong>Email:</strong> {{ email }}</p>
+<p><strong>Level:</strong> {{ level }}</p>
+<p><strong>XP:</strong> {{ xp }}</p>
+<p><strong>Tokens:</strong> {{ tokens }}</p>
+
+<a href="{{ url_for('dashboard') }}" class="terminal-btn">DASHBOARD</a>
 {% endblock %}
+

@@ -1,11 +1,31 @@
 from extensions import db
-from datetime import datetime 
+from flask_login import UserMixin
+from datetime import datetime
+
+class User(db.Model, UserMixin):
+    __tablename__ = "user"
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+
+    xp = db.Column(db.Integer, default=0)
+    tokens = db.Column(db.Integer, default=0)
+    level = db.Column(db.Integer, default=1)
+
+    bots = db.relationship("Bot", backref="user", lazy=True)
+
+    def get_id(self):
+        return str(self.id)
+
 
 class Bot(db.Model):
     __tablename__ = "bots"
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
+
     algorithm = db.Column(db.String(50), nullable=False)
 
     hp = db.Column(db.Integer, default=100)
@@ -18,8 +38,30 @@ class Bot(db.Model):
     weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"))
     weapon = db.relationship("Weapon", backref="bots")
 
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"))
+    weapon = db.relationship("Weapon", backref="bots")
+
     def __repr__(self):
         return f"<Bot {self.name}>"
+
+    def award_battle_rewards(self, user, result):
+        xp_gain = {"win": 50, "lose": 20, "draw": 30}
+        token_gain = {"win": 10, "lose": 3, "draw": 5}
+
+        old_level = user.level
+
+        user.xp += xp_gain.get(result, 0)
+        user.tokens += token_gain.get(result, 0)
+
+        while user.xp >= user.level * 100:
+            user.xp -= user.level * 100
+            user.level += 1
+
+        db.session.commit()
+        return user.level > old_level
+
 
 class History(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -39,6 +81,7 @@ class History(db.Model):
         cascade="all, delete-orphan"
     )
 
+
 class HistoryLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -48,7 +91,7 @@ class HistoryLog(db.Model):
         nullable=False
     )
 
-    type = db.Column(db.String(20))  # round, attack, status, defeat, etc
+    type = db.Column(db.String(20))
     text = db.Column(db.Text)
 
 class Weapon(db.Model):

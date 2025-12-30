@@ -1,16 +1,205 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+import os
+
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_migrate import Migrate
+from functools import wraps
 from extensions import db
+from constants import UPGRADES, STORE_ITEMS
 from battle import BattleBot, full_battle
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///clash_of_code.db'
+# Models
+from models import User, Bot, History, HistoryLog
+
+app = Flask(__name__, instance_relative_config=True)
+
+app.config["SECRET_KEY"] = "dev_secret_key"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///clash_of_code.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config['SECRET_KEY'] = 'dev_secret_key'
 
 db.init_app(app)
+migrate = Migrate(app, db)
 
-# Models
-from models import Bot, History, HistoryLog, Weapon
+# Create tables
+with app.app_context():
+    db.create_all()
+
+
+@app.context_processor
+def inject_current_user():
+    user = None
+    if "user_id" in session:
+        user = User.query.get(session["user_id"])
+    return dict(current_user=user)
+
+
+#routes
+@app.route("/")
+def home():
+    user = None
+    if "user_id" in session:
+        user = User.query.get(session["user_id"])
+
+    return render_template("index.html", username=user.username if user else None)
+
+#login
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        user = User.query.filter_by(username=username).first()
+
+        if not user:
+            flash("Username does not exist.", "danger")
+            return redirect(url_for("login"))
+
+        if not check_password_hash(user.password, password):
+            flash("Incorrect password.", "danger")
+            return redirect(url_for("login"))
+
+        session["user_id"] = user.id
+        flash("Successfully logged in!", "success")
+        return redirect(url_for("dashboard"))
+
+    return render_template("login.html")
+
+#register
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        email = request.form["email"]
+        password = request.form["password"]
+
+        if User.query.filter_by(username=username).first():
+            flash("Username already exists.", "danger")
+            return redirect(url_for("register"))
+
+        if User.query.filter_by(email=email).first():
+            flash("Email already exists.", "danger")
+            return redirect(url_for("register"))
+
+        hashed_password = generate_password_hash(password)
+        user = User(username=username, email=email, password=hashed_password)
+
+        db.session.add(user)
+        db.session.commit()
+
+        flash("Account created successfully!", "success")
+        return redirect(url_for("login"))
+
+    return render_template("register.html")
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash("Please log in to continue.", "warning")
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+#dashboard
+@app.route("/dashboard", methods=["GET", "POST"])
+@login_required
+def dashboard():
+    user = User.query.get(session["user_id"])
+
+    # HANDLE BOT CREATION (FORM SUBMIT)
+    if request.method == "POST":
+        name = request.form.get("name")
+        algorithm = request.form.get("algorithm")
+
+        if not name or not algorithm:
+            flash("Please enter a bot name and select an algorithm.", "danger")
+        else:
+            new_bot = Bot(
+                name=name,
+                algorithm=algorithm,
+                user_id=user.id
+            )
+            db.session.add(new_bot)
+            db.session.commit()
+            flash("Bot created successfully!", "success")
+
+        return redirect(url_for("dashboard"))
+
+    # NORMAL DASHBOARD LOAD (GET)
+    bots = user.bots
+    xp_percent = int((user.xp / (user.level * 100)) * 100)
+
+    enhanced_bots = []
+    for bot in bots:
+        base_stats = {
+            "int": bot.hp,
+            "proc": bot.atk,
+            "def": bot.defense,
+            "clk": bot.speed,
+            "logic": bot.logic,
+            "ent": bot.luck,
+            "pwr": bot.energy
+        }
+
+        effects = algorithm_effects.get(bot.algorithm, {})
+        final_stats = {}
+
+        for stat, base in base_stats.items():
+            multiplier = effects.get(stat, 1.0)
+            final_stats[stat] = int(base * multiplier)
+
+        enhanced_bots.append({
+            "bot": bot,
+            "final_stats": final_stats
+        })
+
+    return render_template(
+        "dashboard.html",
+        bots=enhanced_bots,
+        xp_percent=xp_percent,
+        algorithms=algorithms,
+        algorithm_descriptions=algorithm_descriptions
+    )
+
+
+#logout
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("Logged out successfully.", "info")
+    return redirect(url_for("home"))
+
+# Create bot
+@app.route("/create_bot", methods=["GET", "POST"])
+@login_required
+def create_bot():
+    if request.method == "POST":
+        name = request.form.get("name")
+        algorithm = request.form.get("algorithm")
+
+        if not name or not algorithm:
+            flash("Please provide a bot name and select an algorithm.", "danger")
+            return redirect(url_for("create_bot"))
+
+        new_bot = Bot(
+            name=name,
+            algorithm=algorithm,
+            user_id=session["user_id"]
+        )
+
+        db.session.add(new_bot)
+        db.session.commit()
+
+        flash("Bot created successfully!", "success")
+        return redirect(url_for("dashboard"))
+
+    # GET request → show form
+    return render_template(
+        "create_bot.html",
+        algorithms=algorithms,
+        algorithm_descriptions=algorithm_descriptions
+    )
 
 # Stat Min/Max Values
 STAT_LIMITS = {
@@ -70,72 +259,143 @@ algorithm_descriptions = {
 }
 
 
-# Routes
-@app.route('/')
-def index():
-    return render_template('index.html')
+# manage bot
+@app.route('/manage_bot')
+def manage_bot():
+    if 'user_id' not in session:
+        flash("Please log in to manage your bots.", "warning")
+        return redirect(url_for('login'))
 
-@app.route('/game')
-def game():
-    return render_template('game.html')
+    user_bots = Bot.query.filter_by(user_id=session['user_id']).all()
+    return render_template('manage_bot.html', bots=user_bots)
 
-@app.route('/create_bot', methods=['GET', 'POST'])
-def create_bot():
-    if request.method == 'POST':
-        name = request.form.get('name')
-        algorithm = request.form["algorithm"]
+# Other pages
+@app.route('/store')
+@login_required
+def store():
+    user = User.query.get(session['user_id'])
+    bots = Bot.query.filter_by(user_id=user.id).all()
+    credits = user.tokens
+    return render_template(
+        "store.html",
+        store_items=STORE_ITEMS,
+        bots=bots,
+        credits=credits
+    )
 
-        new_bot = Bot(name=name, algorithm=algorithm)
 
-        db.session.add(new_bot)
-        db.session.commit()
+@app.route('/character')
+def character():
+    return render_template('character.html')
 
-        return redirect(url_for('bot_list'))
-    
-    
+@app.route('/play')
+@login_required
+def play():
+    return render_template('battle.html')
 
-    return render_template('create_bot.html', algorithms = algorithms, algorithm_descriptions=algorithm_descriptions)
+# profile page
+@app.route('/profile')
+def profile():
+    user_id = session.get('user_id')
+    if not user_id:
+        flash("Please log in first.", "warning")
+        return redirect(url_for('login'))
 
-@app.route('/bot_list')
-def bot_list():
-    bots = Bot.query.all()
+    user = User.query.get(user_id)
+    if not user:
+        flash("Error loading profile.", "danger")
+        return redirect(url_for('login'))
 
-    enhanced_bots = []
-    for bot in bots:
-        base_stats = {
-            "int": bot.hp,
-            "proc": bot.atk,
-            "def": bot.defense,
-            "clk": bot.speed,
-            "logic": bot.logic,
-            "ent": bot.luck,
-            "pwr": bot.energy
-        }
+    return render_template(
+        'profile.html',
+        username=user.username,
+        email=user.email,
+        level=user.level,
+        xp=user.xp,
+        tokens=user.tokens
+    )
 
-        effects = algorithm_effects.get(bot.algorithm, {})
-        final_stats = {}
+#store display func
 
-        for stat, base in base_stats.items():
-            multiplier = effects.get(stat, 1.0)
-            final_stats[stat] = int(base * multiplier)
+def store():
+    for upgrade in UPGRADES:
+        print(upgrade["name"], upgrade["cost"])
 
-        enhanced_bots.append({
-            "bot": bot,
-            "final_stats": final_stats
-        })
+# Buy item and upgrade purchase function
+@app.route("/buy", methods=["POST"])
+@login_required
+def buy():
+    user = User.query.get(session['user_id'])
+    bot_id = request.form.get("bot_id")
+    bot = Bot.query.filter_by(id=bot_id, user_id=user.id).first()
+    if not bot:
+        flash("Invalid bot selection.", "danger")
+        return redirect(url_for("store"))
 
-    return render_template('bot_list.html', bots=enhanced_bots)
+    purchase_id = request.form.get("purchase_id")
+    item = next((i for i in STORE_ITEMS if str(i["id"]) == str(purchase_id)), None)
+    if not item:
+        flash("Invalid purchase.", "danger")
+        return redirect(url_for("store"))
 
-@app.route('/delete_bot/<int:bot_id>')
+    # Determine cost and apply
+    cost = item["cost"]
+    if user.tokens < cost:
+        flash("Not enough tokens!", "danger")
+        return redirect(url_for("store"))
+
+    user.tokens -= cost
+
+    if item.get("stat"):
+        # Check whether upgrade uses 'value' or 'amount'
+        value = item.get("value") or item.get("amount") or 0
+        setattr(bot, item["stat"], getattr(bot, item["stat"]) + value)
+        flash(f"{item['name']} applied to {bot.name}!", "success")
+    else:
+        flash(f"{item['name']} purchased for {bot.name}! (custom effect applied)", "success")
+
+    db.session.commit()
+    return redirect(url_for("store"))
+
+@app.route("/update_settings", methods=["POST"])
+@login_required
+def update_settings():
+    user = User.query.get(session["user_id"])
+    username = request.form.get("username")
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    if username:
+        user.username = username
+    if email:
+        user.email = email
+    if password:
+        user.password = generate_password_hash(password)
+
+    db.session.commit()
+    flash("Settings updated successfully!", "success")
+    return redirect(url_for("dashboard"))
+
+@app.route("/delete_bot/<int:bot_id>", methods=["POST"])
+@login_required
 def delete_bot(bot_id):
-    bot = Bot.query.get_or_404(bot_id)
+    bot = Bot.query.filter_by(
+        id=bot_id,
+        user_id=session["user_id"]
+    ).first_or_404()
+
     db.session.delete(bot)
     db.session.commit()
-    return redirect(url_for('bot_list'))
+    flash("Bot deleted successfully.", "success")
+    return redirect(url_for("manage_bot"))
 
 @app.route('/edit-bot/<int:bot_id>', methods=['GET', 'POST'])
+@login_required
 def edit_bot(bot_id):
-    bot = Bot.query.get_or_404(bot_id)
+    bot = Bot.query.filter_by(
+        id=bot_id,
+        user_id=session["user_id"]
+    ).first_or_404()
 
     if request.method == 'POST':
 
@@ -261,8 +521,12 @@ def edit_bot(bot_id):
     return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, algorithms = algorithms, algorithm_descriptions=algorithm_descriptions, show_flashes = False)
 
 @app.route('/bot/<int:bot_id>')
+@login_required
 def bot_details(bot_id):
-    bot = Bot.query.get_or_404(bot_id)
+    bot = Bot.query.filter_by(
+        id=bot_id,
+        user_id=session["user_id"]
+    ).first_or_404()
 
     base_stats = {
         "int": bot.hp,

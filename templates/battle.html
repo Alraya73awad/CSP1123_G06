@@ -1,5 +1,64 @@
 {% extends "base.html" %}
 
+{% block page_title %}Battle Arena | Clash of Code{% endblock %}
+
+{% block content %}
+
+<h1>BATTLE ARENA // CYBER WARFARE</h1>
+
+<div id="battle-screen">
+    <pre id="battle-log"></pre>
+</div>
+
+<button id="start-battle" class="login-button">INITIATE BATTLE</button>
+
+<br><br>
+
+<a href="{{ url_for('dashboard') }}">← Dashboard</a>
+
+<script>
+// Typewriter effect
+function typeLine(line, delay) {
+    return new Promise(resolve => {
+        let i = 0;
+        let log = document.getElementById("battle-log");
+
+        let interval = setInterval(() => {
+            log.textContent += line[i];
+            i++;
+
+            if (i >= line.length) {
+                clearInterval(interval);
+                log.textContent += "\n";
+                resolve();
+            }
+        }, delay);
+    });
+}
+
+document.getElementById("start-battle").onclick = async () => {
+    const log = document.getElementById("battle-log");
+    log.textContent = ""; // reset
+
+    const lines = [
+        "[SYSTEM] Initializing battle protocol...",
+        "[SCANNING] Searching for opponent bot...",
+        "[MATCH FOUND] Opponent located.",
+        "[LOADING] Deploying battle environment...",
+        ">>> BATTLE START <<<",
+        "[BOT] Executing attack sequence...",
+        "[ENEMY] Counterattack detected...",
+        "[SYSTEM] Calculating damage...",
+        "[RESULT] Victory probability rising...",
+        "[FINISH] You won the battle!"
+    ];
+
+    for (let line of lines) {
+        await typeLine(line, 30);
+    }
+};
+</script>
+
 {% block content %}
 <div class="container mt-4">
     <h2>Select Bots to Battle</h2>
