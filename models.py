@@ -127,3 +127,37 @@ class Weapon(db.Model):
         stats = tier_stats[self.tier]
 
         return stats["base"] + (self.level - 1) * stats["per_level"]
+
+class WeaponOwnership(db.Model):
+    __tablename__ = "weapon_ownership"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=False
+    )
+
+    weapon_id = db.Column(
+        db.Integer,
+        db.ForeignKey("weapons.id"),
+        nullable=False
+    )
+
+    # Which bot this weapon is equipped to (NULL = unequipped)
+    bot_id = db.Column(
+        db.Integer,
+        db.ForeignKey("bot.id"),
+        nullable=True
+    )
+
+    equipped = db.Column(db.Boolean, default=False)
+
+    # Relationships
+    user = db.relationship("User", backref="weapon_inventory")
+    weapon = db.relationship("Weapon")
+    bot = db.relationship("Bot", backref="equipped_weapon_ownership")
+
+    def effective_atk(self):
+        return self.weapon.effective_atk()

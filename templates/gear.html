@@ -4,13 +4,6 @@
 <div class="container mt-4">
     <h2>Gear — {{ bot.name }}</h2>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} mt-2">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
 
     <h4>Equip Weapon</h4>
         <form method="POST">
@@ -18,9 +11,9 @@
                 <label for="equip_weapon">Select Weapon:</label>
                 <select name="equip_weapon" id="equip_weapon" class="form-select">
                     <option value="">-- None --</option>
-                    {% for w in weapons %}
-                        <option value="{{ w.id }}" {% if bot.weapon_id == w.id %}selected{% endif %}>
-                            {{ w.name }} (Lv {{ w.level }}, ATK {{ w.effective_atk() }})
+                    {% for ow in owned_weapons %}
+                        <option value="{{ ow.id }}" {% if ow.equipped and ow.bot_id == bot.id %}selected{% endif %}>
+                            {{ ow.weapon.name }} (Lv {{ ow.weapon.level }}, ATK {{ ow.weapon.effective_atk() }})
                         </option>
                     {% endfor %}
                 </select>
@@ -28,7 +21,7 @@
             <button type="submit" class="btn btn-primary">Equip</button>
         </form>
 
-    {% if weapons %}
+    {% if owned_weapons %}
     <table class="table table-bordered mt-3">
         <thead class="table-light">
             <tr>
@@ -40,17 +33,17 @@
             </tr>
         </thead>
         <tbody>
-            {% for w in weapons %}
+            {% for ow in owned_weapons %}
             <tr>
-                <td>{{ w.name }}</td>
-                <td>{{ w.level }}</td>
-                <td>{{ w.effective_atk() }}</td>
-                <td>{{ w.max_level }}</td>
+                <td>{{ ow.weapon.name }}</td>
+                <td>{{ ow.weapon.level }}</td>
+                <td>{{ ow.weapon.effective_atk() }}</td>
+                <td>{{ ow.weapon.max_level }}</td>
                 <td>
                     <form method="POST" style="display:inline;">
-                        <input type="hidden" name="weapon_id" value="{{ w.id }}">
+                        <input type="hidden" name="weapon_id" value="{{ ow.id }}">
                         <button type="submit" class="btn btn-sm btn-warning"
-                            {% if w.level >= w.max_level %} disabled {% endif %}>
+                            {% if ow.weapon.level >= ow.weapon.max_level %} disabled {% endif %}>
                             Level Up
                         </button>
                     </form>

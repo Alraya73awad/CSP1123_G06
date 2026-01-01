@@ -9,7 +9,7 @@ from constants import UPGRADES, STORE_ITEMS, PASSIVE_ITEMS
 from battle import BattleBot, full_battle
 
 # Models
-from models import User, Bot, History, HistoryLog, Weapon
+from models import User, Bot, History, HistoryLog, Weapon, WeaponOwnership
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -299,13 +299,15 @@ def store():
     user = User.query.get(session['user_id'])
     bots = Bot.query.filter_by(user_id=user.id).all()
     credits = user.tokens
+    weapons = Weapon.query.all()
 
     return render_template(
         "store.html",
         store_items=STORE_ITEMS,     
         passive_items=PASSIVE_ITEMS, 
         bots=bots,
-        credits=credits
+        credits=credits,
+        weapons = weapons
     )
 
 @app.route('/buy_passive/<int:passive_id>', methods=['POST'])
@@ -636,8 +638,8 @@ def combat_log(bot1_id, bot2_id):
 
     stats1 = apply_algorithm(bot1)
     stats2 = apply_algorithm(bot2)
-    weapon1 = bot1.weapon
-    weapon2 = bot2.weapon
+    weapon1_ow = WeaponOwnership.query.filter_by(bot_id=bot1.id, equipped=True).first()
+    weapon2_ow = WeaponOwnership.query.filter_by(bot_id=bot2.id, equipped=True).first()
 
     # convert database Bot → BattleBot for combat (with effective stats)
     battleA = BattleBot(
@@ -648,8 +650,8 @@ def combat_log(bot1_id, bot2_id):
         defense=stats1["defense"],
         clk=stats1["clk"],
         luck=stats1["luck"],
-        weapon_atk=weapon1.effective_atk() if weapon1 else 0,
-        weapon_type=weapon1.type if weapon1 else None
+        weapon_atk=weapon1_ow.effective_atk() if weapon1_ow else 0,
+        weapon_type=weapon1_ow.weapon.type if weapon1_ow else None
     )
 
     battleB = BattleBot(
@@ -660,8 +662,8 @@ def combat_log(bot1_id, bot2_id):
         defense=stats2["defense"],
         clk=stats2["clk"],
         luck=stats2["luck"],
-        weapon_atk=weapon2.effective_atk() if weapon2 else 0,
-        weapon_type=weapon2.type if weapon2 else None
+        weapon_atk=weapon2_ow.effective_atk() if weapon2_ow else 0,
+        weapon_type=weapon2_ow.weapon.type if weapon2_ow else None
     )
 
     winner, log = full_battle(battleA, battleB)
@@ -706,8 +708,8 @@ def battle_select():
 
 def apply_algorithm(bot):
     effects = algorithm_effects.get(bot.algorithm, {})
-    weapon = Weapon.query.get(bot.weapon_id) if bot.weapon_id else None
-    weapon_bonus = weapon.atk_bonus if weapon else 0
+    equipped = WeaponOwnership.query.filter_by(bot_id=bot.id, equipped=True).first()
+    weapon_atk = equipped.effective_atk() if equipped else 0
 
     # Return new effective stats
     return {
@@ -750,39 +752,74 @@ def level_up_weapon(weapon_id):
 
     return redirect(url_for("edit_bot", bot_id=weapon.bot_id))
 
+@app.route("/buy_weapon/<int:weapon_id>", methods=["POST"])
+@login_required
+def buy_weapon(weapon_id):
+    user = User.query.get(session["user_id"])
+    weapon = Weapon.query.get_or_404(weapon_id)
+
+    if user.tokens < weapon.price:
+        flash("Not enough credits.", "error")
+        return redirect(url_for("store"))
+
+    user.tokens -= weapon.price
+
+    ownership = WeaponOwnership(
+        user_id=user.id,
+        weapon_id=weapon.id
+    )
+
+    db.session.add(ownership)
+    db.session.commit()
+
+    flash(f"{weapon.name} purchased and added to your inventory!", "success")
+    return redirect(url_for("store"))
+
 @app.route('/gear/<int:bot_id>', methods=['GET', 'POST'])
 def gear(bot_id):
     bot = Bot.query.get_or_404(bot_id)
-    weapons = Weapon.query.all()
+    user_id = bot.user_id 
+    owned_weapons = WeaponOwnership.query.filter_by(user_id=user_id).all()
 
     if request.method == "POST":
-        # Equip weapon
         if "equip_weapon" in request.form:
-            weapon_id = request.form.get("equip_weapon")
-            bot.weapon_id = int(weapon_id) if weapon_id else None
-            if bot.weapon_id:
-                weapon = Weapon.query.get(bot.weapon_id)
-                bot.atk = 10 + weapon.effective_atk()  
-            else:
-                bot.atk = 10  
+            ownership_id = request.form.get("equip_weapon")
+
+            # Unequip any currently equipped weapon for this bot
+            WeaponOwnership.query.filter_by(
+                bot_id=bot.id,
+                equipped=True
+            ).update({"equipped": False, "bot_id": None})
+
+            if ownership_id:
+                ownership = WeaponOwnership.query.get_or_404(int(ownership_id))
+                ownership.bot_id = bot.id
+                ownership.equipped = True
+
             db.session.commit()
             flash("Weapon equipped successfully!", "success")
             return redirect(url_for("gear", bot_id=bot.id))
 
-        # Level up weapon
-        if "weapon_id" in request.form:
-            weapon_id = int(request.form.get("weapon_id"))
-            weapon = Weapon.query.get_or_404(weapon_id)
-            if weapon.level < weapon.max_level:
-                weapon.level += 1
+        if "weapon_ownership_id" in request.form:
+            ow_id = int(request.form.get("weapon_ownership_id"))
+            ow = WeaponOwnership.query.get_or_404(ow_id)
+
+            if ow.weapon.level < ow.weapon.max_level:
+                ow.weapon.level += 1
                 db.session.commit()
-                flash(f"{weapon.name} leveled up to Lv {weapon.level}!", "success")
+                flash(f"{ow.weapon.name} leveled up!", "success")
             else:
-                flash(f"{weapon.name} is already at max level.", "warning")
-            return redirect(url_for('gear', bot_id=bot.id))
+                flash("Weapon already at max level.", "warning")
+
+            return redirect(url_for("gear", bot_id=bot.id))
 
 
-    return render_template('gear.html', bot=bot, weapons=weapons)
+    return render_template(
+        "gear.html",
+        bot=bot,
+        owned_weapons=owned_weapons
+    )
+
 
 # Run server
 if __name__ == "__main__":
