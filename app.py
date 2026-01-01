@@ -9,7 +9,7 @@ from constants import UPGRADES, STORE_ITEMS, PASSIVE_ITEMS
 from battle import BattleBot, full_battle
 
 # Models
-from models import User, Bot, History, HistoryLog
+from models import User, Bot, History, HistoryLog, Weapon
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -264,8 +264,33 @@ def manage_bot():
         flash("Please log in to manage your bots.", "warning")
         return redirect(url_for('login'))
 
-    user_bots = Bot.query.filter_by(user_id=session['user_id']).all()
-    return render_template('manage_bot.html', bots=user_bots)
+    user = User.query.get(session["user_id"])
+    bots = user.bots
+
+    enhanced_bots = []
+    for bot in bots:
+        base_stats = {
+            "int": bot.hp,
+            "proc": bot.atk,
+            "def": bot.defense,
+            "clk": bot.speed,
+            "logic": bot.logic,
+            "ent": bot.luck,
+            "pwr": bot.energy
+        }
+
+        effects = algorithm_effects.get(bot.algorithm, {})
+        final_stats = {}
+
+        for stat, base in base_stats.items():
+            multiplier = effects.get(stat, 1.0)
+            final_stats[stat] = int(base * multiplier)
+
+        enhanced_bots.append({
+            "bot": bot,
+            "final_stats": final_stats
+        })
+    return render_template('manage_bot.html', bots=enhanced_bots,   algorithms=algorithms, algorithm_descriptions=algorithm_descriptions)
 
 # Other pages
 @app.route('/store')

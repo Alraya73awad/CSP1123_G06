@@ -10,12 +10,6 @@
     <pre id="battle-log"></pre>
 </div>
 
-<button id="start-battle" class="login-button">INITIATE BATTLE</button>
-
-<br><br>
-
-<a href="{{ url_for('dashboard') }}">← Dashboard</a>
-
 <div class="container mt-4">
     <h2>Select Bots to Battle</h2>
 
@@ -53,11 +47,15 @@
             {% endif %}
         {% endwith %}
 
-        <button type="submit" class="btn btn-primary">Start Battle</button>
+        <button type="submit" id="start-battle" class="login-button">INITIATE BATTLE</button>
         <a href="{{ url_for('bot_list') }}" class="btn btn-secondary">Cancel</a>
 
     </form>
 </div>
+
+<br><br>
+
+<a href="{{ url_for('dashboard') }}">← Dashboard</a>
 
 {% endblock %}
 
