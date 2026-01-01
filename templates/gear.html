@@ -41,7 +41,7 @@
                 <td>{{ ow.weapon.max_level }}</td>
                 <td>
                     <form method="POST" style="display:inline;">
-                        <input type="hidden" name="weapon_id" value="{{ ow.id }}">
+                        <input type="hidden" name="weapon_ownership_id" value="{{ ow.id }}">
                         <button type="submit" class="btn btn-sm btn-warning"
                             {% if ow.weapon.level >= ow.weapon.max_level %} disabled {% endif %}>
                             Level Up

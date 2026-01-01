@@ -44,6 +44,21 @@ class Bot(db.Model):
     weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"), nullable=True)
     weapon = db.relationship("Weapon", backref="bots")
 
+    @property
+    def equipped_weapon(self):
+        for ow in self.equipped_weapon_ownership:
+            if ow.equipped:
+                return ow
+        return None
+
+    @property
+    def total_proc(self):
+        base = self.atk
+        ow = self.equipped_weapon
+        if ow and ow.weapon:
+            return base + ow.weapon.effective_atk()
+        return base
+
     def __repr__(self):
         return f"<Bot {self.name}>"
 

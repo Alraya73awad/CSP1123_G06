@@ -18,9 +18,9 @@
     <p><strong>Algorithm:</strong> {{ bot.algorithm }}</p>
     <p>
         <strong>Weapon:</strong>
-        {% set equipped = bot.equipped_weapon_ownership[0] if bot.equipped_weapon_ownership else None %}
+        {% set equipped = bot.equipped_weapon %}
         {% if equipped %}
-            {{ equipped.weapon.name }} (+{{ equipped.effective_atk() }} PROC)
+            {{ equipped.weapon.name }} (+{{ equipped.weapon.effective_atk() }} PROC)
         {% else %}
             None
         {% endif %}

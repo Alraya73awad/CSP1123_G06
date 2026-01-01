@@ -132,7 +132,7 @@ def dashboard():
     for bot in bots:
         base_stats = {
             "int": bot.hp,
-            "proc": bot.atk,
+            "proc": bot.total_proc,
             "def": bot.defense,
             "clk": bot.speed,
             "logic": bot.logic,
@@ -271,7 +271,7 @@ def manage_bot():
     for bot in bots:
         base_stats = {
             "int": bot.hp,
-            "proc": bot.atk,
+            "proc": bot.total_proc,
             "def": bot.defense,
             "clk": bot.speed,
             "logic": bot.logic,
@@ -568,7 +568,7 @@ def edit_bot(bot_id):
 
             db.session.commit()
             flash("Bot updated successfully.", "success")
-            return redirect(url_for('bot_list') + "?flash=1")
+            return redirect(url_for('manage_bot') + "?flash=1")
 
     return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, algorithms = algorithms, algorithm_descriptions=algorithm_descriptions, show_flashes = False)
 
@@ -582,7 +582,7 @@ def bot_details(bot_id):
 
     base_stats = {
         "int": bot.hp,
-        "proc": bot.atk,
+        "proc": bot.total_proc,
         "def": bot.defense,
         "clk": bot.speed,
         "logic": bot.logic,
@@ -618,7 +618,7 @@ def bot_list():
     for bot in bots:
         base_stats = {
             "int": bot.hp,
-            "proc": bot.atk,
+            "proc": bot.total_proc,
             "def": bot.defense,
             "clk": bot.speed,
             "logic": bot.logic,
@@ -646,7 +646,7 @@ def combat_log(bot1_id, bot2_id):
         name=bot1.name,
         hp=stats1["hp"],
         energy=stats1["energy"],
-        proc=stats1["proc"],
+        proc=bot1.total_proc,
         defense=stats1["defense"],
         clk=stats1["clk"],
         luck=stats1["luck"],
@@ -658,7 +658,7 @@ def combat_log(bot1_id, bot2_id):
         name=bot2.name,
         hp=stats2["hp"],
         energy=stats2["energy"],
-        proc=stats2["proc"],
+        proc=bot2.total_proc,
         defense=stats2["defense"],
         clk=stats2["clk"],
         luck=stats2["luck"],
