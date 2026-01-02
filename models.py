@@ -14,6 +14,17 @@ class User(db.Model, UserMixin):
     tokens = db.Column(db.Integer, default=0)
     level = db.Column(db.Integer, default=1)
 
+    rating = db.Column(db.Integer, default=600)  # ELO-style rating
+    wins = db.Column(db.Integer, default=0)
+    losses = db.Column(db.Integer, default=0)
+    
+    @property
+    def win_rate(self):
+        total = self.wins + self.losses
+        if total == 0:
+            return 0
+        return (self.wins / total) * 100
+
     bots = db.relationship("Bot", backref="user", lazy=True)
 
     def get_id(self):
