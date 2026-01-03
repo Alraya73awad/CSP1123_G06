@@ -858,20 +858,51 @@ def apply_algorithm(bot):
     }
 
 @app.route("/history")
+@login_required
 def history():
-    battles = History.query.order_by(History.timestamp.desc()).all()
-    return render_template("history.html", battles = battles)
+    user = User.query.get(session["user_id"])
+    
+    # Only show battles where the user's bots participated
+    user_bot_ids = [bot.id for bot in user.bots]
+    
+    battles = History.query.filter(
+        db.or_(
+            History.bot1_id.in_(user_bot_ids),
+            History.bot2_id.in_(user_bot_ids)
+        )
+    ).order_by(History.timestamp.desc()).all()
+    
+    return render_template("history.html", battles=battles)
 
 @app.route("/history/<int:history_id>")
+@login_required
 def view_history(history_id):
+    user = User.query.get(session["user_id"])
     history = History.query.get_or_404(history_id)
+    
+    # Check if user was involved in this battle
     bot1 = Bot.query.get(history.bot1_id)
     bot2 = Bot.query.get(history.bot2_id)
+    
+    user_bot_ids = [bot.id for bot in user.bots]
+    
+    if history.bot1_id not in user_bot_ids and history.bot2_id not in user_bot_ids:
+        flash("You don't have permission to view this battle.", "danger")
+        return redirect(url_for("history"))
+    
     stats1 = apply_algorithm(bot1)
     stats2 = apply_algorithm(bot2)
     logs = HistoryLog.query.filter_by(history_id=history.id).all()
 
-    return render_template("combat_log.html", log=[(l.type, l.text) for l in logs], winner = history.winner, bot1 = bot1, bot2 = bot2, stats1 = stats1, stats2 = stats2)
+    return render_template(
+        "combat_log.html",
+        log=[(l.type, l.text) for l in logs],
+        winner=history.winner,
+        bot1=bot1,
+        bot2=bot2,
+        stats1=stats1,
+        stats2=stats2
+    )
 
 @app.route("/weapons")
 def weapons_shop():
