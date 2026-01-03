@@ -1,14 +1,13 @@
-import os
 
+import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from functools import wraps
 from extensions import db
-from constants import UPGRADES, STORE_ITEMS
-from battle import BattleBot, full_battle
+from constants import UPGRADES, STORE_ITEMS, CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions
+from battle import BattleBot, apply_algorithm_xp_bonus, calculate_bot_xp, full_battle
 
-# Models
 from models import User, Bot, History, HistoryLog
 
 app = Flask(__name__, instance_relative_config=True)
@@ -24,14 +23,12 @@ migrate = Migrate(app, db)
 with app.app_context():
     db.create_all()
 
-
 @app.context_processor
 def inject_current_user():
     user = None
     if "user_id" in session:
         user = User.query.get(session["user_id"])
     return dict(current_user=user)
-
 
 #routes
 @app.route("/")
@@ -128,7 +125,10 @@ def dashboard():
 
     # NORMAL DASHBOARD LOAD (GET)
     bots = user.bots
-    xp_percent = int((user.xp / (user.level * 100)) * 100)
+    xp_percent = int(
+    (user.xp / xp_to_next_level(user.level)) * 100
+)
+
 
     enhanced_bots = []
     for bot in bots:
@@ -161,7 +161,6 @@ def dashboard():
         algorithms=algorithms,
         algorithm_descriptions=algorithm_descriptions
     )
-
 
 #logout
 @app.route("/logout")
@@ -212,52 +211,6 @@ STAT_LIMITS = {
     "luck": (10, 999)
 }
 
-#ALGORITHMS
-algorithms = {
-    "VEX-01": "Aggressive",
-    "BASL-09": "Defensive",
-    "EQUA-12": "Balanced",
-    "ADAPT-X": "Adaptive",
-    "RUSH-09": "Speed",
-    "CHAOS-RND": "Random"
-    }
-
-#ALGORITHM BUFFS/NERFS
-algorithm_effects = {
-    "VEX-01": {
-        "proc": 1.15,
-        "def": 0.9
-    },
-    "BASL-09": {
-        "def": 1.2,
-        "clk": 0.9
-    },
-    "EQUA-12": {
-
-    },
-    "ADAPT-X": {    
-        "ent": 1.05,
-        "proc": 0.9
-    },
-    "RUSH-09": {    
-        "clk": 1.2,
-        "def": 0.9
-    },
-    "CHAOS-RND": {  
-
-    }
-}
-
-#ALGORITHM DESCRIPTIONS
-algorithm_descriptions = {
-    "VEX-01": "Vexor Assault Kernel: Built for aggressive attack routines. Prioritizes damage output at the cost of stability. +15% PROC, -10% DEF",
-    "BASL-09": "Bastion Logic Framework: Defensive fortress AI that fortifies its shielding subroutines above all else. +20% DEF, -10% CLK",
-    "EQUA-12": "Equilibrium Core Matrix: Balanced core algorithm ensuring even system resource allocation. No buffs or nerfs.",
-    "ADAPT-X": "Adaptive Pattern  Synthesizer: Self-learning AI that adjusts its combat model mid-battle. +10% LOGIC after 2 turns, +5% ENT, -10% PROC",
-    "RUSH-09": "Rapid Unit Synchronization Hub: An advanced AI core utilizing probabilistic threading for extreme combat reflexes. Fast but fragile. +20% CLK, -10% DEF",
-    "CHAOS-RND": "Chaotic Execution Driver: Unstable algorithm driven by randomized decision-making. High volatility, unpredictable results. Unstable modifiers each battle"
-}
-
 
 # manage bot
 @app.route('/manage_bot')
@@ -283,10 +236,20 @@ def store():
         credits=credits
     )
 
-
-@app.route('/character')
+@app.route("/character")
 def character():
-    return render_template('character.html')
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    bots = Bot.query.filter_by(user_id=session["user_id"]).all()
+    user = User.query.get(session["user_id"])
+
+    return render_template(
+        "character.html",
+        bots=bots,
+        character_items=CHARACTER_ITEMS,
+        credits=user.credits
+    )
 
 @app.route('/play')
 @login_required
@@ -317,9 +280,10 @@ def profile():
 
 #store display func
 
-def store():
+def debug_store_items():
     for upgrade in UPGRADES:
         print(upgrade["name"], upgrade["cost"])
+
 
 # Buy item and upgrade purchase function
 @app.route("/buy", methods=["POST"])
@@ -356,6 +320,41 @@ def buy():
 
     db.session.commit()
     return redirect(url_for("store"))
+
+from constants import CHARACTER_ITEMS
+
+@app.route("/buy_character", methods=["POST"])
+@login_required
+def buy_character():
+    user = User.query.get(session["user_id"])
+
+    bot_id = request.form.get("bot_id")
+    bot = Bot.query.filter_by(id=bot_id, user_id=user.id).first()
+    if not bot:
+        flash("Invalid character selection.", "danger")
+        return redirect(url_for("character"))
+
+    purchase_id = request.form.get("purchase_id")
+    item = next((i for i in CHARACTER_ITEMS if str(i["id"]) == str(purchase_id)), None)
+    if not item:
+        flash("Invalid character upgrade.", "danger")
+        return redirect(url_for("character"))
+
+    if user.tokens < item["cost"]:
+        flash("Not enough tokens!", "danger")
+        return redirect(url_for("character"))
+
+    user.tokens -= item["cost"]
+
+    # Apply upgrade
+    stat = item["stat"]
+    value = item.get("value", 0)
+    setattr(bot, stat, getattr(bot, stat) + value)
+
+    db.session.commit()
+    flash(f"{item['name']} applied to {bot.name}!", "success")
+
+    return redirect(url_for("character"))
 
 @app.route("/update_settings", methods=["POST"])
 @login_required
@@ -441,7 +440,6 @@ def edit_bot(bot_id):
             new_name = request.form.get("name", "").strip()
             new_algorithm = request.form.get("algorithm", "").strip()
 
-
             if not new_name:
                 flash("Bot name cannot be empty.", "danger")
                 return redirect(url_for('edit_bot', bot_id=bot_id))
@@ -449,7 +447,6 @@ def edit_bot(bot_id):
             if not new_algorithm:
                 flash("Please select an algorithm.", "danger")
                 return redirect(url_for('edit_bot', bot_id=bot_id))
-
 
             final_stats = {}
             errors = []
@@ -500,7 +497,7 @@ def edit_bot(bot_id):
 
             if not changed:
                 flash("No changes were made.", "warning")
-                return redirect(url_for('bot_list', bot_id=bot_id) + "?flash=1")
+                return redirect(url_for('manage_bot') + "?flash=1")
             
             bot.name = new_name
             bot.algorithm = new_algorithm
@@ -513,10 +510,9 @@ def edit_bot(bot_id):
             bot.logic = final_stats['logic']
             bot.luck = final_stats['luck']
 
-
             db.session.commit()
             flash("Bot updated successfully.", "success")
-            return redirect(url_for('bot_list') + "?flash=1")
+            return redirect(url_for('manage_bot') + "?flash=1")
 
     return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, algorithms = algorithms, algorithm_descriptions=algorithm_descriptions, show_flashes = False)
 
@@ -558,14 +554,18 @@ def bot_details(bot_id):
     )
 
 @app.route("/combat_log/<int:bot1_id>/<int:bot2_id>")
+@login_required
 def combat_log(bot1_id, bot2_id):
+    # Fetch DB bot models
     bot1 = Bot.query.get_or_404(bot1_id)
     bot2 = Bot.query.get_or_404(bot2_id)
+    user = User.query.get(session["user_id"])
 
+    # Apply algorithm effects to get battle stats
     stats1 = apply_algorithm(bot1)
     stats2 = apply_algorithm(bot2)
 
-    # convert database Bot → BattleBot for combat (with effective stats)
+    # Create BattleBot instances for the fight
     battleA = BattleBot(
         name=bot1.name,
         hp=stats1["hp"],
@@ -586,30 +586,71 @@ def combat_log(bot1_id, bot2_id):
         luck=stats2["luck"]
     )
 
-    winner, log = full_battle(battleA, battleB)
+    # Run battle
+    winner_name, log = full_battle(battleA, battleB)
 
-    # create history entry
+    # ===== XP + Level System =====
+    xp_gained = 0
+    levels_gained = 0
+
+    # Determine bot results
+    bot1_result = "win" if winner_name == bot1.name else "lose"
+    bot2_result = "win" if winner_name == bot2.name else "lose"
+
+    # Calculate XP for bots
+    bot1_xp = apply_algorithm_xp_bonus(calculate_bot_xp(battleA, bot1_result), bot1.algorithm)
+    bot2_xp = apply_algorithm_xp_bonus(calculate_bot_xp(battleB, bot2_result), bot2.algorithm)
+
+    # Apply XP to bots
+    bot1.xp += bot1_xp
+    bot2.xp += bot2_xp
+
+    # Apply XP to user if they own the winning bot
+    if bot1.user_id == user.id and bot1_result == "win":
+        xp_gained = int(bot1_xp * 0.5)
+        levels_gained = add_xp(user, xp_gained)
+    elif bot2.user_id == user.id and bot2_result == "win":
+        xp_gained = int(bot2_xp * 0.5)
+        levels_gained = add_xp(user, xp_gained)
+
+    # Commit all changes
+    db.session.commit()
+
+    # ===== Save Battle History =====
     history = History(
         bot1_id=bot1.id,
         bot2_id=bot2.id,
-        bot1_name = bot1.name,
-        bot2_name = bot2.name,
-        winner=winner
+        bot1_name=bot1.name,
+        bot2_name=bot2.name,
+        winner=winner_name
     )
     db.session.add(history)
-    db.session.flush()  # assigns history.id
+    db.session.flush()  # get history.id for logs
 
-    # save combat log lines
-    for type, text in log:
+    for log_type, text in log:
         entry = HistoryLog(
             history_id=history.id,
-            type=type,
+            type=log_type,
             text=text
         )
         db.session.add(entry)
 
     db.session.commit()
-    return render_template("combat_log.html", log=log, winner=winner, bot1=bot1, bot2=bot2, stats1 = stats1, stats2 = stats2)
+
+    # ===== Render Combat Log =====
+    return render_template(
+        "combat_log.html",
+        log=log,
+        winner=winner_name,
+        bot1=bot1,
+        bot2=bot2,
+        stats1=stats1,
+        stats2=stats2,
+        xp_gained=xp_gained,
+        levels_gained=levels_gained,
+        new_level=user.level if xp_gained else None
+    )
+
 
 @app.route("/battle", methods=["GET", "POST"])
 def battle_select():
@@ -655,7 +696,35 @@ def view_history(history_id):
 
     return render_template("combat_log.html", log=[(l.type, l.text) for l in logs], winner = history.winner, bot1 = bot1, bot2 = bot2, stats1 = stats1, stats2 = stats2)
 
+#xp system
+
+
+def xp_to_next_level(level):
+    return 100 + (level - 1) * 50  # progressive leveling
+
+
+def add_xp(user, amount):
+    """
+    Adds XP to a user and handles leveling.
+    Returns number of levels gained.
+    """
+    user.xp += amount
+    levels_gained = 0
+
+    while user.xp >= xp_to_next_level(user.level):
+        user.xp -= xp_to_next_level(user.level)
+        user.level += 1
+        levels_gained += 1
+
+        # Rewards per level
+        user.tokens += 20
+
+    db.session.commit()
+    return levels_gained
+
+
+
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(debug=True, port=5001) 
