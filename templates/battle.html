@@ -4,66 +4,10 @@
 
 {% block content %}
 
-<h1>BATTLE ARENA // CYBER WARFARE</h1>
-
-<div id="battle-screen">
-    <pre id="battle-log"></pre>
-</div>
-
-<button id="start-battle" class="login-button">INITIATE BATTLE</button>
-
-<br><br>
-
-<a href="{{ url_for('dashboard') }}">← Dashboard</a>
-
-<script>
-// Typewriter effect
-function typeLine(line, delay) {
-    return new Promise(resolve => {
-        let i = 0;
-        let log = document.getElementById("battle-log");
-
-        let interval = setInterval(() => {
-            log.textContent += line[i];
-            i++;
-
-            if (i >= line.length) {
-                clearInterval(interval);
-                log.textContent += "\n";
-                resolve();
-            }
-        }, delay);
-    });
-}
-
-document.getElementById("start-battle").onclick = async () => {
-    const log = document.getElementById("battle-log");
-    log.textContent = ""; // reset
-
-    const lines = [
-        "[SYSTEM] Initializing battle protocol...",
-        "[SCANNING] Searching for opponent bot...",
-        "[MATCH FOUND] Opponent located.",
-        "[LOADING] Deploying battle environment...",
-        ">>> BATTLE START <<<",
-        "[BOT] Executing attack sequence...",
-        "[ENEMY] Counterattack detected...",
-        "[SYSTEM] Calculating damage...",
-        "[RESULT] Victory probability rising...",
-        "[FINISH] You won the battle!"
-    ];
-
-    for (let line of lines) {
-        await typeLine(line, 30);
-    }
-};
-</script>
-
-{% block content %}
 <div class="container mt-4">
-    <h2>Select Bots to Battle</h2>
+    <h1>BATTLE ARENA // CYBER WARFARE</h1>
 
-    <form method="POST" class="mt-3">
+    <form method="POST" class="mt-4">
 
         <!-- Bot 1 dropdown -->
         <div class="mb-3">
@@ -71,7 +15,9 @@ document.getElementById("start-battle").onclick = async () => {
             <select name="bot1" class="form-select" required>
                 <option value="" disabled selected>Select a bot</option>
                 {% for bot in bots %}
-                    <option value="{{ bot.id }}">{{ bot.name }} ({{ bot.algorithm }})</option>
+                    <option value="{{ bot.id }}">
+                        {{ bot.name }} ({{ bot.algorithm }})
+                    </option>
                 {% endfor %}
             </select>
         </div>
@@ -82,11 +28,14 @@ document.getElementById("start-battle").onclick = async () => {
             <select name="bot2" class="form-select" required>
                 <option value="" disabled selected>Select a bot</option>
                 {% for bot in bots %}
-                    <option value="{{ bot.id }}">{{ bot.name }} ({{ bot.algorithm }})</option>
+                    <option value="{{ bot.id }}">
+                        {{ bot.name }} ({{ bot.algorithm }})
+                    </option>
                 {% endfor %}
             </select>
         </div>
 
+        <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, msg in messages %}
@@ -97,9 +46,15 @@ document.getElementById("start-battle").onclick = async () => {
             {% endif %}
         {% endwith %}
 
-        <button type="submit" class="btn btn-primary">Start Battle</button>
-        <a href="{{ url_for('bot_list') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-danger">
+            ⚔️ Start Battle
+        </button>
+
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary ms-2">
+            Cancel
+        </a>
 
     </form>
 </div>
+
 {% endblock %}

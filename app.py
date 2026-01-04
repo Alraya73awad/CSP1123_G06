@@ -19,10 +19,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 migrate = Migrate(app, db)
 
-# Create tables
-with app.app_context():
-    db.create_all()
-
 @app.context_processor
 def inject_current_user():
     user = None
@@ -248,7 +244,8 @@ def character():
         "character.html",
         bots=bots,
         character_items=CHARACTER_ITEMS,
-        credits=user.credits
+        credits=user.tokens
+
     )
 
 @app.route('/play')
@@ -556,16 +553,16 @@ def bot_details(bot_id):
 @app.route("/combat_log/<int:bot1_id>/<int:bot2_id>")
 @login_required
 def combat_log(bot1_id, bot2_id):
-    # Fetch DB bot models
+    # Get bots and user
     bot1 = Bot.query.get_or_404(bot1_id)
     bot2 = Bot.query.get_or_404(bot2_id)
     user = User.query.get(session["user_id"])
 
-    # Apply algorithm effects to get battle stats
+    # Apply algorithm stats
     stats1 = apply_algorithm(bot1)
     stats2 = apply_algorithm(bot2)
 
-    # Create BattleBot instances for the fight
+    # Create BattleBot instances
     battleA = BattleBot(
         name=bot1.name,
         hp=stats1["hp"],
@@ -586,37 +583,56 @@ def combat_log(bot1_id, bot2_id):
         luck=stats2["luck"]
     )
 
-    # Run battle
+    # Run the battle
     winner_name, log = full_battle(battleA, battleB)
 
-    # ===== XP + Level System =====
-    xp_gained = 0
-    levels_gained = 0
-
-    # Determine bot results
+    # Determine results
     bot1_result = "win" if winner_name == bot1.name else "lose"
     bot2_result = "win" if winner_name == bot2.name else "lose"
 
-    # Calculate XP for bots
-    bot1_xp = apply_algorithm_xp_bonus(calculate_bot_xp(battleA, bot1_result), bot1.algorithm)
-    bot2_xp = apply_algorithm_xp_bonus(calculate_bot_xp(battleB, bot2_result), bot2.algorithm)
 
-    # Apply XP to bots
-    bot1.xp += bot1_xp
-    bot2.xp += bot2_xp
+    # BOT XP SYSTEM
+    def bot_xp_to_next_level(level):
+        return 50 + (level - 1) * 25
 
-    # Apply XP to user if they own the winning bot
-    if bot1.user_id == user.id and bot1_result == "win":
+    def add_bot_xp(bot, amount):
+        bot.xp = bot.xp or 0
+        bot.level = bot.level or 1
+        bot.xp += amount
+        while bot.xp >= bot_xp_to_next_level(bot.level):
+            bot.xp -= bot_xp_to_next_level(bot.level)
+            bot.level += 1
+            
+            # Optional stat growth
+            bot.hp = (bot.hp or 0) + 10
+            bot.atk = (bot.atk or 0) + 2
+            bot.defense = (bot.defense or 0) + 2
+    
+        db.session.commit()
+
+    # Calculate XP per bot
+    def calculate_bot_xp(battle_bot, result):
+        base = 20 if result == "win" else 10
+        return base
+
+    # Apply XP
+    bot1_xp = calculate_bot_xp(battleA, bot1_result)
+    bot2_xp = calculate_bot_xp(battleB, bot2_result)
+
+    add_bot_xp(bot1, bot1_xp)
+    add_bot_xp(bot2, bot2_xp)
+
+    # USER XP
+    xp_gained = 0
+    levels_gained = 0
+    if winner_name == bot1.name and bot1.user_id == user.id:
         xp_gained = int(bot1_xp * 0.5)
         levels_gained = add_xp(user, xp_gained)
-    elif bot2.user_id == user.id and bot2_result == "win":
+    elif winner_name == bot2.name and bot2.user_id == user.id:
         xp_gained = int(bot2_xp * 0.5)
         levels_gained = add_xp(user, xp_gained)
 
-    # Commit all changes
-    db.session.commit()
-
-    # ===== Save Battle History =====
+        # Save battle history
     history = History(
         bot1_id=bot1.id,
         bot2_id=bot2.id,
@@ -625,19 +641,46 @@ def combat_log(bot1_id, bot2_id):
         winner=winner_name
     )
     db.session.add(history)
-    db.session.flush()  # get history.id for logs
+    db.session.flush()
 
-    for log_type, text in log:
-        entry = HistoryLog(
-            history_id=history.id,
-            type=log_type,
-            text=text
-        )
+    for type, text in log:
+        entry = HistoryLog(history_id=history.id, type=type, text=text)
         db.session.add(entry)
 
     db.session.commit()
 
-    # ===== Render Combat Log =====
+
+    return render_template(
+        "combat_log.html",
+        bot1=bot1,
+        bot2=bot2,
+        stats1=stats1,
+        stats2=stats2,
+        log=log,
+        winner=winner_name,
+        xp_gained=xp_gained,
+        levels_gained=levels_gained,
+        new_level=user.level if xp_gained else None
+    )
+
+    # Save history
+    history = History(
+        bot1_id=bot1.id,
+        bot2_id=bot2.id,
+        bot1_name=bot1.name,
+        bot2_name=bot2.name,
+        winner=winner_name
+    )
+    db.session.add(history)
+    db.session.flush()
+
+    for log_type, text in log:
+        db.session.add(
+            HistoryLog(history_id=history.id, type=log_type, text=text)
+        )
+
+    db.session.commit()
+
     return render_template(
         "combat_log.html",
         log=log,
@@ -648,8 +691,9 @@ def combat_log(bot1_id, bot2_id):
         stats2=stats2,
         xp_gained=xp_gained,
         levels_gained=levels_gained,
-        new_level=user.level if xp_gained else None
+        new_level=user.level if levels_gained else None
     )
+
 
 
 @app.route("/battle", methods=["GET", "POST"])

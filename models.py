@@ -14,18 +14,17 @@ class User(db.Model, UserMixin):
     tokens = db.Column(db.Integer, default=0)
     level = db.Column(db.Integer, default=1)
 
-    bots = db.relationship("Bot", backref="user", lazy=True)
+    # Relationship to bots; "owner" attribute on Bot refers back to User
+    bots = db.relationship("Bot", backref="owner", lazy=True)
 
     def get_id(self):
         return str(self.id)
-
 
 class Bot(db.Model):
     __tablename__ = "bots"
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
-
     algorithm = db.Column(db.String(50), nullable=False)
 
     hp = db.Column(db.Integer, default=100)
@@ -36,32 +35,22 @@ class Bot(db.Model):
     luck = db.Column(db.Integer, default=10)
     energy = db.Column(db.Integer, default=100)
 
+    xp = db.Column(db.Integer, default=0)
+    level = db.Column(db.Integer, default=1)
+
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
+    # Weapon rslp
     weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"))
     weapon = db.relationship("Weapon", backref="bots")
 
     def __repr__(self):
-        return f"<Bot {self.name}>"
-
-    def award_battle_rewards(self, user, result):
-        xp_gain = {"win": 50, "lose": 20, "draw": 30}
-        token_gain = {"win": 10, "lose": 3, "draw": 5}
-
-        old_level = user.level
-
-        user.xp += xp_gain.get(result, 0)
-        user.tokens += token_gain.get(result, 0)
-
-        while user.xp >= user.level * 100:
-            user.xp -= user.level * 100
-            user.level += 1
-
-        db.session.commit()
-        return user.level > old_level
+        return f"<Bot {self.name} Lv.{self.level}>"
 
 
 class History(db.Model):
+    __tablename__ = "history"
+
     id = db.Column(db.Integer, primary_key=True)
 
     bot1_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
@@ -81,17 +70,12 @@ class History(db.Model):
 
 
 class HistoryLog(db.Model):
+    __tablename__ = "history_log"
+
     id = db.Column(db.Integer, primary_key=True)
-
-    history_id = db.Column(
-        db.Integer,
-        db.ForeignKey("history.id"),
-        nullable=False
-    )
-
+    history_id = db.Column(db.Integer, db.ForeignKey("history.id"), nullable=False)
     type = db.Column(db.String(20))
     text = db.Column(db.Text)
-
 
 
 class Weapon(db.Model):
@@ -117,5 +101,5 @@ class Weapon(db.Model):
             5: {"base": 55, "per_level": 14},
             6: {"base": 100, "per_level": 20},
         }
-        stats = tier_stats[self.tier]
+        stats = tier_stats.get(self.tier, {"base": 5, "per_level": 1})
         return stats["base"] + (self.level - 1) * stats["per_level"]
