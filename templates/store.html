@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block page_title %}Character Store | Clash of Code{% endblock %}
+{% block page_title %}Weapons Store | Clash of Code{% endblock %}
 
 {% block content %}
 <div class="terminal-container">
 
     <!-- Header -->
     <div class="header">
-        <span>CLASH OF CODE TERMINAL — CHARACTER STORE</span>
+        <span>CLASH OF CODE TERMINAL — WEAPONS STORE</span>
         <span id="datetime-display">--/--/---- --:--:--</span>
     </div>
 
@@ -22,7 +22,7 @@
       {% endif %}
     {% endwith %}
 
-    <h1>Character Store</h1>
+    <h1>Weapons Store</h1>
     <p>Select a character to equip weapons and items.</p>
 
     <!-- Character Selection -->
@@ -43,8 +43,9 @@
             <p>{{ item.desc }}</p>
             <p>Cost: {{ item.cost }} Credits</p>
 
-            <form method="POST" action="{{ url_for('buy', item_id=item.id) }}">
+            <form method="POST" action="{{ url_for('buy') }}">
                 <input type="hidden" name="bot_id" value="{{ bots[0].id if bots|length > 0 else '' }}" class="selected-bot-input">
+                <input type="hidden" name="purchase_id" value="{{ item.id }}">
                 <button type="submit" class="buy-btn" {% if bots|length == 0 %}disabled{% endif %}>Purchase</button>
             </form>
         </div>
@@ -52,7 +53,7 @@
     </div>
 
     <div style="text-align:center; margin-top: 50px;">
-        <a href="{{ url_for('home') }}" class="back-btn">Return</a>
+        <a href="{{ url_for('dashboard') }}" class="back-btn">Return</a>
     </div>
 
     <!-- Status Area -->
@@ -189,13 +190,7 @@
 }
 
 .status-area {
-    position: absolute;
-    bottom: 25px;
-    left: 40px;
-    right: 40px;
-    border-top: 1px solid rgba(0, 255, 170, 0.2);
-    padding-top: 12px;
-    font-size: 1.1rem;
+    pointer-events: none;
 }
 </style>
 

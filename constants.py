@@ -1,8 +1,9 @@
 UPGRADES = [
-    {"name": " +5", "stat": "attack", "amount": 5, "cost": 10},
-    {"name": "Defense +5", "stat": "defense", "amount": 5, "cost": 10},
-    {"name": "Speed +5", "stat": "speed", "amount": 5, "cost": 10},
+    {"id": 1, "name": "Attack +2", "stat": "atk", "value": 2, "xp_cost": 25},
+    {"id": 2, "name": "Defense +2", "stat": "defense", "value": 2, "xp_cost": 25},
+    {"id": 3, "name": "Speed +1", "stat": "speed", "value": 1, "xp_cost": 20},
 ]
+
 
 STORE_ITEMS = [
     {
@@ -194,4 +195,12 @@ algorithm_descriptions = {
     "ADAPT-X": "Adaptive Pattern Synthesizer: Self-learning AI that adjusts its combat model mid-battle. +10% LOGIC after 2 turns, +5% ENT, -10% PROC",
     "RUSH-09": "Rapid Unit Synchronization Hub: An advanced AI core utilizing probabilistic threading for extreme combat reflexes. Fast but fragile. +20% CLK, -10% DEF",
     "CHAOS-RND": "Chaotic Execution Driver: Unstable algorithm driven by randomized decision-making. High volatility, unpredictable results. Unstable modifiers each battle"
+}
+XP_TABLE = {
+    1: {"to_next": 50, "total": 50},
+    2: {"to_next": 200, "total": 250},
+    3: {"to_next": 450, "total": 700},
+    4: {"to_next": 800, "total": 1500},
+    5: {"to_next": 1250, "total": 2750},
+    10: {"to_next": 5000, "total": 14250},
 }

@@ -23,7 +23,7 @@
     {% endwith %}
 
     <h1>Your Characters</h1>
-    <p>Select a character to equip upgrades or weapons.</p>
+    <p>Select a character to equip upgrades.</p>
 
     <!-- Character Dropdown -->
     <div class="character-select">
@@ -35,29 +35,26 @@
         </select>
     </div>
 
-    <h2>Store / Upgrades</h2>
-    <p>Purchase weapons and enhancements for the selected character.</p>
+    <h2>Upgrades</h2>
+    <p>Purchase upgrades for the selected character.</p>
 
-    <!-- Store Grid -->
+    <!-- Upgrades Grid -->
     <div class="store-grid">
-        {% for item in store_items %}
+        {% for upgrade in UPGRADES %}
         <div class="store-item">
-            <h3>{{ item.name }}</h3>
-            <p>{{ item.desc }}</p>
-            <p>Cost: {{ item.cost }} Credits</p>
+            <h3>{{ upgrade.name }}</h3>
+            <p>Increase {{ upgrade.stat|upper }} by {{ upgrade.value }}</p>
+            <p>Cost: {{ upgrade.xp_cost }} XP (You have: {{ current_xp }} XP)</p>
 
-            <form method="POST" action="{{ url_for('buy') }}">
-                <input type="hidden" name="purchase_id" value="{{ item.id }}">
-                
-                <label for="character-select-{{ item.id }}">Apply to Character:</label>
-                <select name="bot_id" id="character-select-{{ item.id }}" class="bot-dropdown" {% if bots|length == 0 %}disabled{% endif %}>
-                    {% for bot in bots %}
-                        <option value="{{ bot.id }}">{{ bot.name }}</option>
-                    {% endfor %}
-                </select>
-                
-                <button type="submit" class="buy-btn" {% if bots|length == 0 %}disabled{% endif %}>Purchase</button>
+            <form method="POST" action="{{ url_for('buy_character') }}">
+                <input type="hidden" name="purchase_id" value="{{ upgrade.id }}">
+                <input type="hidden" name="bot_id" value="{{ bots[0].id if bots|length > 0 else '' }}">
+                <button type="submit" class="buy-btn"
+                    {% if current_xp < upgrade.xp_cost or bots|length == 0 %}disabled{% endif %}>
+                    {% if current_xp < upgrade.xp_cost %}Not enough XP{% else %}Purchase{% endif %}
+                </button>
             </form>
+
         </div>
         {% endfor %}
     </div>
@@ -69,12 +66,17 @@
     <!-- Status Area -->
     <div class="status-area">
         <p>STATUS: CHARACTER MODULE ACTIVE</p>
-        <p>User Credits: {{ credits if credits is not none else "Unknown" }}</p>
+        <p>Level: {{ user.level }} → {{ user.level + 1 }}</p>
+        <p>Current XP: {{ current_xp }} / {{ xp_to_next }}</p>
+        <p>Total XP required so far: {{ total_xp }}</p>
         <p>Awaiting Purchase Command...</p>
+    <div class="xp-bar" style="width: 100%; background: rgba(0,0,0,0.2); height: 25px; border-radius: 6px; margin-top: 5px;">
+    <div style="height: 100%; width: {{ (current_xp / xp_to_next * 100) | round(1) }}%; background: #00ffaa; border-radius: 6px;"></div>
+</div>
     </div>
 </div>
 
-<!-- Styles (same as store) -->
+<!-- Styles -->
 <style>
 .terminal-container {
     width: 95%;
@@ -180,7 +182,10 @@
     cursor: not-allowed;
     box-shadow: none;
 }
-
+.back-btn {
+    position: relative;
+    z-index: 10;
+}
 .back-btn {
     margin-top: 30px;
     display: inline-block;
@@ -201,13 +206,7 @@
 }
 
 .status-area {
-    position: absolute;
-    bottom: 25px;
-    left: 40px;
-    right: 40px;
-    border-top: 1px solid rgba(0, 255, 170, 0.2);
-    padding-top: 12px;
-    font-size: 1.1rem;
+    pointer-events: none;
 }
 </style>
 

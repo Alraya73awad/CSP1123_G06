@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from functools import wraps
 from extensions import db
-from constants import UPGRADES, STORE_ITEMS, CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions
+from constants import UPGRADES, STORE_ITEMS, CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE
 from battle import BattleBot, apply_algorithm_xp_bonus, calculate_bot_xp, full_battle
 
 from models import User, Bot, History, HistoryLog
@@ -232,21 +232,43 @@ def store():
         credits=credits
     )
 
+from constants import XP_TABLE
+
 @app.route("/character")
 def character():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    bots = Bot.query.filter_by(user_id=session["user_id"]).all()
     user = User.query.get(session["user_id"])
+    if not user:
+        flash("User not found. Please log in again.", "danger")
+        return redirect(url_for("login"))
+
+    bots = Bot.query.filter_by(user_id=user.id).all() or []
+
+    # XP info from table
+    level_info = XP_TABLE.get(user.level)
+    if level_info:
+        xp_to_next = level_info["to_next"]
+        total_xp = level_info["total"]
+    else:
+        # fallback linear progression
+        xp_to_next = user.level * 500
+        total_xp = sum([i * 500 for i in range(1, user.level + 1)])
 
     return render_template(
         "character.html",
         bots=bots,
         character_items=CHARACTER_ITEMS,
-        credits=user.tokens
-
+        user=user,
+        current_xp=user.xp,
+        xp_to_next=xp_to_next,
+        total_xp=total_xp,
+        xp=user.xp,
+        UPGRADES=UPGRADES
     )
+
+
 
 @app.route('/play')
 @login_required
@@ -282,18 +304,22 @@ def debug_store_items():
         print(upgrade["name"], upgrade["cost"])
 
 
-# Buy item and upgrade purchase function
 @app.route("/buy", methods=["POST"])
 @login_required
 def buy():
     user = User.query.get(session['user_id'])
     bot_id = request.form.get("bot_id")
     bot = Bot.query.filter_by(id=bot_id, user_id=user.id).first()
+
     if not bot:
         flash("Invalid bot selection.", "danger")
         return redirect(url_for("store"))
 
     purchase_id = request.form.get("purchase_id")
+    if not purchase_id:
+        flash("No item selected.", "danger")
+        return redirect(url_for("store"))
+
     item = next((i for i in STORE_ITEMS if str(i["id"]) == str(purchase_id)), None)
     if not item:
         flash("Invalid purchase.", "danger")
@@ -306,17 +332,10 @@ def buy():
         return redirect(url_for("store"))
 
     user.tokens -= cost
-
-    if item.get("stat"):
-        # Check whether upgrade uses 'value' or 'amount'
-        value = item.get("value") or item.get("amount") or 0
-        setattr(bot, item["stat"], getattr(bot, item["stat"]) + value)
-        flash(f"{item['name']} applied to {bot.name}!", "success")
-    else:
-        flash(f"{item['name']} purchased for {bot.name}! (custom effect applied)", "success")
-
     db.session.commit()
+    flash(f"{item['name']} purchased for {bot.name}!", "success")
     return redirect(url_for("store"))
+
 
 from constants import CHARACTER_ITEMS
 
@@ -325,33 +344,40 @@ from constants import CHARACTER_ITEMS
 def buy_character():
     user = User.query.get(session["user_id"])
 
+    # Get bot
     bot_id = request.form.get("bot_id")
     bot = Bot.query.filter_by(id=bot_id, user_id=user.id).first()
     if not bot:
         flash("Invalid character selection.", "danger")
         return redirect(url_for("character"))
 
+    # Get upgrade
     purchase_id = request.form.get("purchase_id")
-    item = next((i for i in CHARACTER_ITEMS if str(i["id"]) == str(purchase_id)), None)
-    if not item:
+    if not purchase_id:
+        flash("No character upgrade selected.", "danger")
+        return redirect(url_for("character"))
+
+    # Look in UPGRADES
+    upgrade = next((u for u in UPGRADES if str(u["id"]) == str(purchase_id)), None)
+    if not upgrade:
         flash("Invalid character upgrade.", "danger")
         return redirect(url_for("character"))
 
-    if user.tokens < item["cost"]:
-        flash("Not enough tokens!", "danger")
+    # Check XP
+    if user.xp < upgrade["xp_cost"]:
+        flash("Not enough XP!", "danger")
         return redirect(url_for("character"))
 
-    user.tokens -= item["cost"]
+    # Apply upgrade to bot
+    setattr(bot, upgrade["stat"], getattr(bot, upgrade["stat"]) + upgrade["value"])
 
-    # Apply upgrade
-    stat = item["stat"]
-    value = item.get("value", 0)
-    setattr(bot, stat, getattr(bot, stat) + value)
+    # Deduct XP
+    user.xp -= upgrade["xp_cost"]
 
     db.session.commit()
-    flash(f"{item['name']} applied to {bot.name}!", "success")
-
+    flash(f"{upgrade['name']} purchased for {bot.name}!", "success")
     return redirect(url_for("character"))
+
 
 @app.route("/update_settings", methods=["POST"])
 @login_required
@@ -622,17 +648,39 @@ def combat_log(bot1_id, bot2_id):
     add_bot_xp(bot1, bot1_xp)
     add_bot_xp(bot2, bot2_xp)
 
+
     # USER XP
     xp_gained = 0
     levels_gained = 0
-    if winner_name == bot1.name and bot1.user_id == user.id:
-        xp_gained = int(bot1_xp * 0.5)
-        levels_gained = add_xp(user, xp_gained)
-    elif winner_name == bot2.name and bot2.user_id == user.id:
-        xp_gained = int(bot2_xp * 0.5)
-        levels_gained = add_xp(user, xp_gained)
 
-        # Save battle history
+    winning_bot = None
+
+    # Determine winning bot
+    if winner_name == bot1.name:
+        winning_bot = bot1
+    elif winner_name == bot2.name:
+        winning_bot = bot2
+
+    # if user owns the winning bot
+    if winning_bot and winning_bot.user_id == user.id:
+        xp_gained = 30
+        levels_gained = add_xp(user, xp_gained)
+        user.tokens += 5
+
+        db.session.commit()
+
+    #user lost
+
+    elif not winning_bot:
+        pass
+    else:
+        xp_gained = 10
+        levels_gained = add_xp(user, xp_gained)
+        db.session.commit()
+
+        flash(f"Congratulations {user.username}! You gained {xp_gained} XP and {levels_gained} levels.", "success")
+
+    # Save battle history
     history = History(
         bot1_id=bot1.id,
         bot2_id=bot2.id,
