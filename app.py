@@ -30,6 +30,26 @@ def inject_current_user():
         user = User.query.get(session["user_id"])
     return dict(current_user=user)
 
+def calculate_elo_change(winner_rating, loser_rating, k_factor=32):
+    """
+    Calculate ELO rating changes for winner and loser.
+    
+    Args:
+        winner_rating: Current rating of the winner
+        loser_rating: Current rating of the loser
+        k_factor: How much ratings change per game (default 32)
+    
+    Returns:
+        (winner_change, loser_change) - both as integers
+    """
+    # Calculate expected win probability for the winner
+    expected_win = 1 / (1 + 10 ** ((loser_rating - winner_rating) / 400))
+    
+    # Calculate rating changes
+    winner_change = int(k_factor * (1 - expected_win))
+    loser_change = int(k_factor * (0 - (1 - expected_win)))
+    
+    return winner_change, loser_change
 
 #routes
 @app.route("/")
@@ -357,6 +377,27 @@ def profile():
     if not user:
         flash("Error loading profile.", "danger")
         return redirect(url_for('login'))
+    
+    # Calculate win rate
+    total_battles = user.wins + user.losses
+    win_rate = (user.wins / total_battles * 100) if total_battles > 0 else 0
+    
+    # Determine rank tier
+    def get_rank_tier(rating):
+        if rating < 800:
+            return {"name": "Prototype", "icon": "🔧", "color": "text-secondary"}
+        elif rating < 1000:
+            return {"name": "Circuit", "icon": "⚡", "color": "text-success"}
+        elif rating < 1200:
+            return {"name": "Processor", "icon": "🖥️", "color": "text-info"}
+        elif rating < 1400:
+            return {"name": "Mainframe", "icon": "💻", "color": "text-primary"}
+        elif rating < 1600:
+            return {"name": "Quantum", "icon": "🌌", "color": "text-warning"}
+        else:
+            return {"name": "Nexus", "icon": "🔮", "color": "text-danger"}
+    
+    rank = get_rank_tier(user.rating)
 
     return render_template(
         'profile.html',
@@ -364,7 +405,11 @@ def profile():
         email=user.email,
         level=user.level,
         xp=user.xp,
-        tokens=user.tokens
+        tokens=user.tokens,
+        user=user,
+        win_rate=win_rate,
+        total_battles=total_battles,
+        rank=rank
     )
 
 #store display func
@@ -632,6 +677,7 @@ def bot_list():
     return render_template("dashboard.html", bots=items, algorithms=algorithms, algorithm_descriptions=algorithm_descriptions)
 
 @app.route("/combat_log/<int:bot1_id>/<int:bot2_id>")
+@login_required
 def combat_log(bot1_id, bot2_id):
     bot1 = Bot.query.get_or_404(bot1_id)
     bot2 = Bot.query.get_or_404(bot2_id)
@@ -641,7 +687,7 @@ def combat_log(bot1_id, bot2_id):
     weapon1_ow = WeaponOwnership.query.filter_by(bot_id=bot1.id, equipped=True).first()
     weapon2_ow = WeaponOwnership.query.filter_by(bot_id=bot2.id, equipped=True).first()
 
-    # convert database Bot → BattleBot for combat (with effective stats)
+    # Convert to BattleBot
     battleA = BattleBot(
         name=bot1.name,
         hp=stats1["hp"],
@@ -666,20 +712,59 @@ def combat_log(bot1_id, bot2_id):
         weapon_type=weapon2_ow.weapon.type if weapon2_ow else None
     )
 
+    # RUN THE BATTLE
     winner, log = full_battle(battleA, battleB)
 
-    # create history entry
+    is_ranked = (bot1.user_id != bot2.user_id)
+    
+    if is_ranked:
+        # Determine winner and loser
+        if winner == bot1.name:
+            winner_user = bot1.user
+            loser_user = bot2.user
+        else:
+            winner_user = bot2.user
+            loser_user = bot1.user
+        
+        # Calculate ELO changes
+        rating_gain, rating_loss = calculate_elo_change(
+            winner_user.rating,
+            loser_user.rating
+        )
+        
+        # Store old ratings for display
+        old_winner_rating = winner_user.rating
+        old_loser_rating = loser_user.rating
+        
+        # UPDATE RATINGS
+        winner_user.rating += rating_gain
+        winner_user.wins += 1
+        
+        loser_user.rating += rating_loss  # rating_loss is negative
+        loser_user.losses += 1
+        
+        db.session.commit()
+        
+        flash(
+            f"🏆 {winner_user.username} won! Rating: {old_winner_rating} → {winner_user.rating} (+{rating_gain})",
+            "success"
+        )
+        flash(
+            f"💔 {loser_user.username} lost. Rating: {old_loser_rating} → {loser_user.rating} ({rating_loss})",
+            "info"
+        )
+
     history = History(
         bot1_id=bot1.id,
         bot2_id=bot2.id,
-        bot1_name = bot1.name,
-        bot2_name = bot2.name,
+        bot1_name=bot1.name,
+        bot2_name=bot2.name,
         winner=winner
     )
     db.session.add(history)
-    db.session.flush()  # assigns history.id
+    db.session.flush()
 
-    # save combat log lines
+    # Save combat log lines
     for type, text in log:
         entry = HistoryLog(
             history_id=history.id,
@@ -689,22 +774,73 @@ def combat_log(bot1_id, bot2_id):
         db.session.add(entry)
 
     db.session.commit()
-    return render_template("combat_log.html", log=log, winner=winner, bot1=bot1, bot2=bot2, stats1 = stats1, stats2 = stats2)
+    
+    return render_template(
+        "combat_log.html",
+        log=log,
+        winner=winner,
+        bot1=bot1,
+        bot2=bot2,
+        stats1=stats1,
+        stats2=stats2
+    )
 
 @app.route("/battle", methods=["GET", "POST"])
+@login_required
 def battle_select():
-    bots = Bot.query.all()
-
+    user = User.query.get(session["user_id"])
+    
     if request.method == "POST":
         bot1_id = request.form.get("bot1")
         bot2_id = request.form.get("bot2")
+        
+        bot1 = Bot.query.get(bot1_id)
+        bot2 = Bot.query.get(bot2_id)
+        
+        if not bot1 or not bot2:
+            flash("Invalid bot selection!", "danger")
+            return redirect(url_for("battle_select"))
 
         if bot1_id == bot2_id:
-            flash("You must choose two different bots!", "warning") 
-        else:
-            return redirect(url_for('combat_log', bot1_id=bot1_id, bot2_id=bot2_id))
-
-    return render_template("battle.html", bots=bots)
+            flash("You must choose two different bots!", "warning")
+            return redirect(url_for("battle_select"))
+        
+        if bot1.user_id != user.id:
+            flash("You can only battle with your own bots!", "danger")
+            return redirect(url_for("battle_select"))
+        
+        if bot2.user_id == user.id:
+            flash("Please select an opponent's bot!", "warning")
+            return redirect(url_for("battle_select"))
+        
+        return redirect(url_for('combat_log', bot1_id=bot1_id, bot2_id=bot2_id))
+    
+    # GET request - prepare matchmaking data
+    my_bots = user.bots
+    my_rating = user.rating
+    
+    # Find suitable opponents (within ±200 rating)
+    min_rating = my_rating - 200
+    max_rating = my_rating + 200
+    
+    opponent_users = User.query.filter(
+        User.id != user.id,
+        User.rating >= min_rating,
+        User.rating <= max_rating
+    ).order_by(User.rating.desc()).limit(10).all()
+    
+    # Get all their bots
+    matched_bots = []
+    for opponent in opponent_users:
+        for bot in opponent.bots:
+            matched_bots.append(bot)
+    
+    return render_template(
+        "battle.html",
+        my_bots=my_bots,
+        matched_bots=matched_bots,
+        my_rating=my_rating
+    )
 
 def apply_algorithm(bot):
     effects = algorithm_effects.get(bot.algorithm, {})
@@ -722,20 +858,51 @@ def apply_algorithm(bot):
     }
 
 @app.route("/history")
+@login_required
 def history():
-    battles = History.query.order_by(History.timestamp.desc()).all()
-    return render_template("history.html", battles = battles)
+    user = User.query.get(session["user_id"])
+    
+    # Only show battles where the user's bots participated
+    user_bot_ids = [bot.id for bot in user.bots]
+    
+    battles = History.query.filter(
+        db.or_(
+            History.bot1_id.in_(user_bot_ids),
+            History.bot2_id.in_(user_bot_ids)
+        )
+    ).order_by(History.timestamp.desc()).all()
+    
+    return render_template("history.html", battles=battles)
 
 @app.route("/history/<int:history_id>")
+@login_required
 def view_history(history_id):
+    user = User.query.get(session["user_id"])
     history = History.query.get_or_404(history_id)
+    
+    # Check if user was involved in this battle
     bot1 = Bot.query.get(history.bot1_id)
     bot2 = Bot.query.get(history.bot2_id)
+    
+    user_bot_ids = [bot.id for bot in user.bots]
+    
+    if history.bot1_id not in user_bot_ids and history.bot2_id not in user_bot_ids:
+        flash("You don't have permission to view this battle.", "danger")
+        return redirect(url_for("history"))
+    
     stats1 = apply_algorithm(bot1)
     stats2 = apply_algorithm(bot2)
     logs = HistoryLog.query.filter_by(history_id=history.id).all()
 
-    return render_template("combat_log.html", log=[(l.type, l.text) for l in logs], winner = history.winner, bot1 = bot1, bot2 = bot2, stats1 = stats1, stats2 = stats2)
+    return render_template(
+        "combat_log.html",
+        log=[(l.type, l.text) for l in logs],
+        winner=history.winner,
+        bot1=bot1,
+        bot2=bot2,
+        stats1=stats1,
+        stats2=stats2
+    )
 
 @app.route("/weapons")
 def weapons_shop():
