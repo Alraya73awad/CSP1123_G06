@@ -9,7 +9,7 @@ from constants import UPGRADES, STORE_ITEMS, PASSIVE_ITEMS
 from battle import BattleBot, full_battle
 
 # Models
-from models import User, Bot, History, HistoryLog, Weapon, WeaponOwnership
+from models import User, Bot, History, Weapon, WeaponOwnership
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -713,7 +713,7 @@ def combat_log(bot1_id, bot2_id):
     )
 
     # RUN THE BATTLE
-    winner, log = full_battle(battleA, battleB)
+    winner, log, seed = full_battle(battleA, battleB)
 
     is_ranked = (bot1.user_id != bot2.user_id)
     
@@ -759,19 +759,28 @@ def combat_log(bot1_id, bot2_id):
         bot2_id=bot2.id,
         bot1_name=bot1.name,
         bot2_name=bot2.name,
-        winner=winner
+        winner=winner,
+        seed=seed,
+        # Bot 1 stats snapshot
+        bot1_hp=stats1["hp"],
+        bot1_energy=stats1["energy"],
+        bot1_proc=bot1.total_proc,
+        bot1_defense=stats1["defense"],
+        bot1_clk=stats1["clk"],
+        bot1_luck=stats1["luck"],
+        bot1_weapon_atk=weapon1_ow.effective_atk() if weapon1_ow else 0,
+        bot1_weapon_type=weapon1_ow.weapon.type if weapon1_ow else None,
+        # Bot 2 stats snapshot
+        bot2_hp=stats2["hp"],
+        bot2_energy=stats2["energy"],
+        bot2_proc=bot2.total_proc,
+        bot2_defense=stats2["defense"],
+        bot2_clk=stats2["clk"],
+        bot2_luck=stats2["luck"],
+        bot2_weapon_atk=weapon2_ow.effective_atk() if weapon2_ow else 0,
+        bot2_weapon_type=weapon2_ow.weapon.type if weapon2_ow else None
     )
     db.session.add(history)
-    db.session.flush()
-
-    # Save combat log lines
-    for type, text in log:
-        entry = HistoryLog(
-            history_id=history.id,
-            type=type,
-            text=text
-        )
-        db.session.add(entry)
 
     db.session.commit()
     
@@ -890,18 +899,60 @@ def view_history(history_id):
         flash("You don't have permission to view this battle.", "danger")
         return redirect(url_for("history"))
     
-    stats1 = apply_algorithm(bot1)
-    stats2 = apply_algorithm(bot2)
-    logs = HistoryLog.query.filter_by(history_id=history.id).all()
+    stats1 = {
+        "hp": history.bot1_hp,
+        "energy": history.bot1_energy,
+        "proc": history.bot1_proc,
+        "defense": history.bot1_defense,
+        "clk": history.bot1_clk,
+        "luck": history.bot1_luck
+    }
+    
+    stats2 = {
+        "hp": history.bot2_hp,
+        "energy": history.bot2_energy,
+        "proc": history.bot2_proc,
+        "defense": history.bot2_defense,
+        "clk": history.bot2_clk,
+        "luck": history.bot2_luck
+    }
+    
+    # Recreate BattleBots from snapshot
+    battleA = BattleBot(
+        name=history.bot1_name,
+        hp=history.bot1_hp,
+        energy=history.bot1_energy,
+        proc=history.bot1_proc,
+        defense=history.bot1_defense,
+        clk=history.bot1_clk,
+        luck=history.bot1_luck,
+        weapon_atk=history.bot1_weapon_atk,
+        weapon_type=history.bot1_weapon_type
+    )
+
+    battleB = BattleBot(
+        name=history.bot2_name,
+        hp=history.bot2_hp,
+        energy=history.bot2_energy,
+        proc=history.bot2_proc,
+        defense=history.bot2_defense,
+        clk=history.bot2_clk,
+        luck=history.bot2_luck,
+        weapon_atk=history.bot2_weapon_atk,
+        weapon_type=history.bot2_weapon_type
+    )
+    
+    winner, log, _ = full_battle(battleA, battleB, seed=history.seed)
 
     return render_template(
         "combat_log.html",
-        log=[(l.type, l.text) for l in logs],
-        winner=history.winner,
+        log=log,
+        winner=winner,
         bot1=bot1,
         bot2=bot2,
         stats1=stats1,
-        stats2=stats2
+        stats2=stats2,
+        is_replay=True
     )
 
 @app.route("/weapons")

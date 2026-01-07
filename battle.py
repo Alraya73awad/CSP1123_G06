@@ -24,15 +24,15 @@ def log_line(log, type, text):
     log.append((type.strip().lower(), text))
 
 
-def calculate_turn_order(botA, botB, log):
+def calculate_turn_order(botA, botB, log, rng):
     if botA.clk> botB.clk:
         return [botA, botB]
     elif botB.clk > botA.clk:
         return [botB, botA]
     else:
-        return random.sample([botA, botB], 2)  # random order if equal
+        return rng.sample([botA, botB], 2)  # random order if equal
 
-def use_ability(attacker, defender, log, round_num=1):
+def use_ability(attacker, defender, log, round_num=1, rng=None):
     if attacker.ability_used:
         return  # already triggered once
 
@@ -59,7 +59,7 @@ def use_ability(attacker, defender, log, round_num=1):
     elif attacker.special_effect == "Evolve Protocol":
         stats = ["hp", "atk", "defense", "speed", "logic", "luck", "energy"]
 
-        chosen_stats = random.sample(stats, 2)
+        chosen_stats = rng.sample(stats, 2)
 
         
         for stat in chosen_stats:
@@ -75,7 +75,7 @@ def use_ability(attacker, defender, log, round_num=1):
 
     elif attacker.special_effect == "Evolve Protocol":
         stats = ["hp", "atk", "defense", "speed", "logic", "luck", "energy"]
-        chosen_stats = random.sample(stats, 2)
+        chosen_stats = rng.sample(stats, 2)
         for stat in chosen_stats:
             current_val = getattr(attacker, stat)
             boosted_val = int(current_val * 1.10)
@@ -84,7 +84,7 @@ def use_ability(attacker, defender, log, round_num=1):
                  f"🔄 {attacker.name} adapts mid-battle with Evolve Protocol, boosting {chosen_stats[0].upper()} and {chosen_stats[1].upper()} by 10%!")
 
 
-def calculate_damage(attacker, defender, log):
+def calculate_damage(attacker, defender, log, rng):
     # Base damage
     base_proc = get_effective_proc(attacker) - (defender.defense * 0.7)
     if base_proc < 0:
@@ -92,11 +92,11 @@ def calculate_damage(attacker, defender, log):
     
     # Ranged damage
     if attacker.weapon_type == "ranged":
-        variance = random.uniform(0.85, 1.15)
+        variance = rng.uniform(0.85, 1.15)
         base_proc *= variance
 
     # Critical hit check
-    crit_trigger = random.randint(1, 100) <= attacker.luck
+    crit_trigger = rng.randint(1, 100) <= attacker.luck
     crit_rate = 1 if crit_trigger else 0
     if crit_trigger:
         log_line(log, "crit", f"💥 Critical Hit! {attacker.name} lands a devastating strike!")
@@ -105,7 +105,7 @@ def calculate_damage(attacker, defender, log):
     dodge_chance = 0
     if defender.clk > attacker.clk:
         dodge_chance = (defender.clk - attacker.clk) * (defender.luck / 100)
-        if random.random() < dodge_chance:
+        if rng.random() < dodge_chance:
             log_line(log, "dodge",f"{defender.name} dodged the attack!")
             return 0
         
@@ -121,8 +121,8 @@ def get_effective_proc(bot):
     weapon = bot.weapon_atk if bot.weapon_atk else 0
     return base + weapon
 
-def battle_round(botA, botB, log):
-    turn_order = calculate_turn_order(botA, botB, log)
+def battle_round(botA, botB, log, rng):
+    turn_order = calculate_turn_order(botA, botB, log, rng)
 
     for attacker in turn_order:
         defender = botA if attacker == botB else botB
@@ -138,8 +138,8 @@ def battle_round(botA, botB, log):
             log_line(log, "energy", f"{attacker.name} has been defeated (out of energy)!")
             return defender.name
 
-        use_ability(attacker, defender, log=log)
-        damage = calculate_damage(attacker, defender, log)
+        use_ability(attacker, defender, log=log, rng=rng)
+        damage = calculate_damage(attacker, defender, log, rng)
         defender.hp -= damage
 
         log_line(log, "attack",f"{attacker.name} attacks {defender.name} for {damage:.2f} damage!")
@@ -150,7 +150,7 @@ def battle_round(botA, botB, log):
         
         if attacker.extra_attacks > 0 and defender.is_alive():
             attacker.extra_attacks -= 1
-            extra_dmg = calculate_damage(attacker, defender, log)
+            extra_dmg = calculate_damage(attacker, defender, log, rng)
             defender.hp -= extra_dmg
             log_line(log, "attack", f"{attacker.name} strikes again with Time Dilation for {extra_dmg:.2f} damage!")
 
@@ -158,17 +158,20 @@ def battle_round(botA, botB, log):
             log_line(log, "defeat",f"{defender.name} has been defeated!")
             return attacker.name
 
-def full_battle(botA, botB):
+def full_battle(botA, botB, seed=None):
+    if seed is None:
+        seed = random.randint(0, 999999999)
+    
+    rng = random.Random(seed)
     log = []
     round_num = 1
     while botA.is_alive() and botB.is_alive():
         log_line(log, "round", f" (Round {round_num})\n")
-        winner = battle_round(botA, botB, log)
+        winner = battle_round(botA, botB, log, rng)
         if winner:
             log_line(log, "battleover", f"\nBattle Over! Winner: {winner}")
             print(log)
-            return winner, log 
-            break
+            return winner, log, seed
         round_num += 1
 
 #test battle

@@ -106,26 +106,27 @@ class History(db.Model):
     winner = db.Column(db.String(50))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-    logs = db.relationship(
-        "HistoryLog",
-        backref="history",
-        cascade="all, delete-orphan"
-    )
+    seed = db.Column(db.Integer, nullable=False)
 
-
-class HistoryLog(db.Model):
-    __tablename__ = "history_log"
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    history_id = db.Column(
-        db.Integer,
-        db.ForeignKey("history.id"),
-        nullable=False
-    )
-
-    type = db.Column(db.String(20))
-    text = db.Column(db.Text)
+    # Bot 1 stats snapshot
+    bot1_hp = db.Column(db.Integer)
+    bot1_energy = db.Column(db.Integer)
+    bot1_proc = db.Column(db.Integer)
+    bot1_defense = db.Column(db.Integer)
+    bot1_clk = db.Column(db.Integer)
+    bot1_luck = db.Column(db.Integer)
+    bot1_weapon_atk = db.Column(db.Integer, default=0)
+    bot1_weapon_type = db.Column(db.String(20))
+    
+    # Bot 2 stats snapshot
+    bot2_hp = db.Column(db.Integer)
+    bot2_energy = db.Column(db.Integer)
+    bot2_proc = db.Column(db.Integer)
+    bot2_defense = db.Column(db.Integer)
+    bot2_clk = db.Column(db.Integer)
+    bot2_luck = db.Column(db.Integer)
+    bot2_weapon_atk = db.Column(db.Integer, default=0)
+    bot2_weapon_type = db.Column(db.String(20))
 
 class Weapon(db.Model):
     __tablename__ = "weapons"
