@@ -754,6 +754,14 @@ def combat_log(bot1_id, bot2_id):
             "info"
         )
 
+    stats1["weapon_atk"] = weapon1_ow.effective_atk() if weapon1_ow else 0
+    stats1["weapon_type"] = weapon1_ow.weapon.type if weapon1_ow else None
+    stats1["proc"] = bot1.total_proc
+    
+    stats2["weapon_atk"] = weapon2_ow.effective_atk() if weapon2_ow else 0
+    stats2["weapon_type"] = weapon2_ow.weapon.type if weapon2_ow else None
+    stats2["proc"] = bot2.total_proc
+
     history = History(
         bot1_id=bot1.id,
         bot2_id=bot2.id,
@@ -905,7 +913,9 @@ def view_history(history_id):
         "proc": history.bot1_proc,
         "defense": history.bot1_defense,
         "clk": history.bot1_clk,
-        "luck": history.bot1_luck
+        "luck": history.bot1_luck,
+        "weapon_atk": history.bot1_weapon_atk if history.bot1_weapon_atk else 0,
+        "weapon_type": history.bot1_weapon_type
     }
     
     stats2 = {
@@ -914,7 +924,9 @@ def view_history(history_id):
         "proc": history.bot2_proc,
         "defense": history.bot2_defense,
         "clk": history.bot2_clk,
-        "luck": history.bot2_luck
+        "luck": history.bot2_luck,
+        "weapon_atk": history.bot2_weapon_atk if history.bot2_weapon_atk else 0,
+        "weapon_type": history.bot2_weapon_type
     }
     
     # Recreate BattleBots from snapshot
