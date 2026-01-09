@@ -17,56 +17,100 @@
             </thead>
 
             <tbody>
+                <!-- WEAPON ROW -->
                 <tr>
-                    <td>WEAPON</td>
+                    <td><strong>WEAPON</strong></td>
                     <td>
-                        {% set eq1 = bot1.equipped_weapon %}
-                        {% if eq1 %}
-                            {{ eq1.weapon.name }} (+{{ eq1.weapon.effective_atk() }} PROC)
+                        {% if stats1.weapon_type %}
+                            <span>{{ stats1.weapon_type|upper }}</span>
+                            <br>
+                            <small>+{{ stats1.weapon_atk }} ATK</small>
                         {% else %}
-                            None
+                            <span>No Weapon</span>
                         {% endif %}
                     </td>
                     <td>
-                        {% set eq2 = bot2.equipped_weapon %}
-                        {% if eq2 %}
-                            {{ eq2.weapon.name }} (+{{ eq2.weapon.effective_atk() }} PROC)
+                        {% if stats2.weapon_type %}
+                            <span>{{ stats2.weapon_type|upper }}</span>
+                            <br>
+                            <small>+{{ stats2.weapon_atk }} ATK</small>
                         {% else %}
-                            None
+                            <span>No Weapon</span>
                         {% endif %}
                     </td>
                 </tr>
 
-                
-                {% for stat in ["hp", "proc", "defense", "clk", "luck", "energy"] %}
-
-                {% if stat == "proc" %}
-                    {% set val1 = bot1.total_proc %}
-                    {% set val2 = bot2.total_proc %}
-                {% else %}
-                    {% set val1 = stats1[stat] %}
-                    {% set val2 = stats2[stat] %}
-                {% endif %}
-
-                {# Determine CSS classes #}
-                {% if val1 > val2 %}
-                    {% set class1 = "text-success fw-bold" %}
-                    {% set class2 = "text-danger" %}
-                {% elif val2 > val1 %}
-                    {% set class1 = "text-danger" %}
-                    {% set class2 = "text-success fw-bold" %}
-                {% else %}
-                    {% set class1 = "text-light" %}
-                    {% set class2 = "text-light" %}
-                {% endif %}
-
+                <!-- PROC (Total ATK including weapon) ROW -->
                 <tr>
-                    <td>{{ stat.upper() }}</td>
-                    <td class="{{ class1 }}">{{ val1 }}</td>
-                    <td class="{{ class2 }}">{{ val2 }}</td>
+                    <td>PROC</td>
+                    <td class="{% if stats1.proc > stats2.proc %}text-success fw-bold{% elif stats1.proc < stats2.proc %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats1.proc }}
+                        {% if stats1.weapon_atk > 0 %}
+                            <br><small>(Base + {{ stats1.weapon_atk }} weapon)</small>
+                        {% endif %}
+                    </td>
+                    <td class="{% if stats2.proc > stats1.proc %}text-success fw-bold{% elif stats2.proc < stats1.proc %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats2.proc }}
+                        {% if stats2.weapon_atk > 0 %}
+                            <br><small>(Base + {{ stats2.weapon_atk }} weapon)</small>
+                        {% endif %}
+                    </td>
                 </tr>
 
-                {% endfor %}
+                <!-- HP ROW -->
+                <tr>
+                    <td>INT</td>
+                    <td class="{% if stats1.hp > stats2.hp %}text-success fw-bold{% elif stats1.hp < stats2.hp %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats1.hp }}
+                    </td>
+                    <td class="{% if stats2.hp > stats1.hp %}text-success fw-bold{% elif stats2.hp < stats1.hp %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats2.hp }}
+                    </td>
+                </tr>
+
+                <!-- ENERGY ROW -->
+                <tr>
+                    <td>PWR</td>
+                    <td class="{% if stats1.energy > stats2.energy %}text-success fw-bold{% elif stats1.energy < stats2.energy %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats1.energy }}
+                    </td>
+                    <td class="{% if stats2.energy > stats1.energy %}text-success fw-bold{% elif stats2.energy < stats1.energy %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats2.energy }}
+                    </td>
+                </tr>
+
+                <!-- DEFENSE ROW -->
+                <tr>
+                    <td>DEF</td>
+                    <td class="{% if stats1.defense > stats2.defense %}text-success fw-bold{% elif stats1.defense < stats2.defense %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats1.defense }}
+                    </td>
+                    <td class="{% if stats2.defense > stats1.defense %}text-success fw-bold{% elif stats2.defense < stats1.defense %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats2.defense }}
+                    </td>
+                </tr>
+
+                <!-- CLK (SPEED) ROW -->
+                <tr>
+                    <td>CLK</td>
+                    <td class="{% if stats1.clk > stats2.clk %}text-success fw-bold{% elif stats1.clk < stats2.clk %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats1.clk }}
+                    </td>
+                    <td class="{% if stats2.clk > stats1.clk %}text-success fw-bold{% elif stats2.clk < stats1.clk %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats2.clk }}
+                    </td>
+                </tr>
+
+                <!-- LUCK ROW -->
+                <tr>
+                    <td>ENT</td>
+                    <td class="{% if stats1.luck > stats2.luck %}text-success fw-bold{% elif stats1.luck < stats2.luck %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats1.luck }}
+                    </td>
+                    <td class="{% if stats2.luck > stats1.luck %}text-success fw-bold{% elif stats2.luck < stats1.luck %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats2.luck }}
+                    </td>
+                </tr>
             </tbody>
         </table>
 

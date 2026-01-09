@@ -9,7 +9,7 @@ from constants import UPGRADES, STORE_ITEMS, PASSIVE_ITEMS
 from battle import BattleBot, full_battle
 
 # Models
-from models import User, Bot, History, HistoryLog, Weapon, WeaponOwnership
+from models import User, Bot, History, Weapon, WeaponOwnership
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -686,16 +686,31 @@ def combat_log(bot1_id, bot2_id):
     weapon1_ow = WeaponOwnership.query.filter_by(bot_id=bot1.id, equipped=True).first()
     weapon2_ow = WeaponOwnership.query.filter_by(bot_id=bot2.id, equipped=True).first()
 
+    # Get weapon ATK
+    weapon1_atk = weapon1_ow.effective_atk() if weapon1_ow else 0
+    weapon2_atk = weapon2_ow.effective_atk() if weapon2_ow else 0
+    
+    # Get algorithm effects
+    effects1 = algorithm_effects.get(bot1.algorithm, {})
+    effects2 = algorithm_effects.get(bot2.algorithm, {})
+    
+    # Calculate final proc: (base + weapon) × algorithm multiplier
+    base_proc1 = bot1.atk + weapon1_atk
+    final_proc1 = int(base_proc1 * effects1.get("proc", 1.0))
+    
+    base_proc2 = bot2.atk + weapon2_atk
+    final_proc2 = int(base_proc2 * effects2.get("proc", 1.0))
+
     # Convert to BattleBot
     battleA = BattleBot(
         name=bot1.name,
         hp=stats1["hp"],
         energy=stats1["energy"],
-        proc=bot1.total_proc,
+        proc=final_proc1,  
         defense=stats1["defense"],
         clk=stats1["clk"],
         luck=stats1["luck"],
-        weapon_atk=weapon1_ow.effective_atk() if weapon1_ow else 0,
+        weapon_atk=weapon1_atk,
         weapon_type=weapon1_ow.weapon.type if weapon1_ow else None
     )
 
@@ -703,21 +718,21 @@ def combat_log(bot1_id, bot2_id):
         name=bot2.name,
         hp=stats2["hp"],
         energy=stats2["energy"],
-        proc=bot2.total_proc,
+        proc=final_proc2,  
         defense=stats2["defense"],
         clk=stats2["clk"],
         luck=stats2["luck"],
-        weapon_atk=weapon2_ow.effective_atk() if weapon2_ow else 0,
+        weapon_atk=weapon2_atk,
         weapon_type=weapon2_ow.weapon.type if weapon2_ow else None
     )
 
     # RUN THE BATTLE
-    winner, log = full_battle(battleA, battleB)
+    winner, log, seed = full_battle(battleA, battleB)
 
+    # elo rating changes
     is_ranked = (bot1.user_id != bot2.user_id)
     
     if is_ranked:
-        # Determine winner and loser
         if winner == bot1.name:
             winner_user = bot1.user
             loser_user = bot2.user
@@ -725,21 +740,18 @@ def combat_log(bot1_id, bot2_id):
             winner_user = bot2.user
             loser_user = bot1.user
         
-        # Calculate ELO changes
         rating_gain, rating_loss = calculate_elo_change(
             winner_user.rating,
             loser_user.rating
         )
         
-        # Store old ratings for display
         old_winner_rating = winner_user.rating
         old_loser_rating = loser_user.rating
         
-        # UPDATE RATINGS
         winner_user.rating += rating_gain
         winner_user.wins += 1
         
-        loser_user.rating += rating_loss  # rating_loss is negative
+        loser_user.rating += rating_loss
         loser_user.losses += 1
         
         db.session.commit()
@@ -753,25 +765,42 @@ def combat_log(bot1_id, bot2_id):
             "info"
         )
 
+    # Add weapon info to stats dictionaries for template
+    stats1["weapon_atk"] = weapon1_atk
+    stats1["weapon_type"] = weapon1_ow.weapon.type if weapon1_ow else None
+    stats1["proc"] = final_proc1 
+    
+    stats2["weapon_atk"] = weapon2_atk
+    stats2["weapon_type"] = weapon2_ow.weapon.type if weapon2_ow else None
+    stats2["proc"] = final_proc2  
+
     history = History(
         bot1_id=bot1.id,
         bot2_id=bot2.id,
         bot1_name=bot1.name,
         bot2_name=bot2.name,
-        winner=winner
+        winner=winner,
+        seed=seed,
+        # Bot 1 stats snapshot
+        bot1_hp=stats1["hp"],
+        bot1_energy=stats1["energy"],
+        bot1_proc=final_proc1, 
+        bot1_defense=stats1["defense"],
+        bot1_clk=stats1["clk"],
+        bot1_luck=stats1["luck"],
+        bot1_weapon_atk=weapon1_atk,
+        bot1_weapon_type=weapon1_ow.weapon.type if weapon1_ow else None,
+        # Bot 2 stats snapshot
+        bot2_hp=stats2["hp"],
+        bot2_energy=stats2["energy"],
+        bot2_proc=final_proc2,
+        bot2_defense=stats2["defense"],
+        bot2_clk=stats2["clk"],
+        bot2_luck=stats2["luck"],
+        bot2_weapon_atk=weapon2_atk,
+        bot2_weapon_type=weapon2_ow.weapon.type if weapon2_ow else None
     )
     db.session.add(history)
-    db.session.flush()
-
-    # Save combat log lines
-    for type, text in log:
-        entry = HistoryLog(
-            history_id=history.id,
-            type=type,
-            text=text
-        )
-        db.session.add(entry)
-
     db.session.commit()
     
     return render_template(
@@ -889,18 +918,64 @@ def view_history(history_id):
         flash("You don't have permission to view this battle.", "danger")
         return redirect(url_for("history"))
     
-    stats1 = apply_algorithm(bot1)
-    stats2 = apply_algorithm(bot2)
-    logs = HistoryLog.query.filter_by(history_id=history.id).all()
+    stats1 = {
+        "hp": history.bot1_hp,
+        "energy": history.bot1_energy,
+        "proc": history.bot1_proc,
+        "defense": history.bot1_defense,
+        "clk": history.bot1_clk,
+        "luck": history.bot1_luck,
+        "weapon_atk": history.bot1_weapon_atk if history.bot1_weapon_atk else 0,
+        "weapon_type": history.bot1_weapon_type
+    }
+    
+    stats2 = {
+        "hp": history.bot2_hp,
+        "energy": history.bot2_energy,
+        "proc": history.bot2_proc,
+        "defense": history.bot2_defense,
+        "clk": history.bot2_clk,
+        "luck": history.bot2_luck,
+        "weapon_atk": history.bot2_weapon_atk if history.bot2_weapon_atk else 0,
+        "weapon_type": history.bot2_weapon_type
+    }
+    
+    # Recreate BattleBots from snapshot
+    battleA = BattleBot(
+        name=history.bot1_name,
+        hp=history.bot1_hp,
+        energy=history.bot1_energy,
+        proc=history.bot1_proc,
+        defense=history.bot1_defense,
+        clk=history.bot1_clk,
+        luck=history.bot1_luck,
+        weapon_atk=history.bot1_weapon_atk,
+        weapon_type=history.bot1_weapon_type
+    )
+
+    battleB = BattleBot(
+        name=history.bot2_name,
+        hp=history.bot2_hp,
+        energy=history.bot2_energy,
+        proc=history.bot2_proc,
+        defense=history.bot2_defense,
+        clk=history.bot2_clk,
+        luck=history.bot2_luck,
+        weapon_atk=history.bot2_weapon_atk,
+        weapon_type=history.bot2_weapon_type
+    )
+    
+    winner, log, _ = full_battle(battleA, battleB, seed=history.seed)
 
     return render_template(
         "combat_log.html",
-        log=[(l.type, l.text) for l in logs],
-        winner=history.winner,
+        log=log,
+        winner=winner,
         bot1=bot1,
         bot2=bot2,
         stats1=stats1,
-        stats2=stats2
+        stats2=stats2,
+        is_replay=True
     )
 
 @app.route("/weapons")
