@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Weapons Shop</h2>
+
+<div class="weapons-grid">
+  {% for w in weapons %}
+    <div class="weapon-card">
+      <h3>{{ w.name }}</h3>
+      <p>Type: {{ w.type }}</p>
+      <p>ATK Bonus: +{{ w.atk_bonus }}</p>
+      <p>Tier {{ w.tier }} | Cost: {{ w.price }}</p>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}
