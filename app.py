@@ -257,6 +257,7 @@ algorithm_descriptions = {
 }
 
 
+
 # manage bot
 @app.route('/manage_bot')
 def manage_bot():
@@ -299,10 +300,8 @@ def buy_passive(passive_id):
         flash("Not enough credits!", "danger")
         return redirect(url_for("store"))
 
-    # Deduct credits
     user.tokens -= passive["cost"]
 
-    # Assign passive to bot
     bot.passive_effect = passive["name"]
 
     db.session.commit()

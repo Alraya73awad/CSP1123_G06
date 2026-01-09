@@ -636,3 +636,28 @@ select:focus {
   border-color: #00ffaa;
   color: #00ffaa;
 }
+
+.combat-log {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    white-space: pre-wrap;
+    color: white;
+}
+
+/* Ironclash Colosseum theme */
+.combat-log.ironclash {
+    background: linear-gradient(to bottom, #330000, #660000);
+}
+
+/* Skyline Expanse theme */
+.combat-log.skyline {
+    background: linear-gradient(to bottom, #001f3f, #0074D9);
+}
+
+/* Neutral Arena theme */
+.combat-log.neutral {
+    background: #222;
+}

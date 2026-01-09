@@ -9,17 +9,17 @@ def seed_game_data():
 
         bots = [
             Bot(name="Vexor", algorithm="VEX-01", hp=50,atk=12, defense=9, speed=10, logic=10, luck=10, energy=100,
-                special_effect="Core Meltdown"),          # +15% ATK, -10% DEF
+                special_effect="Core Meltdown"),         
             Bot(name="Bastion", algorithm="BASL-09", hp=50, atk=10, defense=12, speed=9, logic=10, luck=10, energy=100,
-                special_effect="Fortify Matrix"),         # +20% DEF, -10% SPD
+                special_effect="Fortify Matrix"),       
             Bot(name="Equilibrium", algorithm="EQUA-12", hp=50, atk=10, defense=10, speed=10, logic=10, luck=10, energy=100,
-                special_effect="System Balance"),         # No buffs/debuffs
+                special_effect="System Balance"),       
             Bot(name="Adaptive", algorithm="ADAPT-X", hp=50,atk=9, defense=10, speed=10, logic=10, luck=10, energy=100,
-                special_effect="Evolve Protocol"),        # +10% LOGIC after 2 turns, +5% LUCK, -10% ATK
+                special_effect="Evolve Protocol"),        
             Bot(name="Rush", algorithm="RUSH-09", hp=50, atk=10, defense=9, speed=12, logic=10, luck=10, energy=100,
-                special_effect="Time Dilation"),          # +20% SPD, -10% DEF (or extra attacks)
+                special_effect="Time Dilation"),        
             Bot(name="Chaos", algorithm="CHAOS-RND", hp=50, atk=10, defense=10, speed=10, logic=10, luck=10, energy=100,
-                special_effect="Entropy Burst")           # Random damage burst
+                special_effect="Entropy Burst")          
         ]
 
         db.session.add_all(bots)
