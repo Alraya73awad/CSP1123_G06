@@ -49,7 +49,6 @@ class Bot(db.Model):
     extra_attacks = db.Column(db.Integer, default=0)
     ability_used = db.Column(db.Boolean, default=False)
     special_damage = db.Column(db.Integer, default=0)
-
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
 
     weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"), nullable=True)
