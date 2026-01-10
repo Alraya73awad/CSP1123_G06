@@ -8,7 +8,7 @@ class BattleBot:
         self.energy = energy
         self.proc = proc       # Attack power
         self.defense = defense
-        self.speed = speed     # Not really used by your logic, but keeping it
+        self.speed = speed     
         self.clk = clk         # Reflex/clock stat
         self.luck = luck       # % chance for crit/dodge
         self.weapon_atk = weapon_atk

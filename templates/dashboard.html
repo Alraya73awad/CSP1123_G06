@@ -27,7 +27,7 @@
 
 <h1>USER DASHBOARD // MAIN INTERFACE</h1>
 
-<!-- Flash Messages -->
+<!-- flash .essages -->
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         <div class="flash-area">
@@ -38,7 +38,7 @@
     {% endif %}
 {% endwith %}
 
-<!-- WELCOME HEADER -->
+<!-- header -->
 <div class="dashboard-header cyber-header">
     <h2>Welcome, <span class="highlight">{{ current_user.username }}</span></h2>
     <p>Access your bots, stats, and battle systems below.</p>
@@ -47,10 +47,10 @@
 <br>
 
 
-<!-- PLAYER STATS (CYBER GRID) -->
+<!-- player stats -->
 <div class="stats-grid cyber-grid">
 
-    <!-- LEVEL -->
+    <!-- lvls -->
     <div class="stat-card neon-panel">
         <h3>LEVEL</h3>
         <p>{{ current_user.level }}</p>
@@ -70,7 +70,7 @@
 </div>
 
 
-    <!-- TOKENS -->
+    <!-- tokens -->
     <div class="stat-card neon-panel">
         <h3>TOKENS</h3>
         <p>{{ current_user.tokens }}</p>
@@ -80,7 +80,7 @@
 
 <br><br>
 
-<!-- BOT LIST -->
+<!-- bot list -->
 <h2>Your Bots</h2>
 
 {% if bots %}
@@ -102,7 +102,7 @@
 
 <br><br>
 
-<!-- CREATE BOT FORM -->
+<!-- bot form -->
 <h2>Create a New Bot</h2>
 
 <form method="POST">
@@ -149,7 +149,7 @@
 
 <br><br>
 
-<!-- ACTION BUTTONS -->
+<!-- action buttons -->
 <div class="action-grid">
     <a href="{{ url_for('battle_select') }}" class="action-button">BATTLE</a>
     <a href="{{ url_for('manage_bot') }}" class="action-button">MANAGE BOTS</a>
@@ -210,7 +210,7 @@
     <p>{{ current_user.xp }} / {{ current_user.level * 100 }} XP</p>
 </div>
 
-<!-- Dashboard Header -->
+<!-- dashboard header -->
 <div class="dashboard-header d-flex justify-content-between align-items-center">
      <button class="icon-btn settings-btn" data-bs-toggle="modal" data-bs-target="#settingsModal">
     <i class="fa-solid fa-gear"></i>
@@ -219,7 +219,7 @@
 
 </div>
 
-<!-- Settings Modal -->
+<!-- settings modal -->
 <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">

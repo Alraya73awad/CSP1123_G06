@@ -5,13 +5,13 @@
 {% block content %}
 <div class="terminal-container">
 
-    <!-- Header -->
+    <!-- header -->
     <div class="header">
         <span>CLASH OF CODE TERMINAL — CHARACTER MODULE</span>
         <span id="datetime-display">--/--/---- --:--:--</span>
     </div>
 
-    <!-- Flash Messages -->
+    <!-- flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="flash-area">
@@ -25,7 +25,7 @@
     <h1>Your Characters</h1>
     <p>Select a character to equip upgrades.</p>
 
-    <!-- Character Dropdown -->
+    <!-- character dropdown -->
     <div class="character-select">
         <label for="selected-character">Select Character:</label>
         <select id="selected-character" name="character_id" class="bot-dropdown">
@@ -38,7 +38,7 @@
     <h2>Upgrades</h2>
     <p>Purchase upgrades for the selected character.</p>
 
-    <!-- Upgrades Grid -->
+    <!-- upgrades grid -->
     <div class="store-grid">
         {% set points = stat_points if stat_points is not none else 0 %}
         {% for upgrade in CHARACTER_ITEMS %}

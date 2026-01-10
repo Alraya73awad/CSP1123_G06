@@ -5,13 +5,13 @@
 {% block content %}
 <div class="terminal-container">
 
-    <!-- Header -->
+    <!-- header -->
     <div class="header">
         <span>CLASH OF CODE TERMINAL — WEAPONS STORE</span>
         <span id="datetime-display">--/--/---- --:--:--</span>
     </div>
 
-    <!-- Flash Messages -->
+    <!-- flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="flash-area">
@@ -25,7 +25,7 @@
     <h1>Weapons Store</h1>
     <p>Select a character to equip weapons and items.</p>
 
-    <!-- Character Selection -->
+    <!-- character selection -->
     <div class="character-select">
         <label for="selected-bot">Choose Character:</label>
         <select id="selected-bot" class="bot-dropdown">
@@ -35,7 +35,7 @@
         </select>
     </div>
 
-    <!-- Weapons Grid -->
+    <!-- weapons grid -->
     <div class="store-grid">
         {% for item in store_items %}
         <div class="store-item">
@@ -59,7 +59,7 @@
         <a href="{{ url_for('dashboard') }}" class="back-btn">Return</a>
     </div>
 
-    <!-- Status Area -->
+    <!-- status area -->
     <div class="status-area">
         <p>STORE STATUS: ACTIVE</p>
         <p>User Credits: {{ credits if credits is not none else "Unknown" }}</p>
@@ -197,7 +197,7 @@
 }
 </style>
 
-<!-- DateTime Script & Bot Selector Script -->
+<!-- DateTime script -->
 <script>
 function updateDateTime() {
     const now = new Date();
