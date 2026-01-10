@@ -56,17 +56,19 @@
         <p>{{ current_user.level }}</p>
     </div>
 
-    <!-- XP -->
-    <div class="stat-card neon-panel">
-        <h3>XP</h3>
-        {% set xp_required = current_user.level * 100 %}
-        {% set xp_percent = ((current_user.xp / xp_required) * 100) | round(2) | default(0) %}
-
-        <div class="xp-bar" style="--xp-width: {{ xp_percent }}%;">
-            <div class="xp-fill"></div>
-        </div>
-        <p>{{ current_user.xp }} / {{ xp_required }} XP</p>
+<div class="stat-card neon-panel">
+    <h3>XP</h3>
+    <div class="xp-bar" style="width: 100%; background: rgba(0,0,0,0.2); height: 25px; border-radius: 6px; margin-top: 5px;">
+        <div style="height: 100%; width: {{ xp_percent }}%; background: #00ffaa; border-radius: 6px;"></div>
     </div>
+    <p>{{ user.xp }} / {{ xp_to_next }} XP</p>
+</div>
+
+<div class="stat-card neon-panel">
+    <h3>STAT POINTS</h3>
+    <p>{{ stat_points }}</p>
+</div>
+
 
     <!-- TOKENS -->
     <div class="stat-card neon-panel">

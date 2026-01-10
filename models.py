@@ -13,12 +13,13 @@ class User(db.Model, UserMixin):
     xp = db.Column(db.Integer, default=0)
     tokens = db.Column(db.Integer, default=0)
     level = db.Column(db.Integer, default=1)
+    stat_points = db.Column(db.Integer, default=0)  
 
-    # Relationship to bots; "owner" attribute on Bot refers back to User
     bots = db.relationship("Bot", backref="owner", lazy=True)
 
     def get_id(self):
         return str(self.id)
+
 
 class Bot(db.Model):
     __tablename__ = "bots"

@@ -1,9 +1,4 @@
-UPGRADES = [
-    {"id": 1, "name": "Attack +2", "stat": "atk", "value": 2, "xp_cost": 25},
-    {"id": 2, "name": "Defense +2", "stat": "defense", "value": 2, "xp_cost": 25},
-    {"id": 3, "name": "Speed +1", "stat": "speed", "value": 1, "xp_cost": 20},
-]
-
+CURRENCY_NAME = "Tokens"
 
 STORE_ITEMS = [
     {

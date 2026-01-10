@@ -41,12 +41,15 @@
         <div class="store-item">
             <h3>{{ item.name }}</h3>
             <p>{{ item.desc }}</p>
-            <p>Cost: {{ item.cost }} Credits</p>
+            <p>Cost: {{ item.cost }} Tokens</p>
 
             <form method="POST" action="{{ url_for('buy') }}">
                 <input type="hidden" name="bot_id" value="{{ bots[0].id if bots|length > 0 else '' }}" class="selected-bot-input">
                 <input type="hidden" name="purchase_id" value="{{ item.id }}">
-                <button type="submit" class="buy-btn" {% if bots|length == 0 %}disabled{% endif %}>Purchase</button>
+                <button type="submit" class="buy-btn"
+                    {% if (credits or 0) < item.cost %}disabled{% endif %}></item.cost>
+                    Purchase
+                </button>
             </form>
         </div>
         {% endfor %}

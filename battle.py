@@ -14,7 +14,7 @@ class BattleBot:
         self.weapon_atk = weapon_atk
         self.weapon_type = weapon_type
 
-        # Performance tracking for XP
+        # Performance tracking for stat points
         self.damage_dealt = 0
         self.critical_hits = 0
         self.dodges = 0
@@ -50,7 +50,7 @@ def calculate_damage(attacker, defender, log):
     is_crit = False
     if random.randint(1, 100) <= attacker.luck:
         is_crit = True
-        attacker.critical_hits += 1 # TRACKING CRIT
+        attacker.critical_hits += 1
         log_line(log, "crit", f"💥 Critical Hit! {attacker.name} strikes {defender.name}!")
 
     # Dodge check
@@ -58,15 +58,15 @@ def calculate_damage(attacker, defender, log):
     if defender.clk > attacker.clk:
         dodge_chance = (defender.clk - attacker.clk) * (defender.luck / 100)
         if random.random() < dodge_chance:
-            defender.dodges += 1 # TRACKING DODGE
+            defender.dodges += 1
             log_line(log, "dodge", f"{defender.name} dodged the attack!")
-            return 0, is_crit # Return 0 damage, but still report if it was a crit attempt (rare case)
+            return 0, is_crit
 
     final_damage = base_proc * (2 if is_crit else 1)
     return final_damage, is_crit
 
 def battle_round(botA, botB, log):
-    # Track rounds alive for both bots
+    # Track rounds alive
     botA.rounds_alive += 1
     botB.rounds_alive += 1
 
@@ -83,11 +83,8 @@ def battle_round(botA, botB, log):
             log_line(log, "energy", f"{attacker.name} has been defeated (out of energy)!")
             return defender.name
 
-        # Calculate damage (returns tuple: amount, was_crit)
         damage, is_crit = calculate_damage(attacker, defender, log)
-        
-        attacker.damage_dealt += damage # TRACKING DAMAGE
-        
+        attacker.damage_dealt += damage
         defender.hp = max(defender.hp - damage, 0)
         log_line(log, "attack", f"{attacker.name} attacks {defender.name} for {damage:.2f} damage!")
         log_line(log, "status", f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
@@ -96,45 +93,56 @@ def battle_round(botA, botB, log):
             log_line(log, "defeat", f"{defender.name} has been defeated!")
             return attacker.name
 
-def calculate_bot_xp(bot, result):
-    xp = 0
-
-    # Base XP
+def calculate_bot_stat_points(bot, result):
+    points = 0
     if result == "win":
-        xp += 50
+        points += 5
     else:
-        xp += 20
+        points += 2
 
-    # Performance XP 
-    xp += int(bot.damage_dealt // 50) * 5
-    xp += bot.critical_hits * 3
-    xp += bot.dodges * 3
-    xp += bot.rounds_alive * 1
+    # Performance bonus
+    points += int(bot.damage_dealt // 50)  # 1 point per 50 damage
+    points += bot.critical_hits            # 1 point per crit
+    points += bot.dodges                   # 1 point per dodge
+    points += bot.rounds_alive // 2        # 1 point every 2 rounds survived
 
-    return xp
-
-def apply_algorithm_xp_bonus(xp, algorithm):
-    multiplier = ALGORITHM_XP_MULTIPLIER.get(algorithm, 1.0)
-    return int(xp * multiplier)
+    return points
 
 def full_battle(botA, botB):
     log = []
     round_num = 1
-    winner = None
+    winner_name = None
+
     while botA.is_alive() and botB.is_alive():
         log_line(log, "round", f"\n(Round {round_num})")
-        winner = battle_round(botA, botB, log)
-        if winner:
-            log_line(log, "battleover", f"\nBattle Over! Winner: {winner}")
+        winner_name = battle_round(botA, botB, log)
+        if winner_name:
+            log_line(log, "battleover", f"\nBattle Over! Winner: {winner_name}")
             break
         round_num += 1
-    return winner, log
 
+    # Stat points
+    if winner_name == botA.name:
+        botA_points = calculate_bot_stat_points(botA, "win")
+        botB_points = calculate_bot_stat_points(botB, "lose")
+    else:
+        botB_points = calculate_bot_stat_points(botB, "win")
+        botA_points = calculate_bot_stat_points(botA, "lose")
+
+    return {
+        "winner": winner_name,
+        "log": log,
+        "botA_points": botA_points,
+        "botB_points": botB_points
+    }
+
+# Example usage
 if __name__ == "__main__":
     bot1 = BattleBot("Alpha", hp=100, energy=50, proc=30, defense=10, clk=14, luck=15)
     bot2 = BattleBot("Beta", hp=120, energy=50, proc=25, defense=12, clk=14, luck=10)
-    winner, battle_log = full_battle(bot1, bot2)
-    
-    print(f"Winner: {winner}")
-    print(f"Bot1 Damage Dealt: {bot1.damage_dealt}, Crits: {bot1.critical_hits}")
-    print(f"Bot2 Damage Dealt: {bot2.damage_dealt}, Crits: {bot2.critical_hits}")
+    result = full_battle(bot1, bot2)
+
+    print(f"Winner: {result['winner']}")
+    print(f"XP Gained: {result['xp_gained']}")
+    print(f"Bot1 Stat Points Earned: {result['botA_points']}")
+    print(f"Bot2 Stat Points Earned: {result['botB_points']}")
