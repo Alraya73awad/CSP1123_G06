@@ -194,7 +194,7 @@ def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
             log_line(log, "energy", f"{attacker.name} has been defeated (out of energy)!")
             return defender.name
 
-        use_ability(attacker, defender, log=log, rng=rng, round_num)
+        use_ability(attacker, defender, log=log, round_num=round_num, rng=rng)
 
         damage = calculate_damage(attacker, defender, log, rng, arena=arena)
         defender.hp -= damage
