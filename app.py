@@ -7,6 +7,7 @@ from functools import wraps
 from extensions import db
 from constants import UPGRADES, STORE_ITEMS, PASSIVE_ITEMS
 from battle import BattleBot, full_battle
+from seed_weapons import seed_weapons
 
 # Models
 from models import User, Bot, History, Weapon, WeaponOwnership
@@ -29,6 +30,7 @@ migrate = Migrate(app, db)
 
 with app.app_context():
     db.create_all()
+    seed_weapons()
 
 @app.context_processor
 def inject_current_user():
