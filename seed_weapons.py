@@ -1,4 +1,3 @@
-from app import app
 from extensions import db
 from models import Weapon
 
@@ -94,9 +93,6 @@ def seed_weapons():
         ),
     ]
 
-    with app.app_context():
-        for w in weapons:
-            db.session.add(w)
-        db.session.commit()
-
+    db.session.add_all(weapons)
+    db.session.commit()
     print("Weapons seeded successfully!")
