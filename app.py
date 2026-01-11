@@ -13,8 +13,15 @@ from models import User, Bot, History, Weapon, WeaponOwnership
 
 app = Flask(__name__, instance_relative_config=True)
 
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL is None:
+    DATABASE_URL = "sqlite:///clash_of_code.db"
+
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://","postgresql://",1)
+
 app.config["SECRET_KEY"] = "dev_secret_key"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///clash_of_code.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
