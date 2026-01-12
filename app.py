@@ -27,17 +27,13 @@ def inject_current_user():
     if "user_id" in session:
         user = User.query.get(session["user_id"])
     return dict(current_user=user)
-  
-  DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL is None:
     DATABASE_URL = "sqlite:///clash_of_code.db"
 
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://","postgresql://",1)
 
-
-db.init_app(app)
-migrate = Migrate(app, db)
 
 with app.app_context():
     db.create_all()
@@ -130,15 +126,6 @@ def login_required(f):
         if "user_id" not in session:
             flash("Please log in to continue.", "warning")
             return redirect(url_for("login"))
-        return f(*args, **kwargs)
-    return decorated_function
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash("Please log in to continue.", "warning")
-            return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -239,12 +226,6 @@ def logout():
     flash("Logged out successfully.", "info")
     return redirect(url_for("home"))
 
-#logout
-@app.route("/logout")
-def logout():
-    session.clear()
-    flash("Logged out successfully.", "info")
-    return redirect(url_for("home"))
 
 # Create bot
 @app.route("/create_bot", methods=["GET", "POST"])
@@ -516,7 +497,7 @@ def profile():
 
 #store display func
 
-def store():
+def debug_store_items():
     for upgrade in UPGRADES:
         print(upgrade["name"], upgrade["cost"])
 
