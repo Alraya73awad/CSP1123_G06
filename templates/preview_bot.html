@@ -36,6 +36,7 @@
         <input type="hidden" name="logic" value="{{ new_stats.logic }}">
         <input type="hidden" name="luck" value="{{ new_stats.luck }}">
 
+
         {% for stat, val in new_stats.items() %}
             <input type="hidden" name="{{ stat }}" value="{{ val }}">
         {% endfor %}

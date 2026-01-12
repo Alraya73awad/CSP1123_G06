@@ -10,32 +10,68 @@
     <form method="POST" class="mt-4">
 
         <!-- Bot 1 dropdown -->
+<h1>BATTLE ARENA // CYBER WARFARE</h1>
+
+<div class="container mt-4">
+    <div class="alert alert-info">
+        <strong>Matchmaking Range:</strong> {{ my_rating - 200 }} - {{ my_rating + 200 }} rating
+        <br>
+        <small class="text-muted">You'll face opponents with similar skill levels</small>
+    </div>
+
+    <form method="POST" class="mt-3">
+        
+        <!-- Select Your Bot -->
         <div class="mb-3">
-            <label class="form-label">Choose Fighter 1</label>
+            <label class="form-label"><strong>Choose Your Bot:</strong></label>
             <select name="bot1" class="form-select" required>
-                <option value="" disabled selected>Select a bot</option>
-                {% for bot in bots %}
+                <option value="" disabled selected>Select your bot</option>
+                {% for bot in my_bots %}
                     <option value="{{ bot.id }}">
                         {{ bot.name }} ({{ bot.algorithm }})
                     </option>
                 {% endfor %}
             </select>
+            {% if not my_bots %}
+                <small class="text-danger">You don't have any bots yet! <a href="{{ url_for('create_bot') }}">Create one</a></small>
+            {% endif %}
         </div>
 
-        <!-- Bot 2 dropdown -->
+        <!-- Select Opponent -->
         <div class="mb-3">
-            <label class="form-label">Choose Fighter 2</label>
+            <label class="form-label"><strong>Choose Opponent:</strong></label>
             <select name="bot2" class="form-select" required>
-                <option value="" disabled selected>Select a bot</option>
-                {% for bot in bots %}
-                    <option value="{{ bot.id }}">
-                        {{ bot.name }} ({{ bot.algorithm }})
-                    </option>
-                {% endfor %}
+                <option value="" disabled selected>Select opponent</option>
+                {% if matched_bots %}
+                    {% for bot in matched_bots %}
+                        <option value="{{ bot.id }}">
+                            {{ bot.name }} - {{ bot.user.username }} 
+                            (Rating: {{ bot.user.rating }})
+                            {% if bot.user.rating > my_rating %}
+                                ⬆️ Harder
+                            {% elif bot.user.rating < my_rating %}
+                                ⬇️ Easier
+                            {% else %}
+                                ⚖️ Equal
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                {% else %}
+                    <option disabled>No suitable opponents found in your rating range</option>
+                {% endif %}
             </select>
+            
+            {% if not matched_bots %}
+                <div class="alert alert-warning mt-2">
+                    <strong>No opponents found!</strong><br>
+                    There are no players within your rating range ({{ my_rating - 200 }} - {{ my_rating + 200 }}).
+                    <br>
+                    <small>This might happen if you're the only active player or if your rating is very high/low.</small>
+                </div>
+            {% endif %}
         </div>
 
-        <!-- Flash messages -->
+        <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, msg in messages %}
@@ -54,7 +90,17 @@
             Cancel
         </a>
 
+        <button type="submit" class="btn btn-danger btn-lg" {% if not my_bots or not matched_bots %}disabled{% endif %}>
+            START BATTLE
+        </button>
+        
+        {% if not my_bots or not matched_bots %}
+            <br><small class="text-muted">Button disabled: {{ "Create a bot first" if not my_bots else "No opponents available" }}</small>
+        {% endif %}
     </form>
+
+    <br>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
 </div>
 
 {% endblock %}

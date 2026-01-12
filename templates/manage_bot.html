@@ -19,15 +19,16 @@
 
 {% if bots %}
     <div class="bot-list">
-        {% for bot in bots %}
+        {% for item in bots %}
+        {% set bot = item.bot %}
+        {% set final = item.final_stats %}
             <div class="bot-card">
-                <h3>{{ bot.name }}</h3>
-                <p>Attack: {{ bot.attack }}</p>
-                <p>Defense: {{ bot.defense }}</p>
-                <p>Speed: {{ bot.speed }}</p>
+                <h3>{{ bot.name }} ({{ bot.algorithm }})</h3>
+                <p>INT: {{ final.int }} | PROC: {{ final.proc }} | DEF: {{ final.def }} | CLK: {{ final.clk }} | LOGIC: {{ final.logic }} | ENT: {{ final.ent }} | PWR: {{ final.pwr }}</p>
 
                 <div class="bot-actions">
                     <a href="{{ url_for('edit_bot', bot_id=bot.id) }}" class="btn btn-primary btn-sm">Edit</a>
+                    <a href="{{ url_for('gear', bot_id=bot.id) }}" class="btn btn-secondary btn-sm">Gear</a>
                     <a href="{{ url_for('bot_details', bot_id=bot.id) }}" class="btn btn-info btn-sm">Details</a>
                     <form method="POST" action="{{ url_for('delete_bot', bot_id=bot.id) }}">
                         <button class="btn btn-danger btn-sm">Delete</button>

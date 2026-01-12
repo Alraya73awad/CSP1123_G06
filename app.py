@@ -5,8 +5,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from functools import wraps
 from extensions import db
-from constants import CURRENCY_NAME, STORE_ITEMS, CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE
+from constants import CURRENCY_NAME, STORE_ITEMS, CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS
 from battle import BattleBot, full_battle, calculate_bot_stat_points
+from seed_weapons import seed_weapons
+
 
 from models import User, Bot, History, HistoryLog
 
@@ -25,6 +27,43 @@ def inject_current_user():
     if "user_id" in session:
         user = User.query.get(session["user_id"])
     return dict(current_user=user)
+  
+  DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL is None:
+    DATABASE_URL = "sqlite:///clash_of_code.db"
+
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://","postgresql://",1)
+
+
+db.init_app(app)
+migrate = Migrate(app, db)
+
+with app.app_context():
+    db.create_all()
+    seed_weapons()
+
+
+def calculate_elo_change(winner_rating, loser_rating, k_factor=32):
+    """
+    Calculate ELO rating changes for winner and loser.
+    
+    Args:
+        winner_rating: Current rating of the winner
+        loser_rating: Current rating of the loser
+        k_factor: How much ratings change per game (default 32)
+    
+    Returns:
+        (winner_change, loser_change) - both as integers
+    """
+    # Calculate expected win probability for the winner
+    expected_win = 1 / (1 + 10 ** ((loser_rating - winner_rating) / 400))
+    
+    # Calculate rating changes
+    winner_change = int(k_factor * (1 - expected_win))
+    loser_change = int(k_factor * (0 - (1 - expected_win)))
+    
+    return winner_change, loser_change
 
 #routes
 @app.route("/")
@@ -94,13 +133,22 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash("Please log in to continue.", "warning")
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
+#dashboard
 @app.route("/dashboard", methods=["GET", "POST"])
 @login_required
 def dashboard():
     user = User.query.get(session["user_id"])
 
-    # HANDLE BOT CREATION
+    # HANDLE BOT CREATION (FORM SUBMIT)
     if request.method == "POST":
         name = request.form.get("name")
         algorithm = request.form.get("algorithm")
@@ -142,6 +190,33 @@ def dashboard():
         effects = algorithm_effects.get(bot.algorithm, {})
         final_stats = {stat: int(base * effects.get(stat, 1.0)) for stat, base in base_stats.items()}
         enhanced_bots.append({"bot": bot, "final_stats": final_stats})
+    # NORMAL DASHBOARD LOAD (GET)
+    bots = user.bots
+    xp_percent = int((user.xp / (user.level * 100)) * 100)
+
+    enhanced_bots = []
+    for bot in bots:
+        base_stats = {
+            "int": bot.hp,
+            "proc": bot.total_proc,
+            "def": bot.defense,
+            "clk": bot.speed,
+            "logic": bot.logic,
+            "ent": bot.luck,
+            "pwr": bot.energy
+        }
+
+        effects = algorithm_effects.get(bot.algorithm, {})
+        final_stats = {}
+
+        for stat, base in base_stats.items():
+            multiplier = effects.get(stat, 1.0)
+            final_stats[stat] = int(base * multiplier)
+
+        enhanced_bots.append({
+            "bot": bot,
+            "final_stats": final_stats
+        })
 
     return render_template(
         "dashboard.html",
@@ -157,6 +232,12 @@ def dashboard():
     )
 
 
+#logout
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("Logged out successfully.", "info")
+    return redirect(url_for("home"))
 
 #logout
 @app.route("/logout")
@@ -207,6 +288,50 @@ STAT_LIMITS = {
     "luck": (10, 999)
 }
 
+#ALGORITHMS
+algorithms = {
+    "VEX-01": "Aggressive",
+    "BASL-09": "Defensive",
+    "EQUA-12": "Balanced",
+    "ADAPT-X": "Adaptive",
+    "RUSH-09": "Speed",
+    "CHAOS-RND": "Random"
+    }
+
+        if not name or not algorithm:
+            flash("Please provide a bot name and select an algorithm.", "danger")
+            return redirect(url_for("create_bot"))
+
+        new_bot = Bot(
+            name=name,
+            algorithm=algorithm,
+            user_id=session["user_id"]
+        )
+
+        db.session.add(new_bot)
+        db.session.commit()
+
+        flash("Bot created successfully!", "success")
+        return redirect(url_for("dashboard"))
+
+    # GET request → show form
+    return render_template(
+        "create_bot.html",
+        algorithms=algorithms,
+        algorithm_descriptions=algorithm_descriptions
+    )
+
+# Stat Min/Max Values
+STAT_LIMITS = {
+    "hp": (100, 999),
+    "energy": (100, 999),
+    "atk": (10, 999),
+    "defense": (10, 999),
+    "speed": (10, 999),
+    "logic": (10, 999),
+    "luck": (10, 999)
+}
+
 
 # manage bot
 @app.route('/manage_bot')
@@ -216,7 +341,33 @@ def manage_bot():
         return redirect(url_for('login'))
 
     user_bots = Bot.query.filter_by(user_id=session['user_id']).all()
-    return render_template('manage_bot.html', bots=user_bots)
+    user = User.query.get(session["user_id"])
+    bots = user.bots
+
+    enhanced_bots = []
+    for bot in bots:
+        base_stats = {
+            "int": bot.hp,
+            "proc": bot.total_proc,
+            "def": bot.defense,
+            "clk": bot.speed,
+            "logic": bot.logic,
+            "ent": bot.luck,
+            "pwr": bot.energy
+        }
+
+        effects = algorithm_effects.get(bot.algorithm, {})
+        final_stats = {}
+
+        for stat, base in base_stats.items():
+            multiplier = effects.get(stat, 1.0)
+            final_stats[stat] = int(base * multiplier)
+
+        enhanced_bots.append({
+            "bot": bot,
+            "final_stats": final_stats
+        })
+    return render_template('manage_bot.html', bots=enhanced_bots, bots=user_bots, algorithms=algorithms, algorithm_descriptions=algorithm_descriptions)
 
 # Other pages
 @app.route('/store')
@@ -225,15 +376,44 @@ def store():
     user = User.query.get(session['user_id'])
     bots = Bot.query.filter_by(user_id=user.id).all()
     credits = user.tokens
+    weapons = Weapon.query.all()
+
     return render_template(
         "store.html",
-        store_items=STORE_ITEMS,
+        store_items=STORE_ITEMS,     
+        passive_items=PASSIVE_ITEMS, 
         bots=bots,
         credits=credits,
         currency=CURRENCY_NAME
     )
 
 from constants import XP_TABLE
+        weapons = weapons
+    )
+
+@app.route('/buy_passive/<int:passive_id>', methods=['POST'])
+@login_required
+def buy_passive(passive_id):
+    user = User.query.get(session['user_id'])
+    bot_id = request.form.get('bot_id')
+    bot = Bot.query.get(bot_id)
+
+    passive = next((p for p in PASSIVE_ITEMS if p["id"] == passive_id), None)
+    if not passive:
+        flash("Passive not found", "danger")
+        return redirect(url_for("store"))
+
+    if user.tokens < passive["cost"]:
+        flash("Not enough credits!", "danger")
+        return redirect(url_for("store"))
+
+    user.tokens -= passive["cost"]
+
+    bot.passive_effect = passive["name"]
+
+    db.session.commit()
+    flash(f"{bot.name} learned passive: {passive['name']}", "success")
+    return redirect(url_for("store"))
 
 @app.route("/character")
 def character():
@@ -299,6 +479,27 @@ def profile():
     if not user:
         flash("Error loading profile.", "danger")
         return redirect(url_for('login'))
+    
+    # Calculate win rate
+    total_battles = user.wins + user.losses
+    win_rate = (user.wins / total_battles * 100) if total_battles > 0 else 0
+    
+    # Determine rank tier
+    def get_rank_tier(rating):
+        if rating < 800:
+            return {"name": "Prototype", "icon": "🔧", "color": "text-secondary"}
+        elif rating < 1000:
+            return {"name": "Circuit", "icon": "⚡", "color": "text-success"}
+        elif rating < 1200:
+            return {"name": "Processor", "icon": "🖥️", "color": "text-info"}
+        elif rating < 1400:
+            return {"name": "Mainframe", "icon": "💻", "color": "text-primary"}
+        elif rating < 1600:
+            return {"name": "Quantum", "icon": "🌌", "color": "text-warning"}
+        else:
+            return {"name": "Nexus", "icon": "🔮", "color": "text-danger"}
+    
+    rank = get_rank_tier(user.rating)
 
     return render_template(
         'profile.html',
@@ -306,11 +507,20 @@ def profile():
         email=user.email,
         level=user.level,
         xp=user.xp,
-        tokens=user.tokens
+        tokens=user.tokens,
+        user=user,
+        win_rate=win_rate,
+        total_battles=total_battles,
+        rank=rank
     )
 
+#store display func
 
+def store():
+    for upgrade in UPGRADES:
+        print(upgrade["name"], upgrade["cost"])
 
+# Buy item and upgrade purchase function
 @app.route("/buy", methods=["POST"])
 @login_required
 def buy():
@@ -478,6 +688,7 @@ def edit_bot(bot_id):
             new_name = request.form.get("name", "").strip()
             new_algorithm = request.form.get("algorithm", "").strip()
 
+
             if not new_name:
                 flash("Bot name cannot be empty.", "danger")
                 return redirect(url_for('edit_bot', bot_id=bot_id))
@@ -485,6 +696,7 @@ def edit_bot(bot_id):
             if not new_algorithm:
                 flash("Please select an algorithm.", "danger")
                 return redirect(url_for('edit_bot', bot_id=bot_id))
+
 
             final_stats = {}
             errors = []
@@ -535,7 +747,7 @@ def edit_bot(bot_id):
 
             if not changed:
                 flash("No changes were made.", "warning")
-                return redirect(url_for('manage_bot') + "?flash=1")
+                return redirect(url_for('bot_list', bot_id=bot_id) + "?flash=1")
             
             bot.name = new_name
             bot.algorithm = new_algorithm
@@ -547,6 +759,7 @@ def edit_bot(bot_id):
             bot.speed = final_stats['speed']
             bot.logic = final_stats['logic']
             bot.luck = final_stats['luck']
+
 
             db.session.commit()
             flash("Bot updated successfully.", "success")
@@ -564,7 +777,7 @@ def bot_details(bot_id):
 
     base_stats = {
         "int": bot.hp,
-        "proc": bot.atk,
+        "proc": bot.total_proc,
         "def": bot.defense,
         "clk": bot.speed,
         "logic": bot.logic,
@@ -591,6 +804,28 @@ def bot_details(bot_id):
         final_stats=final_stats
     )
 
+@app.route("/bots")
+def bot_list():
+    user_id = session["user_id"]
+    bots = Bot.query.filter_by(user_id=user_id).all()
+
+    items = []
+    for bot in bots:
+        base_stats = {
+            "int": bot.hp,
+            "proc": bot.total_proc,
+            "def": bot.defense,
+            "clk": bot.speed,
+            "logic": bot.logic,
+            "ent": bot.luck,
+            "pwr": bot.energy
+        }
+        effects = algorithm_effects.get(bot.algorithm, {})
+        final_stats = {stat: int(value * effects.get(stat, 1.0)) for stat, value in base_stats.items()}
+        items.append({"bot": bot, "final_stats": final_stats})
+
+    return render_template("dashboard.html", bots=items, algorithms=algorithms, algorithm_descriptions=algorithm_descriptions)
+
 @app.route("/combat_log/<int:bot1_id>/<int:bot2_id>")
 @login_required
 def combat_log(bot1_id, bot2_id):
@@ -602,26 +837,47 @@ def combat_log(bot1_id, bot2_id):
     # Apply algorithm stats
     stats1 = apply_algorithm(bot1)
     stats2 = apply_algorithm(bot2)
+    weapon1_ow = WeaponOwnership.query.filter_by(bot_id=bot1.id, equipped=True).first()
+    weapon2_ow = WeaponOwnership.query.filter_by(bot_id=bot2.id, equipped=True).first()
 
-    # Create BattleBot instances
+    # Get weapon ATK
+    weapon1_atk = weapon1_ow.effective_atk() if weapon1_ow else 0
+    weapon2_atk = weapon2_ow.effective_atk() if weapon2_ow else 0
+    
+    # Get algorithm effects
+    effects1 = algorithm_effects.get(bot1.algorithm, {})
+    effects2 = algorithm_effects.get(bot2.algorithm, {})
+    
+    # Calculate final proc: (base + weapon) × algorithm multiplier
+    base_proc1 = bot1.atk + weapon1_atk
+    final_proc1 = int(base_proc1 * effects1.get("proc", 1.0))
+    
+    base_proc2 = bot2.atk + weapon2_atk
+    final_proc2 = int(base_proc2 * effects2.get("proc", 1.0))
+
+    # Convert to BattleBot
     battleA = BattleBot(
         name=bot1.name,
         hp=stats1["hp"],
         energy=stats1["energy"],
-        proc=stats1["proc"],
+        proc=final_proc1,  
         defense=stats1["defense"],
         clk=stats1["clk"],
-        luck=stats1["luck"]
+        luck=stats1["luck"],
+        weapon_atk=weapon1_atk,
+        weapon_type=weapon1_ow.weapon.type if weapon1_ow else None
     )
 
     battleB = BattleBot(
         name=bot2.name,
         hp=stats2["hp"],
         energy=stats2["energy"],
-        proc=stats2["proc"],
+        proc=final_proc2,  
         defense=stats2["defense"],
         clk=stats2["clk"],
-        luck=stats2["luck"]
+        luck=stats2["luck"],
+        weapon_atk=weapon2_atk,
+        weapon_type=weapon2_ow.weapon.type if weapon2_ow else None
     )
 
     # Run the battle
@@ -700,6 +956,54 @@ def combat_log(bot1_id, bot2_id):
         flash(f"Congratulations {user.username}! You gained {xp_gained} XP and {levels_gained} levels.", "success")
 
     # Save battle history
+    # RUN THE BATTLE
+    winner, log, seed = full_battle(battleA, battleB)
+
+    # elo rating changes
+    is_ranked = (bot1.user_id != bot2.user_id)
+    
+    if is_ranked:
+        if winner == bot1.name:
+            winner_user = bot1.user
+            loser_user = bot2.user
+        else:
+            winner_user = bot2.user
+            loser_user = bot1.user
+        
+        rating_gain, rating_loss = calculate_elo_change(
+            winner_user.rating,
+            loser_user.rating
+        )
+        
+        old_winner_rating = winner_user.rating
+        old_loser_rating = loser_user.rating
+        
+        winner_user.rating += rating_gain
+        winner_user.wins += 1
+        
+        loser_user.rating += rating_loss
+        loser_user.losses += 1
+        
+        db.session.commit()
+        
+        flash(
+            f"🏆 {winner_user.username} won! Rating: {old_winner_rating} → {winner_user.rating} (+{rating_gain})",
+            "success"
+        )
+        flash(
+            f"💔 {loser_user.username} lost. Rating: {old_loser_rating} → {loser_user.rating} ({rating_loss})",
+            "info"
+        )
+
+    # Add weapon info to stats dictionaries for template
+    stats1["weapon_atk"] = weapon1_atk
+    stats1["weapon_type"] = weapon1_ow.weapon.type if weapon1_ow else None
+    stats1["proc"] = final_proc1 
+    
+    stats2["weapon_atk"] = weapon2_atk
+    stats2["weapon_type"] = weapon2_ow.weapon.type if weapon2_ow else None
+    stats2["proc"] = final_proc2  
+
     history = History(
         bot1_id=bot1.id,
         bot2_id=bot2.id,
@@ -762,24 +1066,101 @@ def combat_log(bot1_id, bot2_id):
     )
 
 
+        winner=winner,
+        seed=seed,
+        # Bot 1 stats snapshot
+        bot1_hp=stats1["hp"],
+        bot1_energy=stats1["energy"],
+        bot1_proc=final_proc1, 
+        bot1_defense=stats1["defense"],
+        bot1_clk=stats1["clk"],
+        bot1_luck=stats1["luck"],
+        bot1_weapon_atk=weapon1_atk,
+        bot1_weapon_type=weapon1_ow.weapon.type if weapon1_ow else None,
+        # Bot 2 stats snapshot
+        bot2_hp=stats2["hp"],
+        bot2_energy=stats2["energy"],
+        bot2_proc=final_proc2,
+        bot2_defense=stats2["defense"],
+        bot2_clk=stats2["clk"],
+        bot2_luck=stats2["luck"],
+        bot2_weapon_atk=weapon2_atk,
+        bot2_weapon_type=weapon2_ow.weapon.type if weapon2_ow else None
+    )
+    db.session.add(history)
+    db.session.commit()
+    
+    return render_template(
+        "combat_log.html",
+        log=log,
+        winner=winner,
+        bot1=bot1,
+        bot2=bot2,
+        stats1=stats1,
+        stats2=stats2
+    )
 
 @app.route("/battle", methods=["GET", "POST"])
+@login_required
 def battle_select():
-    bots = Bot.query.all()
-
+    user = User.query.get(session["user_id"])
+    
     if request.method == "POST":
         bot1_id = request.form.get("bot1")
         bot2_id = request.form.get("bot2")
+        
+        bot1 = Bot.query.get(bot1_id)
+        bot2 = Bot.query.get(bot2_id)
+        
+        if not bot1 or not bot2:
+            flash("Invalid bot selection!", "danger")
+            return redirect(url_for("battle_select"))
 
         if bot1_id == bot2_id:
-            flash("You must choose two different bots!", "warning") 
-        else:
-            return redirect(url_for('combat_log', bot1_id=bot1_id, bot2_id=bot2_id))
-
-    return render_template("battle.html", bots=bots)
+            flash("You must choose two different bots!", "warning")
+            return redirect(url_for("battle_select"))
+        
+        if bot1.user_id != user.id:
+            flash("You can only battle with your own bots!", "danger")
+            return redirect(url_for("battle_select"))
+        
+        if bot2.user_id == user.id:
+            flash("Please select an opponent's bot!", "warning")
+            return redirect(url_for("battle_select"))
+        
+        return redirect(url_for('combat_log', bot1_id=bot1_id, bot2_id=bot2_id))
+    
+    # GET request - prepare matchmaking data
+    my_bots = user.bots
+    my_rating = user.rating
+    
+    # Find suitable opponents (within ±200 rating)
+    min_rating = my_rating - 200
+    max_rating = my_rating + 200
+    
+    opponent_users = User.query.filter(
+        User.id != user.id,
+        User.rating >= min_rating,
+        User.rating <= max_rating
+    ).order_by(User.rating.desc()).limit(10).all()
+    
+    # Get all their bots
+    matched_bots = []
+    for opponent in opponent_users:
+        for bot in opponent.bots:
+            matched_bots.append(bot)
+    
+    return render_template(
+        "battle.html",
+        my_bots=my_bots,
+        matched_bots=matched_bots,
+        my_rating=my_rating
+    )
 
 def apply_algorithm(bot):
     effects = algorithm_effects.get(bot.algorithm, {})
+    equipped = WeaponOwnership.query.filter_by(bot_id=bot.id, equipped=True).first()
+    weapon_atk = equipped.effective_atk() if equipped else 0
 
     # Return new effective stats
     return {
@@ -792,20 +1173,181 @@ def apply_algorithm(bot):
     }
 
 @app.route("/history")
+@login_required
 def history():
-    battles = History.query.order_by(History.timestamp.desc()).all()
-    return render_template("history.html", battles = battles)
+    user = User.query.get(session["user_id"])
+    
+    # Only show battles where the user's bots participated
+    user_bot_ids = [bot.id for bot in user.bots]
+    
+    battles = History.query.filter(
+        db.or_(
+            History.bot1_id.in_(user_bot_ids),
+            History.bot2_id.in_(user_bot_ids)
+        )
+    ).order_by(History.timestamp.desc()).all()
+    
+    return render_template("history.html", battles=battles)
 
 @app.route("/history/<int:history_id>")
+@login_required
 def view_history(history_id):
+    user = User.query.get(session["user_id"])
     history = History.query.get_or_404(history_id)
+    
+    # Check if user was involved in this battle
     bot1 = Bot.query.get(history.bot1_id)
     bot2 = Bot.query.get(history.bot2_id)
-    stats1 = apply_algorithm(bot1)
-    stats2 = apply_algorithm(bot2)
-    logs = HistoryLog.query.filter_by(history_id=history.id).all()
+    
+    user_bot_ids = [bot.id for bot in user.bots]
+    
+    if history.bot1_id not in user_bot_ids and history.bot2_id not in user_bot_ids:
+        flash("You don't have permission to view this battle.", "danger")
+        return redirect(url_for("history"))
+    
+    stats1 = {
+        "hp": history.bot1_hp,
+        "energy": history.bot1_energy,
+        "proc": history.bot1_proc,
+        "defense": history.bot1_defense,
+        "clk": history.bot1_clk,
+        "luck": history.bot1_luck,
+        "weapon_atk": history.bot1_weapon_atk if history.bot1_weapon_atk else 0,
+        "weapon_type": history.bot1_weapon_type
+    }
+    
+    stats2 = {
+        "hp": history.bot2_hp,
+        "energy": history.bot2_energy,
+        "proc": history.bot2_proc,
+        "defense": history.bot2_defense,
+        "clk": history.bot2_clk,
+        "luck": history.bot2_luck,
+        "weapon_atk": history.bot2_weapon_atk if history.bot2_weapon_atk else 0,
+        "weapon_type": history.bot2_weapon_type
+    }
+    
+    # Recreate BattleBots from snapshot
+    battleA = BattleBot(
+        name=history.bot1_name,
+        hp=history.bot1_hp,
+        energy=history.bot1_energy,
+        proc=history.bot1_proc,
+        defense=history.bot1_defense,
+        clk=history.bot1_clk,
+        luck=history.bot1_luck,
+        weapon_atk=history.bot1_weapon_atk,
+        weapon_type=history.bot1_weapon_type
+    )
 
-    return render_template("combat_log.html", log=[(l.type, l.text) for l in logs], winner = history.winner, bot1 = bot1, bot2 = bot2, stats1 = stats1, stats2 = stats2)
+    battleB = BattleBot(
+        name=history.bot2_name,
+        hp=history.bot2_hp,
+        energy=history.bot2_energy,
+        proc=history.bot2_proc,
+        defense=history.bot2_defense,
+        clk=history.bot2_clk,
+        luck=history.bot2_luck,
+        weapon_atk=history.bot2_weapon_atk,
+        weapon_type=history.bot2_weapon_type
+    )
+    
+    winner, log, _ = full_battle(battleA, battleB, seed=history.seed)
+
+    return render_template(
+        "combat_log.html",
+        log=log,
+        winner=winner,
+        bot1=bot1,
+        bot2=bot2,
+        stats1=stats1,
+        stats2=stats2,
+        is_replay=True
+    )
+
+@app.route("/weapons")
+def weapons_shop():
+    weapons = Weapon.query.all()
+    return render_template("weapons.html", weapons=weapons)
+
+@app.route("/weapon/<int:weapon_id>/level_up", methods=["POST"])
+def level_up_weapon(weapon_id):
+    weapon = Weapon.query.get_or_404(weapon_id)
+
+    if weapon.level < weapon.max_level:
+        weapon.level += 1
+        db.session.commit()
+
+    return redirect(url_for("edit_bot", bot_id=weapon.bot_id))
+
+@app.route("/buy_weapon/<int:weapon_id>", methods=["POST"])
+@login_required
+def buy_weapon(weapon_id):
+    user = User.query.get(session["user_id"])
+    weapon = Weapon.query.get_or_404(weapon_id)
+
+    if user.tokens < weapon.price:
+        flash("Not enough credits.", "error")
+        return redirect(url_for("store"))
+
+    user.tokens -= weapon.price
+
+    ownership = WeaponOwnership(
+        user_id=user.id,
+        weapon_id=weapon.id
+    )
+
+    db.session.add(ownership)
+    db.session.commit()
+
+    flash(f"{weapon.name} purchased and added to your inventory!", "success")
+    return redirect(url_for("store"))
+
+@app.route('/gear/<int:bot_id>', methods=['GET', 'POST'])
+def gear(bot_id):
+    bot = Bot.query.get_or_404(bot_id)
+    user_id = bot.user_id 
+    owned_weapons = WeaponOwnership.query.filter_by(user_id=user_id).all()
+
+    if request.method == "POST":
+        if "equip_weapon" in request.form:
+            ownership_id = request.form.get("equip_weapon")
+
+            # Unequip any currently equipped weapon for this bot
+            WeaponOwnership.query.filter_by(
+                bot_id=bot.id,
+                equipped=True
+            ).update({"equipped": False, "bot_id": None})
+
+            if ownership_id:
+                ownership = WeaponOwnership.query.get_or_404(int(ownership_id))
+                ownership.bot_id = bot.id
+                ownership.equipped = True
+
+            db.session.commit()
+            flash("Weapon equipped successfully!", "success")
+            return redirect(url_for("gear", bot_id=bot.id))
+
+        if "weapon_ownership_id" in request.form:
+            ow_id = int(request.form.get("weapon_ownership_id"))
+            ow = WeaponOwnership.query.get_or_404(ow_id)
+
+            if ow.weapon.level < ow.weapon.max_level:
+                ow.weapon.level += 1
+                db.session.commit()
+                flash(f"{ow.weapon.name} leveled up!", "success")
+            else:
+                flash("Weapon already at max level.", "warning")
+
+            return redirect(url_for("gear", bot_id=bot.id))
+
+
+    return render_template(
+        "gear.html",
+        bot=bot,
+        owned_weapons=owned_weapons
+    )
+
 
 #xp system
 

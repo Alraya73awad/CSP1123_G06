@@ -91,6 +91,11 @@
         </div>
 
         <h5>Adjust Stats</h5>
+        <!-- ATK -->
+        <div style="display:flex; flex-direction: column;" class="mb-3 stat-row">
+            <label data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC</label>
+            <a href="{{ url_for('gear', bot_id=bot.id) }}">Go to Gear</a>
+        </div>
 
         <!-- HP -->
         <div class="mb-3 stat-row" >
@@ -100,16 +105,6 @@
             <input type="number" class="form-control mt-2 stat-number"
                    name="hp_number" value="{{ bot.hp }}"
                    min="{{ stat_limits.hp[0] }}" max="{{ stat_limits.hp[1] }}">
-        </div>
-
-        <!-- ATK -->
-        <div class="mb-3 stat-row">
-            <label class="form-label" data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC ({{ stat_limits.atk[0] }}–{{ stat_limits.atk[1] }})</label>
-            <input type="range" name="atk" class="form-range stat-slider"
-                   min="{{ stat_limits.atk[0] }}" max="{{ stat_limits.atk[1] }}" value="{{ bot.atk }}">
-            <input type="number" class="form-control mt-2 stat-number"
-                   name="atk_number" value="{{ bot.atk }}"
-                   min="{{ stat_limits.atk[0] }}" max="{{ stat_limits.atk[1] }}">
         </div>
 
         <!-- DEF -->
@@ -175,33 +170,31 @@ document.querySelectorAll(".stat-row").forEach(row => {
     const slider = row.querySelector(".stat-slider");
     const number = row.querySelector(".stat-number");
 
-    // Update number when slider moves
+    // Skip rows that aren't slider-based (like weapon selector)
+    if (!slider || !number) return;
+
     slider.addEventListener("input", () => {
         number.value = slider.value;
     });
 
-    // Update slider when number changes (allow typing freely)
     number.addEventListener("input", () => {
         slider.value = number.value;
     });
 
-    // Function to enforce min/max
     const enforceLimits = () => {
-        if (number.value === "") return; // skip empty input temporarily
+        if (number.value === "") return;
         if (number.value < slider.min) number.value = slider.min;
         if (number.value > slider.max) number.value = slider.max;
         slider.value = number.value;
     };
 
-    // Enforce min/max when leaving the field
     number.addEventListener("blur", enforceLimits);
 
-    // Prevent Enter from submitting form and confirm the field
     number.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
-            e.preventDefault();   
-            enforceLimits();    
-            number.blur();       
+            e.preventDefault();
+            enforceLimits();
+            number.blur();
         }
     });
 });
