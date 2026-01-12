@@ -243,25 +243,53 @@ def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
             log_line(log, "defeat", f"{defender.name} has been defeated!")
             return attacker.name
 
-def full_battle(botA, botB, seed=None, arena="Neutral"):
+def full_battle(botA, botB, seed=None, arena="neutral"):
     if seed is None:
         seed = random.randint(0, 999999999)
-    
+
     rng = random.Random(seed)
     log = []
     round_num = 1
-    intro_line = ARENA_FLAVOR.get(arena, f"🏟️ Battle begins in the {arena_name(arena)} Arena!")
+    winner = None
+
+    intro_line = ARENA_FLAVOR.get(
+        arena,
+        f"🏟️ Battle begins in the {arena_name(arena)} Arena!"
+    )
     log_line(log, "arena", intro_line)
 
     while botA.is_alive() and botB.is_alive():
         log_line(log, "round", f"(Round {round_num})")
-        winner = battle_round(botA, botB, log, rng, arena=arena, round_num=round_num)
+
+        winner = battle_round(
+            botA,
+            botB,
+            log,
+            rng=rng,
+            arena=arena,
+            round_num=round_num
+        )
+
         if winner:
             log_line(log, "battleover", f"Battle Over! Winner: {winner}")
-            for entry in log:
-                print(f"[{entry[0]}] {entry[1]}")
-            return winner, log, seed
+            break
+
         round_num += 1
+
+    if winner == botA.name:
+        botA_points = calculate_bot_stat_points(botA, "win")
+        botB_points = calculate_bot_stat_points(botB, "lose")
+    else:
+        botB_points = calculate_bot_stat_points(botB, "win")
+        botA_points = calculate_bot_stat_points(botA, "lose")
+
+    return {
+        "winner": winner,
+        "log": log,
+        "seed": seed,
+        "botA_points": botA_points,
+        "botB_points": botB_points
+    }
 
 
 # Test battle
