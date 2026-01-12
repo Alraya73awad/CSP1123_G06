@@ -867,7 +867,7 @@ def combat_log(bot1_id, bot2_id):
     log = result["log"]
     botA_points = result["botA_points"]
     botB_points = result["botB_points"]
-
+    seed = result["seed"]
 
     # Determine results
     bot1_result = "win" if winner_name == bot1.name else "lose"
@@ -936,10 +936,6 @@ def combat_log(bot1_id, bot2_id):
 
         flash(f"Congratulations {user.username}! You gained {xp_gained} XP and {levels_gained} levels.", "success")
 
-    # Save battle history
-    # RUN THE BATTLE
-    winner, log, seed = full_battle(battleA, battleB)
-
     # elo rating changes
     is_ranked = (bot1.user_id != bot2.user_id)
     
@@ -1000,6 +996,13 @@ def combat_log(bot1_id, bot2_id):
         db.session.add(entry)
 
     db.session.commit()
+    
+    for log_type, text in log:
+        db.session.add(
+            HistoryLog(history_id=history.id, type=log_type, text=text)
+        )
+
+    db.session.commit()
 
 
     return render_template(
@@ -1015,23 +1018,6 @@ def combat_log(bot1_id, bot2_id):
         new_level=user.level if xp_gained else None
     )
 
-    # Save history
-    history = History(
-        bot1_id=bot1.id,
-        bot2_id=bot2.id,
-        bot1_name=bot1.name,
-        bot2_name=bot2.name,
-        winner=winner_name
-    )
-    db.session.add(history)
-    db.session.flush()
-
-    for log_type, text in log:
-        db.session.add(
-            HistoryLog(history_id=history.id, type=log_type, text=text)
-        )
-
-    db.session.commit()
 
     return render_template(
         "combat_log.html",
