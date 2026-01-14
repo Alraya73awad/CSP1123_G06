@@ -8,20 +8,20 @@ class BattleBot:
         self.name = name
         self.hp = hp
         self.energy = energy
-        self.proc = proc
+        self.proc = proc     # Attack power
         self.defense = defense
         self.speed = speed
-        self.clk = clk
-        self.luck = luck
-        self.weapon_atk = weapon_atk
-        self.weapon_type = weapon_type
+        self.clk = clk       # Reflex/clock stat
+        self.luck = luck     # % chance for crit/dodge
+        self.weapon_atk = weapon_atk   
+        self.weapon_type = weapon_type    # "ranged" or "melee"
         self.special_effect = special_effect
 
         self.damage_dealt = 0
         self.critical_hits = 0
         self.dodges = 0
         self.rounds_alive = 0
-
+        
         self.extra_attacks = 0
         self.ability_used = False
 
@@ -56,10 +56,10 @@ ARENA_EFFECTS = {
     "neutral": {
         "favored": None,
         "damage_bonus": 1.0,
-        "whiff_melee": 0.1,
-        "whiff_ranged": 0.1,
-        "spd_mod": 1.0,
-        "def_mod": 1.0
+        "whiff_melee": 0.07,   # slippery footing
+        "whiff_ranged": 0.07,  # cold winds
+        "spd_mod": 0.90,       # –10% SPD
+        "def_mod": 1.10        # +10% DEF
     },
     "frozen": {
         "favored": None,
@@ -82,7 +82,7 @@ def calculate_turn_order(botA, botB, rng):
     elif botB.clk > botA.clk:
         return [botB, botA]
     else:
-        return rng.sample([botA, botB], 2)
+        return rng.sample([botA, botB], 2) # random order if equal
 
 
 def arena_name(arena):
