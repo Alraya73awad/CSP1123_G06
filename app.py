@@ -1,16 +1,17 @@
-
 import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from functools import wraps
+from sqlalchemy import or_
+
 from extensions import db
-from constants import CURRENCY_NAME, STORE_ITEMS, CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS
+from constants import CURRENCY_NAME, STORE_ITEMS, CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS, UPGRADES
 from battle import BattleBot, full_battle, calculate_bot_stat_points
 from seed_weapons import seed_weapons
 
 
-from models import User, Bot, History, HistoryLog, Weapon
+from models import User, Bot, History, HistoryLog, Weapon, WeaponOwnership
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -23,7 +24,7 @@ if DATABASE_URL is None:
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://","postgresql://",1)
     
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///clash_of_code.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
@@ -71,6 +72,7 @@ STAT_LIMITS = {
     "speed": (10, 999),
     "logic": (10, 999),
     "luck": (10, 999),
+}
     
 #routes
 @app.route("/")
@@ -177,7 +179,7 @@ def dashboard():
         base_stats = {
             "int": int(bot.hp or 0),
             "proc": int(total_proc or 0),
-            "defense": int(bot.defense or 0),
+            "def": int(bot.defense or 0),   # FIX: defense -> def (dict key)
             "clk": int(bot.speed or 0),
             "logic": int(bot.logic or 0),
             "ent": int(bot.luck or 0),
@@ -235,14 +237,6 @@ def create_bot():
         algorithm_descriptions=algorithm_descriptions,
     )
 
-    # GET request → show form
-    return render_template(
-        "create_bot.html",
-        algorithms=algorithms,
-        algorithm_descriptions=algorithm_descriptions
-    )
-
-
 # manage bot
 @app.route('/manage_bot')
 def manage_bot():
@@ -259,7 +253,7 @@ def manage_bot():
         base_stats = {
             "int": bot.hp,
             "proc": bot.total_proc,
-            "defense": bot.defense,
+            "def": bot.defense,   
             "clk": bot.speed,
             "logic": bot.logic,
             "ent": bot.luck,
@@ -357,7 +351,7 @@ def level_up(user):
         3: 450,
         4: 800,
         5: 1250,
-        6: 2000  # etc.
+        6: 2000  
     }
 
     while user.level in XP_TABLE and user.xp >= XP_TABLE[user.level]:
@@ -558,7 +552,7 @@ def edit_bot(bot_id):
             raw_num = request.form.get(f"{name}_number", "").strip()
             raw_slider = request.form.get(name, "").strip()
 
-            # prefer numeric input if user typed something (not empty)
+            
             chosen = raw_num if raw_num != "" else raw_slider
 
             # If still empty, fallback to existing bot value
@@ -686,14 +680,13 @@ def bot_details(bot_id):
     base_stats = {
         "int": bot.hp,
         "proc": bot.total_proc,
-        "defense": bot.defense,
+        "def": bot.defense,   
         "clk": bot.speed,
         "logic": bot.logic,
         "ent": bot.luck,
         "pwr": bot.energy
     }
 
-    # lookup effects; default empty dict for algorithms with no static buffs
     effects = algorithm_effects.get(bot.algorithm, {})
 
     final_stats = {}
@@ -722,7 +715,7 @@ def bot_list():
         base_stats = {
             "int": bot.hp,
             "proc": bot.total_proc,
-            "defense": bot.defense,
+            "def": bot.defense,   # FIX: defense -> def (dict key)
             "clk": bot.speed,
             "logic": bot.logic,
             "ent": bot.luck,
@@ -769,7 +762,7 @@ def combat_log(bot1_id, bot2_id):
         hp=stats1["hp"],
         energy=stats1["energy"],
         proc=final_proc1,  
-        defense=stats1["defense"],
+        defense=stats1["def"],   # FIX
         clk=stats1["clk"],
         luck=stats1["luck"],
         weapon_atk=weapon1_atk,
@@ -781,7 +774,7 @@ def combat_log(bot1_id, bot2_id):
         hp=stats2["hp"],
         energy=stats2["energy"],
         proc=final_proc2,  
-        defense=stats2["defense"],
+        defense=stats2["def"],   # FIX
         clk=stats2["clk"],
         luck=stats2["luck"],
         weapon_atk=weapon2_atk,
@@ -907,19 +900,19 @@ def combat_log(bot1_id, bot2_id):
     stats2["weapon_type"] = weapon2_ow.weapon.type if weapon2_ow else None
     stats2["proc"] = final_proc2  
 
+    
     history = History(
         bot1_id=bot1.id,
         bot2_id=bot2.id,
         bot1_name=bot1.name,
         bot2_name=bot2.name,
-        winner=winner_name
+        winner=winner_name,
         seed=seed,
-    )
 
-     bot1_hp=stats1["hp"],
+        bot1_hp=stats1["hp"],
         bot1_energy=stats1["energy"],
         bot1_proc=final_proc1,
-        bot1_defense=stats1["defense"],
+        bot1_defense=stats1["def"],   # FIX
         bot1_clk=stats1["clk"],
         bot1_luck=stats1["luck"],
         bot1_weapon_atk=weapon1_atk,
@@ -928,7 +921,7 @@ def combat_log(bot1_id, bot2_id):
         bot2_hp=stats2["hp"],
         bot2_energy=stats2["energy"],
         bot2_proc=final_proc2,
-        bot2_defense=stats2["defense"],
+        bot2_defense=stats2["def"],   # FIX
         bot2_clk=stats2["clk"],
         bot2_luck=stats2["luck"],
         bot2_weapon_atk=weapon2_atk,
@@ -944,7 +937,7 @@ def combat_log(bot1_id, bot2_id):
     db.session.commit()
 
 
-   return render_template(
+    return render_template(
     "combat_log.html",
     bot1=bot1,
     bot2=bot2,
@@ -988,7 +981,7 @@ def battle_select():
         
         return redirect(url_for('combat_log', bot1_id=bot1_id, bot2_id=bot2_id))
     
-    # GET request - prepare matchmaking data
+
     my_bots = user.bots
     my_rating = user.rating
     
@@ -1002,7 +995,7 @@ def battle_select():
         User.rating <= max_rating
     ).order_by(User.rating.desc()).limit(10).all()
     
-    # Get all their bots
+   
     matched_bots = []
     for opponent in opponent_users:
         for bot in opponent.bots:
@@ -1025,7 +1018,7 @@ def apply_algorithm(bot):
         "hp": int(bot.hp * effects.get("hp", 1.0)),
         "energy": int(bot.energy * effects.get("energy", 1.0)),
         "proc": int(bot.atk * effects.get("proc", 1.0)),
-        "defense": int(bot.defense * effects.get("defense", 1.0)),
+        "def": int(bot.defense * effects.get("def", 1.0)),   # FIX: key + multiplier key
         "clk": int(bot.speed * effects.get("clk", 1.0)),
         "luck": int(bot.luck * effects.get("luck", 1.0)),
     }
@@ -1039,7 +1032,7 @@ def history():
     user_bot_ids = [bot.id for bot in user.bots]
     
     battles = History.query.filter(
-        db.or_(
+        or_(
             History.bot1_id.in_(user_bot_ids),
             History.bot2_id.in_(user_bot_ids)
         )
@@ -1067,7 +1060,7 @@ def view_history(history_id):
         "hp": history.bot1_hp,
         "energy": history.bot1_energy,
         "proc": history.bot1_proc,
-        "defense": history.bot1_defense,
+        "def": history.bot1_defense,  
         "clk": history.bot1_clk,
         "luck": history.bot1_luck,
         "weapon_atk": history.bot1_weapon_atk if history.bot1_weapon_atk else 0,
@@ -1078,14 +1071,14 @@ def view_history(history_id):
         "hp": history.bot2_hp,
         "energy": history.bot2_energy,
         "proc": history.bot2_proc,
-        "defense": history.bot2_defense,
+        "def": history.bot2_defense,   
         "clk": history.bot2_clk,
         "luck": history.bot2_luck,
         "weapon_atk": history.bot2_weapon_atk if history.bot2_weapon_atk else 0,
         "weapon_type": history.bot2_weapon_type
     }
     
-    # Recreate BattleBots from snapshot
+    # Recreate BattleBots
     battleA = BattleBot(
         name=history.bot1_name,
         hp=history.bot1_hp,
@@ -1241,3 +1234,4 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run(debug=True, port=5001) 
+
