@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>🏆 GLOBAL LEADERBOARD</h1>
+
+{% if current_user and user_has_matches %}
+    <div class="alert alert-info">
+        <strong>Your Rank:</strong> #{{ current_user_rank }} 
+        <span class="badge bg-primary">{{ current_user.rating }} Rating</span>
+    </div>
+{% else %}
+    <p>Play matches to earn a spot on the leaderboard!</p>
+{% endif %}
+
+<div class="table-responsive mt-4">
+    <table class="table table-dark table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Player</th>
+                <th>Rating</th>
+                <th>Rank Tier</th>
+                <th>Record</th>
+                <th>Win Rate</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for player in top_players %}
+            <tr {% if current_user and player.id == current_user.id %}class="table-primary"{% endif %}>
+                <td>
+                    <strong>{{ loop.index }}</strong>
+                    {% if loop.index == 1 %}👑{% endif %}
+                    {% if loop.index == 2 %}🥈{% endif %}
+                    {% if loop.index == 3 %}🥉{% endif %}
+                </td>
+                <td>{{ player.username }}</td>
+                <td><span class="badge bg-warning">{{ player.rating }}</span></td>
+                <td>
+                    {% if player.rating >= 1600 %}🔮 Nexus
+                    {% elif player.rating >= 1400 %}🌌 Quantum
+                    {% elif player.rating >= 1200 %}💻 Mainframe
+                    {% elif player.rating >= 1000 %}🖥️ Processor
+                    {% elif player.rating >= 800 %}⚡ Circuit
+                    {% else %}🔧 Prototype{% endif %}
+                </td>
+                <td>
+                    <span class="badge bg-success">{{ player.wins }}W</span>
+                    <span class="badge bg-danger">{{ player.losses }}L</span>
+                </td>
+                <td>{{ "%.1f"|format(player.win_rate) }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back</a>
+{% endblock %}

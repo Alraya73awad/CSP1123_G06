@@ -1070,6 +1070,29 @@ def gear(bot_id):
         owned_weapons=owned_weapons
     )
 
+@app.route("/leaderboard")
+def leaderboard():
+    # Get top 50 players by rating
+    top_players = User.query.filter(
+        User.wins + User.losses > 0  # Only players who have battled
+    ).order_by(User.rating.desc()).limit(50).all()
+    
+    # Get current user's rank if logged in
+    current_user_rank = None
+    user_has_matches = False
+    if "user_id" in session:
+        user = User.query.get(session["user_id"])
+        user_has_matches = (user.wins + user.losses) > 0
+        if user_has_matches:
+            higher_rated = (User.query.filter(or_(User.wins > 0, User.losses > 0),User.rating > user.rating).count())
+            current_user_rank = higher_rated + 1
+    
+    return render_template(
+        "leaderboard.html",
+        top_players=top_players,
+        current_user_rank=current_user_rank,
+        user_has_matches = user_has_matches
+    )
 
 # Run server
 if __name__ == "__main__":
