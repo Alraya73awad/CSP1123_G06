@@ -66,16 +66,16 @@ class Bot(db.Model):
                 return ow
         return None
 
-@property
-def total_proc(self):
-    base = self.atk
-    ow = self.equipped_weapon
-    if ow and ow.weapon:
-        return base + ow.weapon.effective_atk()
-    return base
+    @property
+    def total_proc(self):
+        base = self.atk or 0
+        ow = self.equipped_weapon
+        if ow and ow.weapon:
+            return base + (ow.weapon.effective_atk() or 0)
+        return base
 
-def __repr__(self):
-    return f"<Bot {self.name}>"
+    def __repr__(self):
+        return f"<Bot {self.name}>"
 
 class History(db.Model):
     __tablename__ = "history"
@@ -92,6 +92,12 @@ class History(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     seed = db.Column(db.Integer, nullable=False)
+
+    logs = db.relationship(
+        "HistoryLog",
+        backref="history",
+        cascade="all, delete-orphan"
+    )
 
     # Bot 1 stats snapshot
     bot1_hp = db.Column(db.Integer)
@@ -113,42 +119,27 @@ class History(db.Model):
     bot2_weapon_atk = db.Column(db.Integer, default=0)
     bot2_weapon_type = db.Column(db.String(20))
 
-class Weapon(db.Model):
-    __tablename__ = "weapons"
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    type = db.Column(db.String(20), nullable=False)
-    atk_bonus = db.Column(db.Integer, default=0)
-    tier = db.Column(db.Integer, default=1)
-    description = db.Column(db.String(200), nullable=False)
-    price = db.Column(db.Integer, default=0)
-    level = db.Column(db.Integer, default=1)
-    max_level = db.Column(db.Integer, default=5)
-
-    def effective_atk(self):
-        tier_stats = {
-            1: {"base": 5, "per_level": 1},
-            2: {"base": 8, "per_level": 2},
-            3: {"base": 16, "per_level": 5},
-            4: {"base": 33, "per_level": 7},
-            5: {"base": 55, "per_level": 14},
-            6: {"base": 100, "per_level": 20},
-        }
-
-        stats = tier_stats[self.tier]
-
-        return stats["base"] + (self.level - 1) * stats["per_level"]
 
 class WeaponOwnership(db.Model):
     __tablename__ = "weapon_ownership"
 
+    id = db.Column(db.Integer, primary_key=True)
 
-    logs = db.relationship(
-        "HistoryLog",
-        backref="history",
-        cascade="all, delete-orphan"
-    )
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"), nullable=False)
+
+    # NULL = unequipped
+    bot_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=True)
+    equipped = db.Column(db.Boolean, default=False)
+
+    # Relationships
+    user = db.relationship("User", backref="weapon_inventory")
+    weapon = db.relationship("Weapon")
+    bot = db.relationship("Bot", backref="equipped_weapon_ownership")
+
+    def effective_atk(self):
+        return self.weapon.effective_atk()
+
 class HistoryLog(db.Model):
     __tablename__ = "history_log"
 
@@ -156,7 +147,6 @@ class HistoryLog(db.Model):
     history_id = db.Column(db.Integer, db.ForeignKey("history.id"), nullable=False)
     type = db.Column(db.String(20))
     text = db.Column(db.Text)
-
 
 class Weapon(db.Model):
     __tablename__ = "weapons"
@@ -183,31 +173,4 @@ class Weapon(db.Model):
         }
         stats = tier_stats.get(self.tier, {"base": 5, "per_level": 1})
         return stats["base"] + (self.level - 1) * stats["per_level"]
-    user_id = db.Column(
-        db.Integer,
-        db.ForeignKey("user.id"),
-        nullable=False
-    )
 
-    weapon_id = db.Column(
-        db.Integer,
-        db.ForeignKey("weapons.id"),
-        nullable=False
-    )
-
-    # Which bot this weapon is equipped to (NULL = unequipped)
-    bot_id = db.Column(
-        db.Integer,
-        db.ForeignKey("bots.id"),
-        nullable=True
-    )
-
-    equipped = db.Column(db.Boolean, default=False)
-
-    # Relationships
-    user = db.relationship("User", backref="weapon_inventory")
-    weapon = db.relationship("Weapon")
-    bot = db.relationship("Bot", backref="equipped_weapon_ownership")
-
-    def effective_atk(self):
-        return self.weapon.effective_atk()
