@@ -87,6 +87,63 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
+<!-- Background Music Player -->
+<audio id="bgMusic" loop volume="0.3"></audio>
+
+<script>
+// Simple continuous music system
+const music = document.getElementById('bgMusic');
+
+// Map Flask routes to music files
+const pageTracks = {
+    'home': "{{ url_for('static', filename='music/BOOTING.mp3') }}",
+    'login': "{{ url_for('static', filename='music/BOOTING.mp3') }}",
+    'register': "{{ url_for('static', filename='music/BOOTING.mp3') }}",
+    'dashboard': "{{ url_for('static', filename='music/LOBBY.mp3') }}",
+    'manage_bot': "{{ url_for('static', filename='music/BOTS.mp3') }}",
+    'edit_bot': "{{ url_for('static', filename='music/BOTS.mp3') }}",
+    'bot_details': "{{ url_for('static', filename='music/BOTS.mp3') }}",
+    'gear': "{{ url_for('static', filename='music/BOTS.mp3') }}",
+    'battle_select': "{{ url_for('static', filename='music/GEAR_UP.mp3') }}",
+    'combat_log': "{{ url_for('static', filename='music/BATTLE.mp3') }}",
+    'store': "{{ url_for('static', filename='music/STORE.mp3') }}",
+    'profile': "{{ url_for('static', filename='music/BOOTING.mp3') }}",
+    'leaderboard': "{{ url_for('static', filename='music/LEADERBOARD.mp3') }}",
+    'history': "{{ url_for('static', filename='music/HISTORY.mp3') }}",
+    'view_history': "{{ url_for('static', filename='music/HISTORY.mp3') }}"
+};
+
+// Get current page from Flask (request.endpoint)
+const currentPage = "{{ request.endpoint }}";
+const currentTrack = pageTracks[currentPage];
+
+if (currentTrack) {
+    // Check what was playing before
+    const lastTrack = localStorage.getItem('currentTrack');
+    const lastTime = parseFloat(localStorage.getItem('musicTime')) || 0;
+    
+    if (currentTrack === lastTrack) {
+        // Same track - continue from where we left off
+        music.src = currentTrack;
+        music.currentTime = lastTime;
+        music.play().catch(e => console.log('Autoplay blocked'));
+    } else {
+        // Different track - start fresh
+        music.src = currentTrack;
+        music.play().catch(e => console.log('Autoplay blocked'));
+        localStorage.setItem('currentTrack', currentTrack);
+    }
+}
+
+// Save position when leaving page
+window.addEventListener('beforeunload', function() {
+    if (currentTrack) {
+        localStorage.setItem('musicTime', music.currentTime);
+        localStorage.setItem('currentTrack', currentTrack);
+    }
+});
+</script>
+
 {% block scripts %}{% endblock %}
 </body>
 </html>
