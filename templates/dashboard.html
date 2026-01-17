@@ -242,6 +242,21 @@
                 <label for="password" class="form-label">New Password</label>
                 <input type="password" name="password" id="password" class="form-control">
             </div>
+             <!-- Music Volume Control -->
+            <hr>
+            <h6>🎵 Music Settings</h6>
+            <div class="mb-3">
+                <label for="volumeSlider" class="form-label">
+                    Volume: <span id="volumePercent">30%</span>
+                </label>
+                <input type="range" id="volumeSlider" min="0" max="100" value="30" class="form-range">
+            </div>
+
+            <div class="mb-3">
+                <button type="button" id="muteBtn" class="btn btn-sm btn-outline-secondary w-100">
+                    <span id="muteIcon">🔊</span> <span id="muteText">Mute Music</span>
+                </button>
+            </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary neon-btn" data-bs-dismiss="modal">Cancel</button>
@@ -252,4 +267,57 @@
   </div>
 </div>
 
+{% endblock %}
+{% block scripts %}
+<!-- Volume Control Script -->
+<script>
+// Wait for modal to open before initializing controls
+const settingsModal = document.getElementById('settingsModal');
+
+if (settingsModal) {
+    settingsModal.addEventListener('shown.bs.modal', function() {
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumePercent = document.getElementById('volumePercent');
+        const muteBtn = document.getElementById('muteBtn');
+        const muteIcon = document.getElementById('muteIcon');
+        const muteText = document.getElementById('muteText');
+        const music = document.getElementById('bgMusic');
+
+        if (volumeSlider && volumePercent && music) {
+            // Load saved volume
+            const savedVolume = parseFloat(localStorage.getItem('musicVolume')) || 0.3;
+            const volumePercentValue = Math.round(savedVolume * 100);
+            volumeSlider.value = volumePercentValue;
+            volumePercent.textContent = volumePercentValue + '%';
+
+            // Update volume when slider moves
+            volumeSlider.addEventListener('input', function() {
+                const volume = this.value / 100;
+                music.volume = volume;
+                localStorage.setItem('musicVolume', volume);
+                volumePercent.textContent = this.value + '%';
+            });
+
+            // Mute button
+            if (muteBtn) {
+                muteBtn.addEventListener('click', function() {
+                    music.muted = !music.muted;
+                    
+                    if (music.muted) {
+                        muteIcon.textContent = '🔇';
+                        muteText.textContent = 'Unmute Music';
+                        muteBtn.classList.remove('btn-outline-secondary');
+                        muteBtn.classList.add('btn-outline-danger');
+                    } else {
+                        muteIcon.textContent = '🔊';
+                        muteText.textContent = 'Mute Music';
+                        muteBtn.classList.remove('btn-outline-danger');
+                        muteBtn.classList.add('btn-outline-secondary');
+                    }
+                });
+            }
+        }
+    });
+}
+</script>
 {% endblock %}

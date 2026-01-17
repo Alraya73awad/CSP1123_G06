@@ -636,7 +636,6 @@ select:focus {
   color: #00ffaa;
 }
 
-<<<<<<< HEAD
 .combat-log {
     max-height: 70vh;
     overflow-y: auto;
@@ -661,7 +660,6 @@ select:focus {
 .combat-log.neutral {
     background: #222;
 }
-=======
 /* Weapon Shop CSS */
 .weapons-grid {
   display: grid;
@@ -683,4 +681,3 @@ select:focus {
   transform: translateY(-4px);
   box-shadow: 0 0 15px var(--terminal-glow);
 }
->>>>>>> 4d430862175b9e19732ea666131f8b996dd54072

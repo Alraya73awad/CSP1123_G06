@@ -88,7 +88,7 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 <!-- Background Music Player -->
-<audio id="bgMusic" loop volume="0.3"></audio>
+<audio id="bgMusic" loop></audio>
 
 <script>
 // Simple continuous music system
@@ -117,31 +117,34 @@ const pageTracks = {
 const currentPage = "{{ request.endpoint }}";
 const currentTrack = pageTracks[currentPage];
 
+// Load saved volume
+const savedVolume = parseFloat(localStorage.getItem('musicVolume')) || 0.3;
+music.volume = savedVolume;
+
 if (currentTrack) {
-    // Check what was playing before
-    const lastTrack = localStorage.getItem('currentTrack');
-    const lastTime = parseFloat(localStorage.getItem('musicTime')) || 0;
+    // Get saved position for THIS specific track
+    const trackKey = 'musicTime_' + currentTrack;
+    const savedTime = parseFloat(localStorage.getItem(trackKey)) || 0;
     
-    if (currentTrack === lastTrack) {
-        // Same track - continue from where we left off
-        music.src = currentTrack;
-        music.currentTime = lastTime;
-        music.play().catch(e => console.log('Autoplay blocked'));
-    } else {
-        // Different track - start fresh
-        music.src = currentTrack;
-        music.play().catch(e => console.log('Autoplay blocked'));
-        localStorage.setItem('currentTrack', currentTrack);
-    }
+    music.src = currentTrack;
+    music.currentTime = savedTime;
+    music.play().catch(e => console.log('Autoplay blocked'));
 }
 
-// Save position when leaving page
+// Save position when leaving page (for THIS specific track)
 window.addEventListener('beforeunload', function() {
     if (currentTrack) {
-        localStorage.setItem('musicTime', music.currentTime);
-        localStorage.setItem('currentTrack', currentTrack);
+        const trackKey = 'musicTime_' + currentTrack;
+        localStorage.setItem(trackKey, music.currentTime);
     }
 });
+
+// Auto-play on first click
+document.addEventListener('click', function() {
+    if (music.paused && currentTrack) {
+        music.play().catch(e => {});
+    }
+}, { once: true });
 </script>
 
 {% block scripts %}{% endblock %}
