@@ -367,7 +367,7 @@ def level_up(user):
 @app.route('/play')
 @login_required
 def play():
-    return render_template('battle.html')
+    return render_template('"battle_select"')
 
 # profile page
 @app.route('/profile')

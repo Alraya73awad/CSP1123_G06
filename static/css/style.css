@@ -42,6 +42,7 @@ body {
   width: 100%;
   max-width: 760px;
   padding: 40px;
+  margin: 40px auto 0;
   border: 2px solid var(--terminal-glow);
   box-shadow: 0 0 15px 5px var(--terminal-glow);
   position: relative;
@@ -706,4 +707,21 @@ select:focus {
 .weapon-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 0 15px var(--terminal-glow);
+}
+.modal-content {
+  background: rgba(0,0,0,0.92);
+  color: #00ffaa;
+  border: 2px solid #00ffaa;
+  box-shadow: 0 0 20px rgba(0,255,170,0.35);
+}
+
+.modal-header, .modal-footer {
+  border-color: rgba(0,255,170,0.25);
+}
+.modal,
+.modal-backdrop{
+  position: fixed !important;
+  inset: 0;
+  margin: 0 !important;
+  transform: none !important;
 }

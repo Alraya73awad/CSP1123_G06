@@ -88,5 +88,46 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 {% block scripts %}{% endblock %}
+
+<!-- settings modal-->
+<div class="modal fade" id="settingsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content neon-panel">
+      <form method="POST" action="{{ url_for('update_settings') }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Account Settings</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="mb-3">
+            <label>Username</label>
+            <input class="form-control" name="username" value="{{ current_user.username }}">
+          </div>
+
+          <div class="mb-3">
+            <label>Email</label>
+            <input class="form-control" name="email" value="{{ current_user.email }}">
+          </div>
+
+          <div class="mb-3">
+            <label>New Password</label>
+            <input type="password" class="form-control" name="password">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Update Settings
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
