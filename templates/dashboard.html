@@ -270,12 +270,6 @@
           <input type="range" id="volumeSlider" min="0" max="100" value="30" class="form-range">
         </div>
 
-        <!-- Mute Button -->
-        <div class="mb-3">
-          <button type="button" id="muteBtn" class="btn btn-outline-secondary w-100">
-            <span id="muteIcon">🔊</span> <span id="muteText">Mute Music</span>
-          </button>
-        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary neon-btn" data-bs-dismiss="modal">Close</button>
@@ -294,9 +288,6 @@ if (volumeModal) {
     volumeModal.addEventListener('shown.bs.modal', function() {
         const volumeSlider = document.getElementById('volumeSlider');
         const volumePercent = document.getElementById('volumePercent');
-        const muteBtn = document.getElementById('muteBtn');
-        const muteIcon = document.getElementById('muteIcon');
-        const muteText = document.getElementById('muteText');
         const music = document.getElementById('bgMusic');
 
         if (volumeSlider && volumePercent && music) {
@@ -306,13 +297,6 @@ if (volumeModal) {
             volumeSlider.value = volumePercentValue;
             volumePercent.textContent = volumePercentValue + '%';
 
-            // Update mute button if already muted
-            if (music.muted) {
-                muteIcon.textContent = '🔇';
-                muteText.textContent = 'Unmute Music';
-                muteBtn.classList.remove('btn-outline-secondary');
-                muteBtn.classList.add('btn-outline-danger');
-            }
 
             // Volume slider changes
             volumeSlider.addEventListener('input', function() {
@@ -322,24 +306,6 @@ if (volumeModal) {
                 volumePercent.textContent = this.value + '%';
             });
 
-            // Mute button toggle
-            if (muteBtn) {
-                muteBtn.addEventListener('click', function() {
-                    music.muted = !music.muted;
-                    
-                    if (music.muted) {
-                        muteIcon.textContent = '🔇';
-                        muteText.textContent = 'Unmute Music';
-                        muteBtn.classList.remove('btn-outline-secondary');
-                        muteBtn.classList.add('btn-outline-danger');
-                    } else {
-                        muteIcon.textContent = '🔊';
-                        muteText.textContent = 'Mute Music';
-                        muteBtn.classList.remove('btn-outline-danger');
-                        muteBtn.classList.add('btn-outline-secondary');
-                    }
-                });
-            }
         }
     });
 }
