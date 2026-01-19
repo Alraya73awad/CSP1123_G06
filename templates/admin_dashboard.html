@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block page_title %}Admin Dashboard | Clash of Code{% endblock %}
+
+{% block content %}
+
+<h1>ADMIN DASHBOARD // CONTROL INTERFACE</h1>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-area">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<!-- Admin Banner -->
+<div class="admin-banner neon-panel">
+    <h2>Welcome, <span class="highlight">{{ current_user.username }}</span></h2>
+    <p>You are logged in as <strong>ADMIN</strong>. Elevated privileges are enabled.</p>
+</div>
+
+<hr>
+
+<!-- Admin Actions -->

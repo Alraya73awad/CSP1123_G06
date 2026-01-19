@@ -2,7 +2,7 @@ import random
 
 
 class BattleBot:
-    def __init__(self, name, hp, energy, proc, defense, speed=0, clk=0, luck=0,
+    def __init__(self, name, hp, energy, proc, defense, speed=0, clk=0, luck=0, weapon=None,
                  weapon_atk=0, weapon_type=None, special_effect=None):
         self.name = name
         self.hp = hp
@@ -12,7 +12,7 @@ class BattleBot:
         self.speed = speed
         self.clk = clk         # Reflex/clock stat
         self.luck = luck       # % chance for crit/dodge
-
+        self.weapon = weapon
         self.weapon_atk = weapon_atk
         self.weapon_type = weapon_type  # "ranged" or "melee"
         self.special_effect = special_effect
@@ -91,7 +91,8 @@ def apply_arena_modifiers(bot, arena):
 
 def get_effective_proc(bot):
     return bot.proc + (bot.weapon_atk if bot.weapon_atk else 0)
-
+    
+    
 def use_ability(attacker, defender, log, round_num=1):
     if attacker.ability_used:
         return
@@ -198,7 +199,11 @@ def battle_round(botA, botB, log, arena="neutral", round_num=1):
         if defender.hp < 0:
             defender.hp = 0
 
-        log_line(log, "attack", f"{attacker.name} attacks {defender.name} for {damage:.2f} damage!")
+        if attacker.weapon:
+            log_line(log, "attack", f"{attacker.name} strikes with {attacker.weapon} for {damage:.2f} damage!")
+        else:
+            log_line(log, "attack", f"{attacker.name} attacks {defender.name} for {damage:.2f} damage!")
+
         log_line(log, "status", f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
 
         if attacker.extra_attacks > 0 and defender.is_alive():
@@ -234,10 +239,10 @@ def full_battle(botA, botB, arena="neutral"):
 # Test battle
 if __name__ == "__main__":
     bot1 = BattleBot("Alpha", hp=100, energy=50, proc=30, defense=10,
-                     clk=14, luck=10, weapon_type="melee", special_effect="Time Dilation")
+                     clk=14, luck=10, weapon_type="melee", special_effect="Time Dilation", weapon = "code cutter")
     bot2 = BattleBot("Beta", hp=120, energy=50, proc=25, defense=12,
                      clk=14, luck=10, weapon_type="ranged", special_effect="Evolve Protocol")
 
-    # 🎲 Randomly pick Ironclash, Skyline, or Neutral
+    #Randomly pick Ironclash, Skyline, or Neutral
     chosen_arena = random.choice(["ironclash", "skyline", "neutral", "frozen"])
     winner, log = full_battle(bot1, bot2, arena=chosen_arena)

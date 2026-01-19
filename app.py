@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask_login import current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from functools import wraps
@@ -9,7 +10,7 @@ from constants import UPGRADES, STORE_ITEMS, PASSIVE_ITEMS
 from battle import BattleBot, full_battle
 
 # Models
-from models import User, Bot, History, HistoryLog
+from models import User, Bot, History, HistoryLog, Weapon, Admins
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -23,13 +24,70 @@ migrate = Migrate(app, db)
 with app.app_context():
     db.create_all()
 
+# Stat Min/Max Values
+STAT_LIMITS = {
+    "hp": (100, 999),
+    "energy": (100, 999),
+    "atk": (10, 999),
+    "defense": (10, 999),
+    "speed": (10, 999),
+    "logic": (10, 999),
+    "luck": (10, 999)
+}
+
+#ALGORITHMS
+algorithms = {
+    "VEX-01": "Aggressive",
+    "BASL-09": "Defensive",
+    "EQUA-12": "Balanced",
+    "ADAPT-X": "Adaptive",
+    "RUSH-09": "Speed",
+    "CHAOS-RND": "Random"
+    }
+
+#ALGORITHM BUFFS/NERFS
+algorithm_effects = {
+    "VEX-01": {
+        "proc": 1.15,
+        "def": 0.9
+    },
+    "BASL-09": {
+        "def": 1.2,
+        "clk": 0.9
+    },
+    "EQUA-12": {
+
+    },
+    "ADAPT-X": {    
+        "ent": 1.05,
+        "proc": 0.9
+    },
+    "RUSH-09": {    
+        "clk": 1.2,
+        "def": 0.9
+    },
+    "CHAOS-RND": {  
+
+    }
+}
+
+#ALGORITHM DESCRIPTIONS
+algorithm_descriptions = {
+    "VEX-01": "Vexor Assault Kernel: Built for aggressive attack routines. Prioritizes damage output at the cost of stability. +15% PROC, -10% DEF",
+    "BASL-09": "Bastion Logic Framework: Defensive fortress AI that fortifies its shielding subroutines above all else. +20% DEF, -10% CLK",
+    "EQUA-12": "Equilibrium Core Matrix: Balanced core algorithm ensuring even system resource allocation. No buffs or nerfs.",
+    "ADAPT-X": "Adaptive Pattern  Synthesizer: Self-learning AI that adjusts its combat model mid-battle. +10% LOGIC after 2 turns, +5% ENT, -10% PROC",
+    "RUSH-09": "Rapid Unit Synchronization Hub: An advanced AI core utilizing probabilistic threading for extreme combat reflexes. Fast but fragile. +20% CLK, -10% DEF",
+    "CHAOS-RND": "Chaotic Execution Driver: Unstable algorithm driven by randomized decision-making. High volatility, unpredictable results. Unstable modifiers each battle"
+}
+
+
 @app.context_processor
 def inject_current_user():
     user = None
     if "user_id" in session:
         user = User.query.get(session["user_id"])
     return dict(current_user=user)
-
 
 #routes
 @app.route("/")
@@ -58,8 +116,17 @@ def login():
             return redirect(url_for("login"))
 
         session["user_id"] = user.id
-        flash("Successfully logged in!", "success")
-        return redirect(url_for("dashboard"))
+
+        # Check if this user's email is in the Admins table
+        admin_entry = Admins.query.filter_by(email=user.email).first()
+        if admin_entry:
+            session["is_admin"] = True
+            flash("Logged in as Admin!", "success")
+            return redirect(url_for("dashboard"))
+        else:
+            session["is_admin"] = False
+            flash("Successfully logged in!", "success")
+            return redirect(url_for("dashboard"))
 
     return render_template("login.html")
 
@@ -99,6 +166,48 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+@app.route("/character/<int:bot_id>", methods=["GET", "POST"])
+@login_required
+def character_page(bot_id):
+    user = User.query.get(session["user_id"])
+    bot = Bot.query.get_or_404(bot_id)
+
+    # Only allow the owner to edit
+    if bot.user_id != current_user.id:
+        flash("You don't own this bot!", "danger")
+        return redirect(url_for("dashboard"))
+
+    if request.method == "POST":
+        # Handle stat upgrades
+        bot.hp = int(request.form.get("hp", bot.hp))
+        bot.atk = int(request.form.get("atk", bot.atk))
+        bot.defense = int(request.form.get("defense", bot.defense))
+        bot.speed = int(request.form.get("speed", bot.speed))
+        bot.luck = int(request.form.get("luck", bot.luck))
+        bot.energy = int(request.form.get("energy", bot.energy))
+
+        # Handle weapon equip
+        weapon_id = request.form.get("weapon_id")
+        if weapon_id:
+            weapon = Weapon.query.get(int(weapon_id))
+            if weapon:
+                bot.weapon = weapon
+
+        db.session.commit()
+        flash("Bot updated successfully!", "success")
+        return redirect(url_for("character_page", bot_id=bot.id))
+
+    if user["is_admin"]:
+        owned_weapons = Weapon.query.all()
+    else:
+        owned_weapons = user.weapons.all()
+
+    return render_template(
+        "character_page.html",
+        bot=bot,
+        owned_weapons=owned_weapons
+    )
+
 #dashboard
 @app.route("/dashboard", methods=["GET", "POST"])
 @login_required
@@ -123,6 +232,7 @@ def dashboard():
             flash("Bot created successfully!", "success")
 
         return redirect(url_for("dashboard"))
+
 
     # NORMAL DASHBOARD LOAD (GET)
     bots = user.bots
@@ -199,64 +309,66 @@ def create_bot():
         algorithm_descriptions=algorithm_descriptions
     )
 
-# Stat Min/Max Values
-STAT_LIMITS = {
-    "hp": (100, 999),
-    "energy": (100, 999),
-    "atk": (10, 999),
-    "defense": (10, 999),
-    "speed": (10, 999),
-    "logic": (10, 999),
-    "luck": (10, 999)
-}
 
-#ALGORITHMS
-algorithms = {
-    "VEX-01": "Aggressive",
-    "BASL-09": "Defensive",
-    "EQUA-12": "Balanced",
-    "ADAPT-X": "Adaptive",
-    "RUSH-09": "Speed",
-    "CHAOS-RND": "Random"
-    }
+@app.template_filter("getattr")
+def getattr_filter(obj, name):
+    return getattr(obj, name)
 
-#ALGORITHM BUFFS/NERFS
-algorithm_effects = {
-    "VEX-01": {
-        "proc": 1.15,
-        "def": 0.9
-    },
-    "BASL-09": {
-        "def": 1.2,
-        "clk": 0.9
-    },
-    "EQUA-12": {
+# Armory routes
+@app.route("/armory")
+@login_required
+def armory():
+    user = User.query.get(session["user_id"])
+    credits = user.tokens if user else 0
+    weapons = Weapon.query.all()
+    return render_template("armory.html", weapons=weapons, credits=credits)
 
-    },
-    "ADAPT-X": {    
-        "ent": 1.05,
-        "proc": 0.9
-    },
-    "RUSH-09": {    
-        "clk": 1.2,
-        "def": 0.9
-    },
-    "CHAOS-RND": {  
+@app.route("/buy_weapon/<int:weapon_id>", methods=["POST"])
+@login_required
+def buy_weapon(weapon_id):
+    user = User.query.get(session["user_id"])
+    weapon = Weapon.query.get_or_404(weapon_id)
 
-    }
-}
+    # Already owned?
+    if weapon in user.weapons:
+        flash("You already own this weapon.", "warning")
+        return redirect(url_for("armory"))
 
-#ALGORITHM DESCRIPTIONS
-algorithm_descriptions = {
-    "VEX-01": "Vexor Assault Kernel: Built for aggressive attack routines. Prioritizes damage output at the cost of stability. +15% PROC, -10% DEF",
-    "BASL-09": "Bastion Logic Framework: Defensive fortress AI that fortifies its shielding subroutines above all else. +20% DEF, -10% CLK",
-    "EQUA-12": "Equilibrium Core Matrix: Balanced core algorithm ensuring even system resource allocation. No buffs or nerfs.",
-    "ADAPT-X": "Adaptive Pattern  Synthesizer: Self-learning AI that adjusts its combat model mid-battle. +10% LOGIC after 2 turns, +5% ENT, -10% PROC",
-    "RUSH-09": "Rapid Unit Synchronization Hub: An advanced AI core utilizing probabilistic threading for extreme combat reflexes. Fast but fragile. +20% CLK, -10% DEF",
-    "CHAOS-RND": "Chaotic Execution Driver: Unstable algorithm driven by randomized decision-making. High volatility, unpredictable results. Unstable modifiers each battle"
-}
+    if user.tokens < weapon.price:
+        flash("Not enough credits to purchase this weapon.", "danger")
+        return redirect(url_for("armory"))
 
+    # Deduct credits and add weapon
+    user.tokens -= weapon.price
+    user.weapons.append(weapon)
 
+    db.session.commit()
+    flash(f"You purchased {weapon.name}!", "success")
+    return redirect(url_for("armory"))
+
+@app.route('/sell-weapon/<int:weapon_id>/<int:bot_id>', methods=['POST'])
+@login_required
+def sell_weapon(weapon_id, bot_id):
+    user = User.query.get(session["user_id"])
+    is_admin = session.get("is_admin", False)
+
+    weapon = Weapon.query.get_or_404(weapon_id)
+
+    # Ownership check: admins can sell any, normal users only their own
+    if not is_admin and weapon not in user.weapons:
+        flash("You don't own this weapon.", "danger")
+        return redirect(url_for("edit_bot", bot_id=bot_id))
+
+    refund = int(weapon.price * 0.6)
+    user.xp += refund
+
+    # Remove weapon from inventory for normal users
+    if not is_admin:
+        db.session.delete(weapon)
+
+    db.session.commit()
+    flash(f"Sold {weapon.name} for {refund} XP.", "success")
+    return redirect(url_for("edit_bot", bot_id=bot_id))
 
 # manage bot
 @app.route('/manage_bot')
@@ -269,7 +381,7 @@ def manage_bot():
     return render_template('manage_bot.html', bots=user_bots)
 
 # Other pages
-@app.route('/store')
+@app.route('/amrory')
 @login_required
 def store():
     user = User.query.get(session['user_id'])
@@ -277,7 +389,7 @@ def store():
     credits = user.tokens
 
     return render_template(
-        "store.html",
+        "armory.html",
         store_items=STORE_ITEMS,     
         passive_items=PASSIVE_ITEMS, 
         bots=bots,
@@ -294,11 +406,11 @@ def buy_passive(passive_id):
     passive = next((p for p in PASSIVE_ITEMS if p["id"] == passive_id), None)
     if not passive:
         flash("Passive not found", "danger")
-        return redirect(url_for("store"))
+        return redirect(url_for("armory"))
 
     if user.tokens < passive["cost"]:
         flash("Not enough credits!", "danger")
-        return redirect(url_for("store"))
+        return redirect(url_for("amrory"))
 
     user.tokens -= passive["cost"]
 
@@ -306,7 +418,7 @@ def buy_passive(passive_id):
 
     db.session.commit()
     flash(f"{bot.name} learned passive: {passive['name']}", "success")
-    return redirect(url_for("store"))
+    return redirect(url_for("amrory"))
 
 @app.route('/character')
 def character():
@@ -354,19 +466,19 @@ def buy():
     bot = Bot.query.filter_by(id=bot_id, user_id=user.id).first()
     if not bot:
         flash("Invalid bot selection.", "danger")
-        return redirect(url_for("store"))
+        return redirect(url_for("armory"))
 
     purchase_id = request.form.get("purchase_id")
     item = next((i for i in STORE_ITEMS if str(i["id"]) == str(purchase_id)), None)
     if not item:
         flash("Invalid purchase.", "danger")
-        return redirect(url_for("store"))
+        return redirect(url_for("amrory"))
 
     # Determine cost and apply
     cost = item["cost"]
     if user.tokens < cost:
         flash("Not enough tokens!", "danger")
-        return redirect(url_for("store"))
+        return redirect(url_for("armory"))
 
     user.tokens -= cost
 
@@ -379,7 +491,7 @@ def buy():
         flash(f"{item['name']} purchased for {bot.name}! (custom effect applied)", "success")
 
     db.session.commit()
-    return redirect(url_for("store"))
+    return redirect(url_for("armroy"))
 
 @app.route("/update_settings", methods=["POST"])
 @login_required
@@ -416,134 +528,105 @@ def delete_bot(bot_id):
 @app.route('/edit-bot/<int:bot_id>', methods=['GET', 'POST'])
 @login_required
 def edit_bot(bot_id):
-    bot = Bot.query.filter_by(
-        id=bot_id,
-        user_id=session["user_id"]
-    ).first_or_404()
+    user_id = session["user_id"]
+    bot = Bot.query.filter_by(id=bot_id, user_id=user_id).first_or_404()
+    user = User.query.get(user_id)
+    is_admin = session.get("is_admin", False)
 
     if request.method == 'POST':
+        xp_cost_per_point = 5
 
-        def read_stat(name):
-            raw_num = request.form.get(f"{name}_number", "").strip()
-            raw_slider = request.form.get(name, "").strip()
+        # --- Single-point upgrade (+/- buttons) ---
+        adjust = request.form.get("adjust")
+        if adjust:
+            stat, change = adjust.split(":")
+            change = int(change)
+            current_val = getattr(bot, stat)
+            min_val, max_val = STAT_LIMITS[stat]
 
-            # prefer numeric input if user typed something (not empty)
-            chosen = raw_num if raw_num != "" else raw_slider
+            if not is_admin and change > 0:
+                if user.xp < xp_cost_per_point:
+                    flash("Not enough XP to upgrade.", "danger")
+                    return redirect(url_for("edit_bot", bot_id=bot.id))
+                user.xp -= xp_cost_per_point
 
-            # If still empty, fallback to existing bot value
-            if chosen == "" or chosen is None:
-                return getattr(bot, name)
+            new_val = current_val + change
+            if min_val <= new_val <= max_val:
+                setattr(bot, stat, new_val)
+                db.session.commit()
+                flash(f"{stat.upper()} updated to {new_val}", "success")
+            else:
+                flash(f"{stat.upper()} out of range.", "danger")
+
+            return redirect(url_for("edit_bot", bot_id=bot.id))
+
+        # --- Multi-level upgrade ---
+        stat = request.form.get("stat")
+        levels = request.form.get("levels")
+        if stat and levels:
             try:
-                return int(chosen)
+                levels = int(levels)
             except ValueError:
-                return None 
+                flash("Invalid level input.", "danger")
+                return redirect(url_for("edit_bot", bot_id=bot.id))
 
-        # Gather values
-        new_stats = {}
-        for stat in STAT_LIMITS.keys():
-            new_stats[stat] = read_stat(stat)
+            current_val = getattr(bot, stat)
+            min_val, max_val = STAT_LIMITS[stat]
 
-        if "preview" in request.form:
-            # validate types and ranges
-            errors = []
-            for stat, val in new_stats.items():
-                if val is None:
-                    errors.append(f"{stat.upper()} must be an integer.")
-                    continue
-                low, high = STAT_LIMITS[stat]
-                if val < low or val > high:
-                    errors.append(f"{stat.upper()} must be between {low} and {high}.")
+            total_cost = xp_cost_per_point * (levels * (levels + 1) // 2)
 
-            if errors:
-                for e in errors:
-                    flash(e, "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
+            if not is_admin:
+                if user.xp < total_cost:
+                    flash(f"Not enough XP. Required: {total_cost}, Available: {user.xp}", "danger")
+                    return redirect(url_for("edit_bot", bot_id=bot.id))
+                user.xp -= total_cost
 
-            return render_template('preview_bot.html', bot=bot, new_stats=new_stats)
+            new_val = current_val + levels
+            if new_val > max_val:
+                new_val = max_val
 
-        if "confirm" in request.form:
-            new_name = request.form.get("name", "").strip()
-            new_algorithm = request.form.get("algorithm", "").strip()
-
-
-            if not new_name:
-                flash("Bot name cannot be empty.", "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id))
-
-            if not new_algorithm:
-                flash("Please select an algorithm.", "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id))
-
-
-            final_stats = {}
-            errors = []
-            for stat in STAT_LIMITS.keys():
-                raw = request.form.get(stat)
-                if raw is None:
-                    errors.append(f"Missing {stat} in confirmation.")
-                    continue
-                try:
-                    val = int(raw)
-                except ValueError:
-                    errors.append(f"{stat.upper()} must be an integer.")
-                    continue
-                low, high = STAT_LIMITS[stat]
-                if val < low or val > high:
-                    errors.append(f"{stat.upper()} must be between {low} and {high}.")
-                final_stats[stat] = val
-
-            if errors:
-                for e in errors:
-                    flash(e, "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
-            
-            # Read new name + algorithm
-            new_name = request.form.get("name", "").strip()
-            new_algorithm = request.form.get("algorithm", "").strip()
-
-            # Prevent empty name / algorithm
-            if not new_name:
-                flash("Bot name cannot be empty.", "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
-
-            if not new_algorithm:
-                flash("Please select an algorithm.", "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
-
-            changed = (
-                bot.name != new_name or
-                bot.algorithm != new_algorithm or
-                bot.hp != final_stats['hp'] or
-                bot.energy != final_stats['energy'] or
-                bot.atk != final_stats['atk'] or
-                bot.defense != final_stats['defense'] or
-                bot.speed != final_stats['speed'] or
-                bot.logic != final_stats['logic'] or
-                bot.luck != final_stats['luck'] 
-            )
-
-            if not changed:
-                flash("No changes were made.", "warning")
-                return redirect(url_for('bot_list', bot_id=bot_id) + "?flash=1")
-            
-            bot.name = new_name
-            bot.algorithm = new_algorithm
-            
-            bot.hp = final_stats['hp']
-            bot.energy = final_stats['energy']
-            bot.atk = final_stats['atk']
-            bot.defense = final_stats['defense']
-            bot.speed = final_stats['speed']
-            bot.logic = final_stats['logic']
-            bot.luck = final_stats['luck']
-
-
+            setattr(bot, stat, new_val)
             db.session.commit()
-            flash("Bot updated successfully.", "success")
-            return redirect(url_for('bot_list') + "?flash=1")
+            flash(f"{stat.upper()} upgraded by {levels} levels (Cost: {total_cost} XP).", "success")
+            return redirect(url_for("edit_bot", bot_id=bot.id))
 
-    return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, algorithms = algorithms, algorithm_descriptions=algorithm_descriptions, show_flashes = False)
+        # --- Weapon equip ---
+        weapon_id = request.form.get("weapon_id")
+        if weapon_id:
+            try:
+                wid = int(weapon_id)
+                if is_admin or any(w.id == wid for w in user.weapons):
+                    bot.weapon_id = wid
+            except ValueError:
+                flash("Invalid weapon selection.", "danger")
 
+        # --- Ability equip ---
+        ability_id = request.form.get("ability_id")
+        if ability_id:
+            try:
+                aid = int(ability_id)
+                if is_admin or any(a.id == aid for a in user.abilities):
+                    bot.ability_id = aid
+            except ValueError:
+                flash("Invalid ability selection.", "danger")
+
+        db.session.commit()
+        flash("Bot updated successfully.", "success")
+        return redirect(url_for('bot_list'))
+
+    # For GET requests, show all weapons/abilities if admin, else only owned
+    owned_weapons = Weapon.query.all() if is_admin else user.weapons.all()
+
+    return render_template(
+        "edit_bot.html",
+        bot=bot,
+        stat_limits=STAT_LIMITS,
+        algorithms=algorithms,
+        algorithm_descriptions=algorithm_descriptions,
+        owned_weapons=owned_weapons,
+        xp_balance=user.xp,
+        is_admin=is_admin
+    )
 @app.route('/bot/<int:bot_id>')
 @login_required
 def bot_details(bot_id):
@@ -757,6 +840,24 @@ def gear(bot_id):
 
 
     return render_template('gear.html', bot=bot, weapons=weapons)
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session or not session.get("is_admin"):
+            flash("Admin access required.", "danger")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route("/admin")
+@admin_required
+def admin_dashboard():
+    user = User.query.get(session["user_id"])
+    all_users = User.query.all()
+    all_bots = Bot.query.all()
+    return render_template("admin_dashboard.html", current_user=user, users=all_users, bots=all_bots)
+
 
 # Run server
 if __name__ == "__main__":

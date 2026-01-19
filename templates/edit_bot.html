@@ -1,203 +1,94 @@
 {% extends "base.html" %}
 
-{% block head %}
-<style>
-.algorithm-card {
-    border: 2px solid #ccc;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.algorithm-card:hover {
-    border-color: #0d6efd !important;
-    background-color: #f0f8ff !important;
-}
-
-.algorithm-radio:checked + .algorithm-card {
-    border-color: #0d6efd;
-    background-color: #e7f1ff;
-    box-shadow: 0 0 8px rgba(13, 110, 253, 0.4);
-}
-
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="container mt-4">
 
     <h2>Edit Bot — {{ bot.name }}</h2>
+    <p><strong>XP Available:</strong> {{ xp_balance }}</p>
+    {% if is_admin %}
+      <div class="alert alert-info">Admin mode: free upgrades enabled.</div>
+    {% else %}
+      <div class="alert alert-warning">Upgrading stats will deduct XP.</div>
+    {% endif %}
 
     <!-- Flash messages -->
-    {% if request.args.get('flash') %}
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
           <div class="alert alert-{{ category }} mt-2">{{ message }}</div>
         {% endfor %}
       {% endif %}
-     {% endwith %}
-    {% endif %}
+    {% endwith %}
 
+    <!-- Stat Upgrades -->
+    <h5>Upgrade Stats</h5>
+    {% for stat, limits in stat_limits.items() %}
+    <div class="mb-3">
+        <label class="form-label">{{ stat.upper() }} ({{ limits[0] }}–{{ limits[1] }})</label>
 
-    <form method="POST">
+        <!-- Single-point +/- buttons -->
+        <form method="POST" class="d-inline">
+            <button type="submit" name="adjust" value="{{ stat }}:-1" class="btn btn-outline-secondary">-</button>
+            <span class="px-3">{{ bot|getattr(stat) }}</span>
+            <button type="submit" name="adjust" value="{{ stat }}:+1" class="btn btn-outline-secondary">+</button>
+        </form>
 
-        <div class="mb-3">
-            <label for="name">Bot Name:</label><br>
-            <input type="text" id="name" name="name" value="{{ bot.name }}" class="form-control"><br><br>
-        </div>
+        <!-- Multi-level upgrade -->
+        <form method="POST" class="d-inline ms-3">
+            <input type="hidden" name="stat" value="{{ stat }}">
+            <input type="number" name="levels"
+                   min="1"
+                   max="{{ limits[1] - bot|getattr(stat) }}"
+                   value="1"
+                   class="form-control d-inline"
+                   style="width:80px;">
+            <button type="submit" class="btn btn-outline-primary">Upgrade Levels</button>
+        </form>
+    </div>
+    {% endfor %}
 
-        <div class="mb-3">
-            <label class="form-label fw-bold">Select Algorithm</label>
+    <!-- Equip Weapon -->
+    <div class="mb-3">
+        <label>Equip Weapon</label>
+        <select name="weapon_id" class="form-select" form="equip-form">
+            {% for weapon in owned_weapons %}
+              <option value="{{ weapon.id }}" {% if bot.weapon_id == weapon.id %}selected{% endif %}>
+                {{ weapon.name }} (Cost: {{ weapon.price }})
+              </option>
+            {% endfor %}
+        </select>
+    </div>
 
-            <div class="row row-cols-1 row-cols-md-3 g-3">
+    <!-- Equip Ability -->
+    <div class="mb-3">
+        <label>Equip Ability</label>
+        <select name="ability_id" class="form-select" form="equip-form">
+            {% for ability in owned_abilities %}
+              <option value="{{ ability.id }}" {% if bot.ability_id == ability.id %}selected{% endif %}>
+                {{ ability.name }}
+              </option>
+            {% endfor %}
+        </select>
+    </div>
 
-                {% for code, label in algorithms.items() %}
-                <div class="col">
-
-                    <!-- RADIO INPUT -->
-                    <input type="radio"
-                        class="btn-check algorithm-radio"
-                        name="algorithm"
-                        id="alg-{{ code }}"
-                        value="{{ code }}"
-                        autocomplete="off"
-                        {% if bot.algorithm == code %} checked {% endif %}>
-
-                    <!-- CARD LABEL -->
-                    <label class="btn card p-3 text-center algorithm-card" for="alg-{{ code }}" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ algorithm_descriptions[code] }}">
-                        <h6>{{ code }}</h6>
-                        <p class="small">{{ label }}</p>
-                    </label>
-
-                </div>
-                {% endfor %}
-
-            </div>
-        </div>
-
-
-        <div class="mb-4">
-            <h5>Current Stats</h5>
-            <ul class="list-group">
-                <li class="list-group-item" data-bs-toggle="tooltip" title="Integrity Core (INT): Your bot's maximum health.">INT: {{ bot.hp }}</li>
-                <li class="list-group-item" data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC: {{ bot.atk }}</li>
-                <li class="list-group-item" data-bs-toggle="tooltip" title="Defense Matrix (DEF): Reduces incoming damage.">DEF: {{ bot.defense }}</li>
-                <li class="list-group-item" data-bs-toggle="tooltip" title="Clock Rate (CLK): Turn order + evasion. Faster bots act earlier and dodge more often.">CLK: {{ bot.speed }}</li>
-                <li class="list-group-item" data-bs-toggle="tooltip" title="Adaptive Logic (LOGIC): AI decision-making efficiency. Improves accuracy and special move success.">LOGIC: {{ bot.logic }}</li>
-                <li class="list-group-item" data-bs-toggle="tooltip" title="Entropy Coefficient (ENT): Random bonus events, crit chance, and rare effects. Unpredictable but powerful.">ENT: {{ bot.luck }}</li>
-                <li class="list-group-item" data-bs-toggle="tooltip" title="Power Core Capacity (PWR): Resource used for skills or abilities. Higher energy allows more actions.">PWR: {{ bot.energy }}</li>
-            </ul>
-        </div>
-
-        <h5>Adjust Stats</h5>
-        <!-- ATK -->
-        <div style="display:flex; flex-direction: column;" class="mb-3 stat-row">
-            <label data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC</label>
-            <a href="{{ url_for('gear', bot_id=bot.id) }}">Go to Gear</a>
-        </div>
-
-        <!-- HP -->
-        <div class="mb-3 stat-row" >
-            <label class="form-label" data-bs-toggle="tooltip" title="Integrity Core: Your bot's maximum health.">INT ({{ stat_limits.hp[0] }}–{{ stat_limits.hp[1] }})</label>
-            <input type="range" name="hp" class="form-range stat-slider"
-                   min="{{ stat_limits.hp[0] }}" max="{{ stat_limits.hp[1] }}" value="{{ bot.hp }}">
-            <input type="number" class="form-control mt-2 stat-number"
-                   name="hp_number" value="{{ bot.hp }}"
-                   min="{{ stat_limits.hp[0] }}" max="{{ stat_limits.hp[1] }}">
-        </div>
-
-        <!-- DEF -->
-        <div class="mb-3 stat-row">
-            <label class="form-label" data-bs-toggle="tooltip" title="Defense Matrix (DEF): Reduces incoming damage.">DEF ({{ stat_limits.defense[0] }}–{{ stat_limits.defense[1] }})</label>
-            <input type="range" name="defense" class="form-range stat-slider"
-                   min="{{ stat_limits.defense[0] }}" max="{{ stat_limits.defense[1] }}" value="{{ bot.defense }}">
-            <input type="number" class="form-control mt-2 stat-number"
-                   name="defense_number" value="{{ bot.defense }}"
-                   min="{{ stat_limits.defense[0] }}" max="{{ stat_limits.defense[1] }}">
-        </div>
-
-        <!-- SPEED -->
-        <div class="mb-3 stat-row">
-            <label class="form-label" data-bs-toggle="tooltip" title="Clock Rate (CLK): Turn order + evasion. Faster bots act earlier and dodge more often.">CLK ({{ stat_limits.speed[0] }}–{{ stat_limits.speed[1] }})</label>
-            <input type="range" name="speed" class="form-range stat-slider"
-                   min="{{ stat_limits.speed[0] }}" max="{{ stat_limits.speed[1] }}" value="{{ bot.speed }}">
-            <input type="number" class="form-control mt-2 stat-number"
-                   name="speed_number" value="{{ bot.speed }}"
-                   min="{{ stat_limits.speed[0] }}" max="{{ stat_limits.speed[1] }}">
-        </div>
-
-        <!-- LOGIC -->
-        <div class="mb-3 stat-row">
-            <label class="form-label" data-bs-toggle="tooltip" title="Adaptive Logic (LOGIC): AI decision-making efficiency. Improves accuracy and special move success.">LOGIC ({{ stat_limits.logic[0] }}–{{ stat_limits.logic[1] }})</label>
-            <input type="range" name="logic" class="form-range stat-slider"
-                   min="{{ stat_limits.logic[0] }}" max="{{ stat_limits.logic[1] }}" value="{{ bot.logic }}">
-            <input type="number" class="form-control mt-2 stat-number"
-                   name="logic_number" value="{{ bot.logic }}"
-                   min="{{ stat_limits.logic[0] }}" max="{{ stat_limits.logic[1] }}">
-        </div>
-
-        <!-- LUCK -->
-        <div class="mb-3 stat-row">
-            <label class="form-label" data-bs-toggle="tooltip" title="Entropy Coefficient (ENT): Random bonus events, crit chance, and rare effects. Unpredictable but powerful.">ENT ({{ stat_limits.luck[0] }}–{{ stat_limits.luck[1] }})</label>
-            <input type="range" name="luck" class="form-range stat-slider"
-                   min="{{ stat_limits.luck[0] }}" max="{{ stat_limits.luck[1] }}" value="{{ bot.luck }}">
-            <input type="number" class="form-control mt-2 stat-number"
-                   name="luck_number" value="{{ bot.luck }}"
-                   min="{{ stat_limits.luck[0] }}" max="{{ stat_limits.luck[1] }}">
-        </div>
-
-        <!-- ENERGY -->
-        <div class="mb-3 stat-row">
-            <label class="form-label" data-bs-toggle="tooltip" title="Power Core Capacity (PWR): Resource used for skills or abilities. Higher energy allows more actions.">PWR ({{ stat_limits.energy[0] }}–{{ stat_limits.energy[1] }})</label>
-            <input type="range" name="energy" class="form-range stat-slider"
-                   min="{{ stat_limits.energy[0] }}" max="{{ stat_limits.energy[1] }}" value="{{ bot.energy }}">
-            <input type="number" class="form-control mt-2 stat-number"
-                   name="energy_number" value="{{ bot.energy }}"
-                   min="{{ stat_limits.energy[0] }}" max="{{ stat_limits.energy[1] }}">
-        </div>
-
-        <button type="submit" name="preview" value="1" class="btn btn-primary">Preview Upgrades</button>
-        <a href="{{ url_for('manage_bot') }}" class="btn btn-secondary">Cancel</a>
-
+    <!-- Save Equipment -->
+    <form method="POST" id="equip-form">
+        <button type="submit" class="btn btn-primary">Save Equipment</button>
+        <a href="{{ url_for('bot_list') }}" class="btn btn-secondary">Cancel</a>
     </form>
+
+    <!-- Sell Weapons Section -->
+    <div class="mt-4">
+        <h5>Sell Weapons</h5>
+        {% for weapon in owned_weapons %}
+        <form method="POST" action="{{ url_for('sell_weapon', weapon_id=weapon.id, bot_id=bot.id) }}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span>{{ weapon.name }} — Refund: {{ (weapon.price * 0.6)|int }} XP</span>
+                <button type="submit" class="btn btn-danger btn-sm">Sell</button>
+            </div>
+        </form>
+        {% endfor %}
+    </div>
+
 </div>
 {% endblock %}
-
-{% block scripts %}
-<script>
-document.querySelectorAll(".stat-row").forEach(row => {
-    const slider = row.querySelector(".stat-slider");
-    const number = row.querySelector(".stat-number");
-
-    // Skip rows that aren't slider-based (like weapon selector)
-    if (!slider || !number) return;
-
-    slider.addEventListener("input", () => {
-        number.value = slider.value;
-    });
-
-    number.addEventListener("input", () => {
-        slider.value = number.value;
-    });
-
-    const enforceLimits = () => {
-        if (number.value === "") return;
-        if (number.value < slider.min) number.value = slider.min;
-        if (number.value > slider.max) number.value = slider.max;
-        slider.value = number.value;
-    };
-
-    number.addEventListener("blur", enforceLimits);
-
-    number.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            enforceLimits();
-            number.blur();
-        }
-    });
-});
-</script>
-{% endblock %}
-

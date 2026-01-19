@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block page_title %}Armory | Clash of Code{% endblock %}
+
+{% block content %}
+<div class="terminal-container">
+
+    <!-- Header -->
+    <div class="header">
+        <span>CLASH OF CODE TERMINAL — ARMORY MODULE</span>
+        <span id="datetime-display">--/--/---- --:--:--</span>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-area">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <h1>Armory</h1>
+    <p>Welcome to the Armory! Here you can purchase weapons and abilities to enhance your bots for battle.</p>
+
+    <!-- Player Status -->
+    <div class="status-area mb-4">
+        <p><strong>ARMORY STATUS:</strong> ACTIVE</p>
+        <p><strong>User Credits:</strong> {{ credits if credits is not none else 9999 }}</p>
+        <p><strong>XP Balance:</strong> {{ xp_balance if xp_balance is not none else 1234 }}</p>
+        <p>Awaiting Purchase Command...</p>
+    </div>
+
+    <!-- Weapons Tab -->
+    <h3 class="mt-4">Weapons</h3>
+<div class="row">
+  {% for weapon in weapons %}
+  <div class="col-md-4 mb-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title">{{ weapon.name }}</h5>
+        <p class="card-text">{{ weapon.desc }}</p>
+        <p>Tier: {{ weapon.tier }} | ATK +{{ weapon.effective_atk() }}</p>
+        <p>Cost: {{ weapon.price }} Credits</p>
+
+        <form method="POST" action="{{ url_for('buy_weapon', weapon_id=weapon.id) }}">
+          <button type="submit" class="btn btn-primary">Purchase</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+    <!-- Abilities Tab -->
+    <h3 class="mt-4">Abilities</h3>
+    <div class="store-grid">
+      {% for ability in abilities %}
+      <div class="store-item">
+          <h3>{{ ability.name }}</h3>
+          <p>{{ ability.desc }}</p>
+          <p>Cost: {{ ability.price if ability.price is not none else ability.cost }} Credits</p>
+
+          <form method="POST" action="{{ url_for('buy_ability', ability_id=ability.id) }}">
+              <button type="submit" class="buy-btn">Purchase</button>
+          </form>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="text-align:center; margin-top: 50px;">
+        <a href="{{ url_for('dashboard') }}" class="back-btn">Return</a>
+    </div>
+</div>
+{% endblock %}

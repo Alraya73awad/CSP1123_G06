@@ -94,4 +94,7 @@ with app.app_context():
         db.session.add(w)
     db.session.commit()
 
-print("Weapons seeded successfully!")
+    print("Weapons seeded successfully!")
+with app.app_context():
+    for w in Weapon.query.all():
+        print(f"{w.name} (Tier {w.tier}) - ATK Bonus: {w.atk_bonus}, Type: {w.type}")

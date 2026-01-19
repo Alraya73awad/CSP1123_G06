@@ -2,19 +2,27 @@ from extensions import db
 from flask_login import UserMixin
 from datetime import datetime
 
+user_weapons = db.Table(
+    "user_weapons",
+    db.Column("user_id", db.Integer, db.ForeignKey("user.id"), primary_key=True),
+    db.Column("weapon_id", db.Integer, db.ForeignKey("weapons.id"), primary_key=True)
+)
+
 class User(db.Model, UserMixin):
     __tablename__ = "user"
-
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
 
     xp = db.Column(db.Integer, default=0)
     tokens = db.Column(db.Integer, default=0)
     level = db.Column(db.Integer, default=1)
 
     bots = db.relationship("Bot", backref="user", lazy=True)
+    weapons = db.relationship("Weapon", secondary=user_weapons, backref="owners", lazy="dynamic")
+
 
     def get_id(self):
         return str(self.id)
@@ -126,3 +134,7 @@ class Weapon(db.Model):
         stats = tier_stats[self.tier]
 
         return stats["base"] + (self.level - 1) * stats["per_level"]
+    
+class Admins(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
