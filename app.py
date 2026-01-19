@@ -3,6 +3,7 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
+from sqlalchemy import or_
 from functools import wraps
 from extensions import db
 from constants import UPGRADES, STORE_ITEMS, PASSIVE_ITEMS
