@@ -36,25 +36,57 @@
     </div>
 
     <!-- weapons grid -->
-    <div class="store-grid">
-    {% for item in store_items %}
+<div class="store-grid">
+  {% set owned_map = owned_map or {} %}
+
+  {% for item in store_items %}
+    {% set ow = owned_map.get(item.id) %}
     <div class="store-item">
-        <h3>{{ item.name }}</h3>
-        <p>{{ item.desc }}</p>
-        <p>Cost: {{ item.cost }} Tokens</p>
+      <h3>{{ item.name }}</h3>
+      <p>{{ item.desc }}</p>
+      <p>Cost: {{ item.cost }} Tokens</p>
 
-        <form method="POST" action="{{ url_for('buy') }}">
-            <input type="hidden" name="bot_id" value="{{ bots[0].id if bots|length > 0 else '' }}" class="selected-bot-input">
-            <input type="hidden" name="purchase_id" value="{{ item.id }}">
-
-            <button type="submit" class="buy-btn"
-                {% if (credits or 0) < item.cost or bots|length == 0 %}disabled{% endif %}>
-                Purchase
-            </button>
+      {% if not ow %}
+        <!-- BUY -->
+        <form method="POST" action="{{ url_for('buy_weapon', weapon_id=item.id) }}">
+          <button type="submit" class="buy-btn"
+                  {% if (credits or 0) < item.cost %}disabled{% endif %}>
+            Purchase
+          </button>
         </form>
+      {% else %}
+        <!-- EQUIP -->
+        <p style="margin-top:8px;">
+          {% if ow.equipped and ow.bot_id %}
+            Equipped on:
+            <strong>
+              {% for b in bots %}
+                {% if b.id == ow.bot_id %}{{ b.name }}{% endif %}
+              {% endfor %}
+            </strong>
+          {% else %}
+            Owned
+          {% endif %}
+        </p>
+
+        <form method="POST" action="{{ url_for('equip_weapon_from_store') }}">
+          <input type="hidden" name="ownership_id" value="{{ ow.id }}">
+          <input type="hidden" name="bot_id"
+                 value="{{ bots[0].id if bots|length > 0 else '' }}"
+                 class="selected-bot-input">
+
+          <button type="submit" class="buy-btn"
+                  {% if bots|length == 0 %}disabled{% endif %}>
+            Equip
+          </button>
+        </form>
+      {% endif %}
     </div>
-    {% endfor %}
+  {% endfor %}
 </div>
+
+
+
 
     <div style="text-align:center; margin-top: 50px;">
         <a href="{{ url_for('dashboard') }}" class="back-btn">Return</a>
@@ -220,3 +252,5 @@ botDropdown.addEventListener("change", function() {
 </script>
 
 {% endblock %}
+
+

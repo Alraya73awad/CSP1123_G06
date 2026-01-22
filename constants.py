@@ -47,42 +47,42 @@ STORE_ITEMS = [
         "id": 7,
         "name": "Syntax Scythe",
         "desc": "A scythe that parses enemies into fragments.",
-        "cost": 60,
+        "cost": 80,
         "stat": None
     },
     {
         "id": 8,
         "name": "Quantum Pistol",
         "desc": "Phases bullets through defenses like a clever exploit.",
-        "cost": 60,
+        "cost": 80,
         "stat": None
     },
     {
         "id": 9,
         "name": "Overclock Whip",
         "desc": "An electrified whip that strikes faster with each swing.",
-        "cost": 60,
+        "cost": 100,
         "stat": None
     },
     {
         "id": 10,
         "name": "Virus Launcher",
         "desc": "Infects enemies with code that slowly disables them.",
-        "cost": 60,
+        "cost": 100,
         "stat": None
     },
     {
         "id": 11,
         "name": "AI Katana",
         "desc": "A smart blade that predicts enemy moves before they strike.",
-        "cost": 60,
+        "cost": 200,
         "stat": None
     },
     {
         "id": 12,
         "name": "Packet Bomb",
         "desc": "Explodes into fragments of damaging code on impact.",
-        "cost": 60,
+        "cost": 200,
         "stat": None
     }
 ]

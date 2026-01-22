@@ -38,29 +38,6 @@
     <h2>Upgrades</h2>
     <p>Purchase upgrades for the selected character.</p>
 
-    <!-- upgrades grid -->
-    <div class="store-grid">
-        {% set points = stat_points if stat_points is not none else 0 %}
-
-        {% for upgrade in CHARACTER_ITEMS %}
-        <div class="store-item" {% if bots|length == 0 %}style="opacity:0.5; pointer-events:none;"{% endif %}>
-            <h3>{{ upgrade.name }}</h3>
-            <p>Cost: {{ upgrade.cost }} Stat Points</p>
-
-            <form method="POST" action="{{ url_for('buy_character') }}">
-                <input type="hidden" name="purchase_id" value="{{ upgrade.id }}">
-                <input type="hidden" name="bot_id"
-                    value="{{ bots[0].id if bots|length > 0 else '' }}"
-                    class="selected-bot-input">
-
-                <button type="submit" class="buy-btn"
-                        {% if points < upgrade.cost or bots|length == 0 %}disabled{% endif %}>
-                    {% if points < upgrade.cost %}Not enough points{% else %}Purchase{% endif %}
-                </button>
-            </form>
-        </div>
-        {% endfor %}
-    </div>
 
    <!-- Status Area -->
 <div class="status-area">

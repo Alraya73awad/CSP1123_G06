@@ -265,17 +265,21 @@ def store():
     user = User.query.get(session["user_id"])
     bots = Bot.query.filter_by(user_id=user.id).all()
     credits = int(user.tokens or 0)
+
     weapons = Weapon.query.all()
+
+    owned = WeaponOwnership.query.filter_by(user_id=user.id).all()
+    owned_map = {ow.weapon_id: ow for ow in owned} 
 
     return render_template(
         "store.html",
-        store_items=STORE_ITEMS,
-        passive_items=PASSIVE_ITEMS,
         bots=bots,
         credits=credits,
-        currency=CURRENCY_NAME,
         weapons=weapons,
+        owned_map=owned_map
     )
+
+
 
 
 @app.route('/buy_passive/<int:passive_id>', methods=['POST'])
@@ -326,6 +330,46 @@ def character():
         xp_to_next=xp_to_next,
         CHARACTER_ITEMS=CHARACTER_ITEMS,
     )
+
+@app.route("/equip_weapon_from_store", methods=["POST"])
+@login_required
+def equip_weapon_from_store():
+    user = User.query.get(session["user_id"])
+
+    ownership_id = request.form.get("ownership_id")
+    bot_id = request.form.get("bot_id")
+
+    if not ownership_id or not bot_id:
+        flash("Invalid equip request.", "danger")
+        return redirect(url_for("store"))
+
+    bot = Bot.query.filter_by(id=int(bot_id), user_id=user.id).first()
+    if not bot:
+        flash("Invalid bot.", "danger")
+        return redirect(url_for("store"))
+
+    ow = WeaponOwnership.query.filter_by(id=int(ownership_id), user_id=user.id).first()
+    if not ow:
+        flash("Weapon not found in your inventory.", "danger")
+        return redirect(url_for("store"))
+
+    # Unequip any currently equipped weapon on this bot
+    WeaponOwnership.query.filter_by(bot_id=bot.id, equipped=True).update(
+        {"equipped": False, "bot_id": None}
+    )
+
+    # If this weapon is equipped on a different bot, unequip it there
+    WeaponOwnership.query.filter_by(id=ow.id).update(
+        {"equipped": False, "bot_id": None}
+    )
+
+    # Equip it to selected bot
+    ow.bot_id = bot.id
+    ow.equipped = True
+
+    db.session.commit()
+    flash(f"{ow.weapon.name} equipped to {bot.name}!", "success")
+    return redirect(url_for("store"))
 
 
 
@@ -1124,6 +1168,14 @@ def level_up_weapon(weapon_id):
 def buy_weapon(weapon_id):
     user = User.query.get(session["user_id"])
     weapon = Weapon.query.get_or_404(weapon_id)
+
+    existing = WeaponOwnership.query.filter_by(
+        user_id=user.id,
+        weapon_id=weapon.id
+    ).first()
+    if existing:
+        flash("You already own this weapon.", "warning")
+        return redirect(url_for("store"))
 
     if user.tokens < weapon.price:
         flash("Not enough credits.", "error")
