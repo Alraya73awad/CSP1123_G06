@@ -403,11 +403,25 @@ header {
 }
 
 .holo-glow {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(0,255,255,0.2), transparent);
-    animation: holoMove 4s linear infinite;
-    pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit; 
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 255, 255, 0.25),
+    transparent
+  );
+  animation: holoMove 4s linear infinite;
+  pointer-events: none;
+}
+
+.bot-card, 
+.stat-box, 
+.store-item { 
+  position: relative;   
+  overflow: hidden;   
+  border-radius: 12px;  
 }
 
 @keyframes holoMove {
