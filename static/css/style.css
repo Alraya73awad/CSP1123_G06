@@ -339,7 +339,8 @@ header {
 /* Grids  */
 .stats-grid, .action-grid, .bot-list {
     display: grid;
-    gap: 15px;
+    gap: 60px;
+    margin-bottom: 30px;  
 }
 
 .stats-grid {
@@ -621,6 +622,11 @@ select:focus {
     cursor: pointer;
     box-shadow: 0 0 10px rgba(0,255,240,0.4);
     transition: all 0.25s ease;
+
+    position: fixed;
+    bottom: 20px;
+    right: 70px;
+    z-index: 9999;
 }
 
 .icon-btn:hover {
@@ -632,9 +638,11 @@ select:focus {
     pointer-events: none;
 }
 .settings-btn {
-    position: absolute;
+    background: transparent;
+    position: fixed;
     bottom: 20px;
     right: 20px;
+    z-index: 9999;
 }
 /* Combat Log CSS */
 .log-text {

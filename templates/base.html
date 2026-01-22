@@ -89,6 +89,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 {% block scripts %}{% endblock %}
 
+{% if current_user %}
 <!-- settings modal-->
 <div class="modal fade" id="settingsModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -102,7 +103,8 @@ document.addEventListener("DOMContentLoaded", function () {
         <div class="modal-body">
           <div class="mb-3">
             <label>Username</label>
-            <input class="form-control" name="username" value="{{ current_user.username }}">
+            <input class="form-control" name="username" value="{{ current_user.username if current_user else '' }}">
+            <input class="form-control" name="email" value="{{ current_user.email if current_user else '' }}">
           </div>
 
           <div class="mb-3">
@@ -128,6 +130,8 @@ document.addEventListener("DOMContentLoaded", function () {
     </div>
   </div>
 </div>
+{% endif %}
+
 
 </body>
 </html>

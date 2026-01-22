@@ -77,34 +77,26 @@ STAT_LIMITS = {
 #routes
 @app.route("/")
 def home():
-    user = None
     if "user_id" in session:
-        user = User.query.get(session["user_id"])
+        return redirect(url_for("dashboard"))
+    return render_template("index.html", username=None)
 
-    return render_template("index.html", username=user.username if user else None)
-
-#login
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        user = User.query.filter_by(username=username).first()
-
-        if not user:
-            flash("Username does not exist.", "danger")
-            return redirect(url_for("login"))
-
-        if not check_password_hash(user.password, password):
-            flash("Incorrect password.", "danger")
-            return redirect(url_for("login"))
-
-        session["user_id"] = user.id
-        flash("Successfully logged in!", "success")
+    if "user_id" in session:
         return redirect(url_for("dashboard"))
 
+    if request.method == "POST":
+        user = User.query.filter_by(username=request.form["username"]).first()
+        if user and check_password_hash(user.password, request.form["password"]):
+            session["user_id"] = user.id
+            flash("Login successful!", "success")
+            return redirect(url_for("dashboard"))  
+        else:
+            flash("Invalid credentials", "danger")
+
     return render_template("login.html")
+
 
 #register
 @app.route("/register", methods=["GET", "POST"])
@@ -142,7 +134,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-#dashboard
+# dashboard
 @app.route("/dashboard", methods=["GET", "POST"])
 @login_required
 def dashboard():
@@ -163,13 +155,6 @@ def dashboard():
 
         return redirect(url_for("dashboard"))
 
-    # XP calculation from XP_TABLE
-    level_info = XP_TABLE.get(user.level, {"to_next": 100, "total": 0})
-    xp_to_next = level_info.get("to_next", 100) or 100
-    xp_percent = int((int(user.xp or 0) / xp_to_next) * 100) if xp_to_next > 0 else 0
-
-    stat_points = int(getattr(user, "stat_points", 0) or 0)
-
     enhanced_bots = []
     for bot in user.bots:
         total_proc = getattr(bot, "total_proc", None)
@@ -179,7 +164,7 @@ def dashboard():
         base_stats = {
             "int": int(bot.hp or 0),
             "proc": int(total_proc or 0),
-            "def": int(bot.defense or 0),   # FIX: defense -> def (dict key)
+            "def": int(bot.defense or 0),
             "clk": int(bot.speed or 0),
             "logic": int(bot.logic or 0),
             "ent": int(bot.luck or 0),
@@ -195,14 +180,14 @@ def dashboard():
         "dashboard.html",
         user=user,
         tokens=int(user.tokens or 0),
-        xp_percent=xp_percent,
-        xp_to_next=xp_to_next,
-        stat_points=stat_points,
         enhanced_bots=enhanced_bots,
         algorithms=algorithms,
         algorithm_descriptions=algorithm_descriptions,
         currency=CURRENCY_NAME,
+
+        xp_table=XP_TABLE,
     )
+
 
 #logout
 @app.route("/logout")
