@@ -205,9 +205,10 @@
 <div class="dashboard-header d-flex justify-content-between align-items-center">
      <button class="icon-btn settings-btn" data-bs-toggle="modal" data-bs-target="#settingsModal">
     <i class="fa-solid fa-gear"></i>
-</button>
-
-
+    </button>
+    <button class="icon-btn volume-btn" data-bs-toggle="modal" data-bs-target="#volumeModal">
+        <i class="fa-solid fa-volume-high"></i>
+    </button>
 </div>
 
 <!-- settings modal -->
@@ -218,4 +219,61 @@
 </button>
 
 
+<!-- Volume Modal -->
+<div class="modal fade" id="volumeModal" tabindex="-1" aria-labelledby="volumeModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="volumeModalLabel">Music Controls</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Volume Slider -->
+        <div class="mb-4">
+          <label for="volumeSlider" class="form-label">
+            Volume: <span id="volumePercent" class="fw-bold text-primary">30%</span>
+          </label>
+          <input type="range" id="volumeSlider" min="0" max="100" value="30" class="form-range">
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary neon-btn" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<!-- Volume Control Script -->
+<script>
+const volumeModal = document.getElementById('volumeModal');
+
+if (volumeModal) {
+    volumeModal.addEventListener('shown.bs.modal', function() {
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumePercent = document.getElementById('volumePercent');
+        const music = document.getElementById('bgMusic');
+
+        if (volumeSlider && volumePercent && music) {
+            // Load saved volume
+            const savedVolume = parseFloat(localStorage.getItem('musicVolume')) || 0.3;
+            const volumePercentValue = Math.round(savedVolume * 100);
+            volumeSlider.value = volumePercentValue;
+            volumePercent.textContent = volumePercentValue + '%';
+
+
+            // Volume slider changes
+            volumeSlider.addEventListener('input', function() {
+                const volume = this.value / 100;
+                music.volume = volume;
+                localStorage.setItem('musicVolume', volume);
+                volumePercent.textContent = this.value + '%';
+            });
+
+        }
+    });
+}
+</script>
 {% endblock %}
