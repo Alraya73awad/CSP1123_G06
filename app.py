@@ -1189,6 +1189,7 @@ def gear(bot_id):
     )
 
 @app.route("/leaderboard")
+@login_required
 def leaderboard():
     # Get top 50 players by rating
     top_players = User.query.filter(
@@ -1198,18 +1199,49 @@ def leaderboard():
     # Get current user's rank if logged in
     current_user_rank = None
     user_has_matches = False
+    nearby_players = []
+    show_nearby = False
     if "user_id" in session:
         user = User.query.get(session["user_id"])
         user_has_matches = (user.wins + user.losses) > 0
         if user_has_matches:
             higher_rated = (User.query.filter(or_(User.wins > 0, User.losses > 0),User.rating > user.rating).count())
             current_user_rank = higher_rated + 1
+
+    # Only show nearby players if user is NOT in top 50
+    if current_user_rank > 50:
+        show_nearby = True
+                
+        # Get all players with matches, sorted by rating
+        all_ranked_players = User.query.filter(
+            User.wins + User.losses > 0
+        ).order_by(User.rating.desc()).all()
+                
+        # Find user's position in the list
+        user_index = None
+        for i, player in enumerate(all_ranked_players):
+            if player.id == user.id:
+                user_index = i
+                break
+                
+        if user_index is not None:
+            # Get 5 players above and 5 below
+            start_index = max(0, user_index - 5)
+            end_index = min(len(all_ranked_players), user_index + 6)
+                    
+            nearby_players = all_ranked_players[start_index:end_index]
+                    
+            # Calculate the starting rank number for nearby players
+            nearby_start_rank = start_index + 1
     
     return render_template(
         "leaderboard.html",
         top_players=top_players,
         current_user_rank=current_user_rank,
-        user_has_matches = user_has_matches
+        user_has_matches = user_has_matches,
+        nearby_players=nearby_players,
+        show_nearby=show_nearby,
+        nearby_start_rank=nearby_start_rank if show_nearby else None
     )
 
 #xp system

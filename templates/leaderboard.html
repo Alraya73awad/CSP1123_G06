@@ -6,12 +6,12 @@
 {% if current_user and user_has_matches %}
     <div class="alert alert-info">
         <strong>Your Rank:</strong> #{{ current_user_rank }} 
-        <span class="badge bg-primary">{{ current_user.rating }} Rating</span>
+        <span>- {{ current_user.rating }} Rating</span>
     </div>
 {% else %}
     <p>Play matches to earn a spot on the leaderboard!</p>
 {% endif %}
-
+<!-- TOP50 -->
 <div class="table-responsive mt-4">
     <table class="table table-dark table-striped">
         <thead>
@@ -34,7 +34,7 @@
                     {% if loop.index == 3 %}🥉{% endif %}
                 </td>
                 <td>{{ player.username }}</td>
-                <td><span class="badge bg-warning">{{ player.rating }}</span></td>
+                <td><span style="color:yellow;">{{ player.rating }}</span></td>
                 <td>
                     {% if player.rating >= 1600 %}🔮 Nexus
                     {% elif player.rating >= 1400 %}🌌 Quantum
@@ -44,8 +44,8 @@
                     {% else %}🔧 Prototype{% endif %}
                 </td>
                 <td>
-                    <span class="badge bg-success">{{ player.wins }}W</span>
-                    <span class="badge bg-danger">{{ player.losses }}L</span>
+                    <span style="color: #00ffaa;">{{ player.wins }}W</span>
+                    <span style="color: red;">{{ player.losses }}L</span>
                 </td>
                 <td>{{ "%.1f"|format(player.win_rate) }}%</td>
             </tr>
@@ -53,6 +53,56 @@
         </tbody>
     </table>
 </div>
+<!-- NEARBY PLAYERS (only if user is ranked below 50) -->
+{% if show_nearby %}
+<div class="table-responsive mt-5">
+    <div class="text-center my-4">
+        <h4>...</h4>
+        <p>Players ranked #51 - #{{ nearby_start_rank - 1 }}</p>
+    </div>
+    
+    <h3>Your Competition (Nearby Players)</h3>
+    <table class="table table-dark table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Player</th>
+                <th>Rating</th>
+                <th>Rank Tier</th>
+                <th>Record</th>
+                <th>Win Rate</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for player in nearby_players %}
+            <tr {% if current_user and player.id == current_user.id %}class="table-success fw-bold"{% endif %}>
+                <td>
+                    <strong>{{ nearby_start_rank + loop.index0 }}</strong>
+                    {% if current_user and player.id == current_user.id %}👈 YOU{% endif %}
+                </td>
+                <td>{{ player.username }}</td>
+                <td><span style="color:yellow;">{{ player.rating }}</span></td>
+                <td>
+                    {% if player.rating >= 1600 %}🔮 Nexus
+                    {% elif player.rating >= 1400 %}🌌 Quantum
+                    {% elif player.rating >= 1200 %}💻 Mainframe
+                    {% elif player.rating >= 1000 %}🖥️ Processor
+                    {% elif player.rating >= 800 %}⚡ Circuit
+                    {% else %}🔧 Prototype{% endif %}
+                </td>
+                <td>
+                    <span style="color: #00ffaa;">{{ player.wins }}W</span>
+                    <span style="color: red;">{{ player.losses }}L</span>
+                </td>
+                <td>{{ "%.1f"|format(player.win_rate) }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
 
-<a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back</a>
+<div>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back</a>
+</div>
 {% endblock %}
