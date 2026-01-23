@@ -25,16 +25,6 @@
     <h1>Weapons Store</h1>
     <p>Select a character to equip weapons and items.</p>
 
-    <!-- character selection -->
-    <div class="character-select">
-        <label for="selected-bot">Choose Character:</label>
-        <select id="selected-bot" class="bot-dropdown">
-            {% for bot in bots %}
-                <option value="{{ bot.id }}">{{ bot.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
-
     <!-- weapons grid -->
     <div class="store-grid">
   {% for w in weapons %}

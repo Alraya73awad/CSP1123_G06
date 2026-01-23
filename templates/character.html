@@ -53,9 +53,7 @@
 
             <form method="POST" action="{{ url_for('buy_character') }}">
                 <input type="hidden" name="purchase_id" value="{{ upgrade["id"] }}">
-                <input type="hidden" name="bot_id"
-                    value="{{ bots[0].id if bots|length > 0 else '' }}"
-                    class="selected-bot-input">
+                <input type="hidden" name="bot_id" value="{{ bots[0].id if bots else '' }}">
 
                 <button type="submit" class="buy-btn"
                         {% if points < upgrade["cost"] or bots|length == 0 %}disabled{% endif %}>
