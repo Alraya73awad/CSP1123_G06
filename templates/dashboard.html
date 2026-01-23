@@ -27,7 +27,7 @@
 
 <h1>USER DASHBOARD // MAIN INTERFACE</h1>
 
-<!-- Flash Messages -->
+<!-- flash .essages -->
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         <div class="flash-area">
@@ -38,7 +38,7 @@
     {% endif %}
 {% endwith %}
 
-<!-- WELCOME HEADER -->
+<!-- header -->
 <div class="dashboard-header cyber-header">
     <h2>Welcome, <span class="highlight">{{ current_user.username }}</span></h2>
     <p>Access your bots, stats, and battle systems below.</p>
@@ -47,28 +47,17 @@
 <br>
 
 
-<!-- PLAYER STATS (CYBER GRID) -->
+<!-- player stats -->
 <div class="stats-grid cyber-grid">
 
-    <!-- LEVEL -->
+    <!-- lvls -->
     <div class="stat-card neon-panel">
         <h3>LEVEL</h3>
         <p>{{ current_user.level }}</p>
     </div>
 
-    <!-- XP -->
-    <div class="stat-card neon-panel">
-        <h3>XP</h3>
-        {% set xp_required = current_user.level * 100 %}
-        {% set xp_percent = ((current_user.xp / xp_required) * 100) | round(2) | default(0) %}
 
-        <div class="xp-bar" style="--xp-width: {{ xp_percent }}%;">
-            <div class="xp-fill"></div>
-        </div>
-        <p>{{ current_user.xp }} / {{ xp_required }} XP</p>
-    </div>
-
-    <!-- TOKENS -->
+    <!-- tokens -->
     <div class="stat-card neon-panel">
         <h3>TOKENS</h3>
         <p>{{ current_user.tokens }}</p>
@@ -78,18 +67,29 @@
 
 <br><br>
 
-<!-- BOT LIST -->
+<!-- action buttons -->
+<div class="action-grid">
+    <a href="{{ url_for('battle_select') }}" class="action-button">BATTLE</a>
+    <a href="{{ url_for('manage_bot') }}" class="action-button">MANAGE BOTS</a>
+    <a href="{{ url_for('store') }}" class="action-button">STORE</a>
+    <a href="{{ url_for('character') }}" class="action-button">CHARACTER</a>
+    <a href="{{ url_for('history') }}" class="action-button">HISTORY</a>
+</div>
+
+<!-- bot list -->
 <h2>Your Bots</h2>
 
-{% if bots %}
+{% if enhanced_bots %}
     <div class="bot-list hologram-grid">
-    {% for item in bots %}
+    {% for item in enhanced_bots %}
         {% set bot = item.bot %}
         {% set final = item.final_stats %}
 
         <div class="bot-card holo-card">
             <div class="holo-glow"></div>
             <h3>{{ bot.name }} ({{ bot.algorithm }})</h3>
+            <p>BOT LVL: {{ bot.level }} | BOT XP: {{ bot.xp }}</p>
+            <p>STAT PTS: {{ user.stat_points }}</p>
             <p>INT: {{ final.int }} | PROC: {{ final.proc }} | DEF: {{ final.def }} | CLK: {{ final.clk }} | LOGIC: {{ final.logic }} | ENT: {{ final.ent }} | PWR: {{ final.pwr }}</p>
         </div>
         {% endfor %}
@@ -100,7 +100,7 @@
 
 <br><br>
 
-<!-- CREATE BOT FORM -->
+<!-- bot form -->
 <h2>Create a New Bot</h2>
 
 <form method="POST">
@@ -147,14 +147,6 @@
 
 <br><br>
 
-<!-- ACTION BUTTONS -->
-<div class="action-grid">
-    <a href="{{ url_for('battle_select') }}" class="action-button">BATTLE</a>
-    <a href="{{ url_for('manage_bot') }}" class="action-button">MANAGE BOTS</a>
-    <a href="{{ url_for('store') }}" class="action-button">STORE</a>
-    <a href="{{ url_for('character') }}" class="action-button">CHARACTER</a>
-    <a href="{{ url_for('history') }}" class="action-button">HISTORY</a>
-</div>
 
 <a href="{{ url_for('home') }}" class="icon-btn back-home-btn">
     <i class="fa-solid fa-house"></i>
@@ -209,7 +201,7 @@
     <p>{{ current_user.xp }} / {{ current_user.level * 100 }} XP</p>
 </div>
 
-<!-- Dashboard Header -->
+<!-- dashboard header -->
 <div class="dashboard-header d-flex justify-content-between align-items-center">
      <button class="icon-btn settings-btn" data-bs-toggle="modal" data-bs-target="#settingsModal">
     <i class="fa-solid fa-gear"></i>
@@ -219,39 +211,13 @@
     </button>
 </div>
 
-<!-- Settings Modal -->
-<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="POST" action="{{ url_for('update_settings') }}">
-        <div class="modal-header">
-          <h5 class="modal-title" id="settingsModalLabel">Account Settings</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-            <div class="mb-3">
-                <label for="username" class="form-label">Username</label>
-                <input type="text" name="username" id="username" value="{{ current_user.username }}" class="form-control">
-            </div>
+<!-- settings modal -->
+<button class="icon-btn settings-btn"
+        data-bs-toggle="modal"
+        data-bs-target="#settingsModal">
+    <i class="fa-solid fa-gear"></i>
+</button>
 
-            <div class="mb-3">
-                <label for="email" class="form-label">Email</label>
-                <input type="email" name="email" id="email" value="{{ current_user.email }}" class="form-control">
-            </div>
-
-            <div class="mb-3">
-                <label for="password" class="form-label">New Password</label>
-                <input type="password" name="password" id="password" class="form-control">
-            </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary neon-btn" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary neon-btn">Update Settings</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
 
 <!-- Volume Modal -->
 <div class="modal fade" id="volumeModal" tabindex="-1" aria-labelledby="volumeModalLabel" aria-hidden="true">

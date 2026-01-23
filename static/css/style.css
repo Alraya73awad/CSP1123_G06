@@ -27,6 +27,12 @@ body {
   margin: 0;
   padding: 0;
   overflow-y: auto; 
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /*  center */
+  padding-top: 40px;
+}
+
 }
 
 }
@@ -36,6 +42,7 @@ body {
   width: 100%;
   max-width: 760px;
   padding: 40px;
+  margin: 40px auto 0;
   border: 2px solid var(--terminal-glow);
   box-shadow: 0 0 15px 5px var(--terminal-glow);
   position: relative;
@@ -135,7 +142,7 @@ a.start-game-button, a.login-button {
     text-decoration: none;
 }
 
-/* Optional: Input focus glow */
+
 input[type="text"], input[type="password"], input[type="email"], textarea, select {
     width: 100%;
     padding: 10px;
@@ -332,7 +339,8 @@ header {
 /* Grids  */
 .stats-grid, .action-grid, .bot-list {
     display: grid;
-    gap: 15px;
+    gap: 60px;
+    margin-bottom: 30px;  
 }
 
 .stats-grid {
@@ -396,11 +404,25 @@ header {
 }
 
 .holo-glow {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(0,255,255,0.2), transparent);
-    animation: holoMove 4s linear infinite;
-    pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit; 
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 255, 255, 0.25),
+    transparent
+  );
+  animation: holoMove 4s linear infinite;
+  pointer-events: none;
+}
+
+.bot-card, 
+.stat-box, 
+.store-item { 
+  position: relative;   
+  overflow: hidden;   
+  border-radius: 12px;  
 }
 
 @keyframes holoMove {
@@ -600,6 +622,11 @@ select:focus {
     cursor: pointer;
     box-shadow: 0 0 10px rgba(0,255,240,0.4);
     transition: all 0.25s ease;
+
+    position: fixed;
+    bottom: 20px;
+    right: 70px;
+    z-index: 9999;
 }
 
 .icon-btn:hover {
@@ -611,9 +638,11 @@ select:focus {
     pointer-events: none;
 }
 .settings-btn {
-    position: absolute;
+    background: transparent;
+    position: fixed;
     bottom: 20px;
     right: 20px;
+    z-index: 9999;
 }
 .volume-btn {
     position: absolute;
@@ -641,6 +670,26 @@ select:focus {
   color: #00ffaa;
 }
 
+.settings-page {
+    width: 100%;
+    max-width: 450px;
+    padding: 2rem;
+    background: #111;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+}
+.settings-page h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff;
+}
+.settings-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
 .combat-log {
     max-height: 70vh;
     overflow-y: auto;
@@ -685,4 +734,21 @@ select:focus {
 .weapon-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 0 15px var(--terminal-glow);
+}
+.modal-content {
+  background: rgba(0,0,0,0.92);
+  color: #00ffaa;
+  border: 2px solid #00ffaa;
+  box-shadow: 0 0 20px rgba(0,255,170,0.35);
+}
+
+.modal-header, .modal-footer {
+  border-color: rgba(0,255,170,0.25);
+}
+.modal,
+.modal-backdrop{
+  position: fixed !important;
+  inset: 0;
+  margin: 0 !important;
+  transform: none !important;
 }

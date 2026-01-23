@@ -82,11 +82,11 @@
                 <!-- DEFENSE ROW -->
                 <tr>
                     <td>DEF</td>
-                    <td class="{% if stats1.defense > stats2.defense %}text-success fw-bold{% elif stats1.defense < stats2.defense %}text-danger{% else %}text-light{% endif %}">
-                        {{ stats1.defense }}
+                    <td class="{% if stats1.def > stats2.def %}text-success fw-bold{% elif stats1.def < stats2.def %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats1.def }}
                     </td>
-                    <td class="{% if stats2.defense > stats1.defense %}text-success fw-bold{% elif stats2.defense < stats1.defense %}text-danger{% else %}text-light{% endif %}">
-                        {{ stats2.defense }}
+                    <td class="{% if stats2.def > stats1.def %}text-success fw-bold{% elif stats2.def < stats1.def %}text-danger{% else %}text-light{% endif %}">
+                        {{ stats2.def }}
                     </td>
                 </tr>
 
@@ -136,7 +136,7 @@
     </div>
     {% endif %}
 
-    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary mt-3">Back</a>
+    <a href="{{ url_for('dashboard', bot_id=bot1.id) }}" class="btn btn-secondary mt-3">Back</a>
 
 </div>
 {% endblock %}

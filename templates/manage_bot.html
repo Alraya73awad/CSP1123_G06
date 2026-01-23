@@ -17,9 +17,9 @@
     {% endif %}
 {% endwith %}
 
-{% if bots %}
+{% if enhanced_bots %}
     <div class="bot-list">
-        {% for item in bots %}
+        {% for item in enhanced_bots %}
         {% set bot = item.bot %}
         {% set final = item.final_stats %}
             <div class="bot-card">

@@ -14,3 +14,17 @@ env/
 # System files
 .DS_Store
 Thumbs.db
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# Database
+instance/*.db
+
+# VS Code
+.vscode/
+

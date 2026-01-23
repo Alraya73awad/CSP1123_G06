@@ -4,6 +4,8 @@
 
 {% block content %}
 
+
+        <!-- Bot 1 dropdown -->
 <h1>BATTLE ARENA // CYBER WARFARE</h1>
 
 <div class="container mt-4">
@@ -75,6 +77,10 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
+
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary ms-2">
+            Cancel
+        </a>
 
         <button type="submit" class="btn btn-danger btn-lg" {% if not my_bots or not matched_bots %}disabled{% endif %}>
             START BATTLE
