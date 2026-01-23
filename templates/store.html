@@ -37,23 +37,37 @@
 
     <!-- weapons grid -->
     <div class="store-grid">
-    {% for item in store_items %}
+  {% for w in weapons %}
+    {% set owned = owned_map.get(w.id) %}
     <div class="store-item">
-        <h3>{{ item.name }}</h3>
-        <p>{{ item.desc }}</p>
-        <p>Cost: {{ item.cost }} Tokens</p>
+      <h3>{{ w.name }}</h3>
+      <p>{{ w.description }}</p>
 
-        <form method="POST" action="{{ url_for('buy') }}">
-            <input type="hidden" name="bot_id" value="{{ bots[0].id if bots|length > 0 else '' }}" class="selected-bot-input">
-            <input type="hidden" name="purchase_id" value="{{ item.id }}">
+      <p>
+        Type: {{ w.type|upper }} <br>
+        Tier: {{ w.tier }} <br>
+        ATK: {{ w.effective_atk() }} <br>
+        Cost: {{ w.price }} {{ currency }}
+      </p>
 
-            <button type="submit" class="buy-btn"
-                {% if (credits or 0) < item.cost or bots|length == 0 %}disabled{% endif %}>
-                Purchase
-            </button>
+      {% if owned %}
+        <button class="buy-btn" disabled>Owned</button>
+
+        <form method="POST" action="{{ url_for('equip_weapon_from_store') }}">
+          <input type="hidden" name="ownership_id" value="{{ owned.id }}">
+          <input type="hidden" name="bot_id" value="{{ bots[0].id if bots|length > 0 else '' }}" class="selected-bot-input">
+          <button type="submit" class="buy-btn" {% if bots|length == 0 %}disabled{% endif %}>Equip</button>
         </form>
+      {% else %}
+        <form method="POST" action="{{ url_for('buy_weapon', weapon_id=w.id) }}">
+          <button type="submit" class="buy-btn"
+            {% if (credits or 0) < w.price or bots|length == 0 %}disabled{% endif %}>
+            Purchase
+          </button>
+        </form>
+      {% endif %}
     </div>
-    {% endfor %}
+  {% endfor %}
 </div>
 
     <div style="text-align:center; margin-top: 50px;">
@@ -67,7 +81,6 @@
         <p>Awaiting Purchase Command...</p>
     </div>
 </div>
-
 <!-- Styles -->
 <style>
 .terminal-container {
