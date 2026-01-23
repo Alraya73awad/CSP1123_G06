@@ -224,6 +224,9 @@ def create_bot():
         algorithm_descriptions=algorithm_descriptions,
     )
 
+def bot_xp_to_next_level(level):
+    return 50 + (level - 1) * 25
+
 # manage bot
 @app.route('/manage_bot')
 def manage_bot():
@@ -253,6 +256,10 @@ def manage_bot():
         for stat, base in base_stats.items():
             multiplier = effects.get(stat, 1.0)
             final_stats[stat] = int(base * multiplier)
+
+        xp_needed = bot_xp_to_next_level(bot.level or 1)
+        xp_current = int(bot.xp or 0)
+        xp_percent = int((xp_current / xp_needed) * 100) if xp_needed > 0 else 0
 
         enhanced_bots.append({
             "bot": bot,
@@ -778,19 +785,22 @@ def combat_log(bot1_id, bot2_id):
         return 50 + (level - 1) * 25
 
     def add_bot_xp(bot, amount):
-        bot.xp = bot.xp or 0
-        bot.level = bot.level or 1
-        bot.xp += amount
+        bot.xp = int(bot.xp or 0)
+        bot.level = int(bot.level or 1)
+
+        bot.xp += int(amount)
+        levels_gained = 0
+
         while bot.xp >= bot_xp_to_next_level(bot.level):
             bot.xp -= bot_xp_to_next_level(bot.level)
             bot.level += 1
-            
-            # Optional stat growth
-            bot.hp = (bot.hp or 0) + 10
-            bot.atk = (bot.atk or 0) + 2
-            bot.defense = (bot.defense or 0) + 2
-    
-        db.session.commit()
+            levels_gained += 1
+
+            bot.hp = int(bot.hp or 0) + 10
+            bot.atk = int(bot.atk or 0) + 2
+            bot.defense = int(bot.defense or 0) + 2
+
+        return levels_gained
 
     # Calculate XP per bot
     def calculate_bot_xp(battle_bot, result):
@@ -801,8 +811,13 @@ def combat_log(bot1_id, bot2_id):
     bot1_xp = calculate_bot_xp(battleA, bot1_result)
     bot2_xp = calculate_bot_xp(battleB, bot2_result)
 
-    add_bot_xp(bot1, bot1_xp)
-    add_bot_xp(bot2, bot2_xp)
+    if bot1.user_id == user.id:
+        add_bot_xp(bot1, bot1_xp)
+
+    elif bot2.user_id == user.id:
+        add_bot_xp(bot2, bot2_xp)
+
+    db.session.commit()
 
 
      # USER XP
