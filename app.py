@@ -39,9 +39,9 @@ def inject_current_user():
         user = User.query.get(session["user_id"])
     return dict(current_user=user)
 
-#with app.app_context():
-#    db.create_all()
-#    seed_weapons()
+with app.app_context():
+    db.create_all()
+    seed_weapons()
 
 
 def calculate_elo_change(winner_rating, loser_rating, k_factor=32):
@@ -337,6 +337,47 @@ def character():
         xp_to_next=xp_to_next,
         CHARACTER_ITEMS=CHARACTER_ITEMS
     )
+
+@app.route("/equip_weapon_from_store", methods=["POST"])
+@login_required
+def equip_weapon_from_store():
+    user = User.query.get(session["user_id"])
+
+    ownership_id = request.form.get("ownership_id")
+    bot_id = request.form.get("bot_id")
+
+    if not ownership_id or not bot_id:
+        flash("Invalid equip request.", "danger")
+        return redirect(url_for("store"))
+
+    bot = Bot.query.filter_by(id=int(bot_id), user_id=user.id).first()
+    if not bot:
+        flash("Invalid bot.", "danger")
+        return redirect(url_for("store"))
+
+    ow = WeaponOwnership.query.filter_by(id=int(ownership_id), user_id=user.id).first()
+    if not ow:
+        flash("Weapon not found in your inventory.", "danger")
+        return redirect(url_for("store"))
+
+    # Unequip any currently equipped weapon on this bot
+    WeaponOwnership.query.filter_by(bot_id=bot.id, equipped=True).update(
+        {"equipped": False, "bot_id": None}
+    )
+
+    # If this weapon is equipped on a different bot, unequip it there
+    WeaponOwnership.query.filter_by(id=ow.id).update(
+        {"equipped": False, "bot_id": None}
+    )
+
+    # Equip it to selected bot
+    ow.bot_id = bot.id
+    ow.equipped = True
+
+    db.session.commit()
+    flash(f"{ow.weapon.name} equipped to {bot.name}!", "success")
+    return redirect(url_for("store"))
+
 
 # profile page
 @app.route('/profile')
@@ -654,7 +695,7 @@ def bot_list():
         base_stats = {
             "int": bot.hp,
             "proc": bot.total_proc,
-            "def": bot.defense,   # FIX: defense -> def (dict key)
+            "def": bot.defense,   
             "clk": bot.speed,
             "logic": bot.logic,
             "ent": bot.luck,

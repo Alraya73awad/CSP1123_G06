@@ -1,6 +1,5 @@
 CURRENCY_NAME = "Tokens"
 
-
 CHARACTER_ITEMS = [
     {
         "id": 101,
