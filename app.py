@@ -7,7 +7,7 @@ from functools import wraps
 from sqlalchemy import or_
 
 from extensions import db
-from constants import CURRENCY_NAME, STORE_ITEMS, CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS, UPGRADES
+from constants import CURRENCY_NAME,CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS, UPGRADES
 from battle import BattleBot, full_battle, calculate_bot_stat_points
 from seed_weapons import seed_weapons
 
@@ -17,10 +17,11 @@ from models import User, Bot, History, HistoryLog, Weapon, WeaponOwnership
 app = Flask(__name__, instance_relative_config=True)
 
 app.config["SECRET_KEY"] = "dev_secret_key"
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL is None:
-    DATABASE_URL = "sqlite:///clash_of_code.db"
+    DATABASE_URL = "sqlite:///" + os.path.join(BASE_DIR, "clash_of_code.db")
 
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://","postgresql://",1)
@@ -38,9 +39,9 @@ def inject_current_user():
         user = User.query.get(session["user_id"])
     return dict(current_user=user)
 
-with app.app_context():
-    db.create_all()
-    seed_weapons()
+#with app.app_context():
+#    db.create_all()
+#    seed_weapons()
 
 
 def calculate_elo_change(winner_rating, loser_rating, k_factor=32):
@@ -270,12 +271,12 @@ def store():
 
     return render_template(
         "store.html",
-        store_items=STORE_ITEMS,
         passive_items=PASSIVE_ITEMS,
         bots=bots,
         credits=credits,
         currency=CURRENCY_NAME,
         weapons=weapons,
+        owned_map=owned_map
     )
 
 
@@ -304,56 +305,33 @@ def buy_passive(passive_id):
     return redirect(url_for("store"))
 
 @app.route("/character")
+@login_required
 def character():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
     user = User.query.get(session["user_id"])
-    if not user:
-        flash("User not found.", "danger")
-        return redirect(url_for("login"))
+    bots = Bot.query.filter_by(user_id=user.id).all()
 
-    bots = Bot.query.filter_by(user_id=user.id).all() or []
+    selected_bot_id = request.args.get("bot_id")
+    selected_bot = None
 
-    xp_to_next = XP_TABLE.get(user.level, {"to_next": 100}).get("to_next", 100)
-    current_xp = user.xp or 0
+    if bots:
+        if selected_bot_id:
+            selected_bot = Bot.query.filter_by(id=selected_bot_id, user_id=user.id).first()
+        if not selected_bot:
+            selected_bot = bots[0]
+
+    stat_points = int(getattr(selected_bot, "stat_points", 0) or 0) if selected_bot else 0
+
+    xp_to_next = XP_TABLE.get(user.level, {"to_next": 50})["to_next"]
 
     return render_template(
         "character.html",
         user=user,
         bots=bots,
-        stat_points=user.stat_points or 0,
-        current_xp=current_xp,
+        selected_bot=selected_bot,
+        stat_points=stat_points,
         xp_to_next=xp_to_next,
-        CHARACTER_ITEMS=CHARACTER_ITEMS,
+        CHARACTER_ITEMS=CHARACTER_ITEMS
     )
-
-
-
-def level_up(user):
-    XP_TABLE = {
-        1: 50,
-        2: 200,
-        3: 450,
-        4: 800,
-        5: 1250,
-        6: 2000  
-    }
-
-    while user.level in XP_TABLE and user.xp >= XP_TABLE[user.level]:
-        user.xp -= XP_TABLE[user.level]       # subtract XP needed for current level
-        user.level += 1                        # level up
-        user.stat_points += 5                  # award stat points per level
-        print(f"{user.username} reached level {user.level}! +5 stat points.")
-
-    db.session.commit()
-
-
-
-@app.route('/play')
-@login_required
-def play():
-    return render_template('"battle_select"')
 
 # profile page
 @app.route('/profile')
@@ -402,44 +380,6 @@ def profile():
         rank=rank
     )
 
-#store display func
-
-def debug_store_items():
-    for upgrade in UPGRADES:
-        print(upgrade["name"], upgrade["cost"])
-
-# Buy item and upgrade purchase function
-@app.route("/buy", methods=["POST"])
-@login_required
-def buy():
-    user = User.query.get(session["user_id"])
-
-    bot_id = request.form.get("bot_id")
-    bot = Bot.query.filter_by(id=bot_id, user_id=user.id).first()
-    if not bot:
-        flash("Invalid bot.", "danger")
-        return redirect(url_for("store"))
-
-    purchase_id = request.form.get("purchase_id")
-    item = next((i for i in STORE_ITEMS if str(i["id"]) == str(purchase_id)), None)
-    if not item:
-        flash("Invalid item.", "danger")
-        return redirect(url_for("store"))
-
-    cost = item["cost"]
-    if user.tokens < cost:
-        flash("Not enough tokens.", "danger")
-        return redirect(url_for("store"))
-
-    user.tokens -= cost
-    bot.weapon_type = item.get("type", None)
-    bot.weapon_atk = item.get("atk", 0)
-
-    db.session.commit()
-
-    flash(f"{item['name']} purchased!", "success")
-    return redirect(url_for("dashboard"))
-
 
 from constants import CHARACTER_ITEMS
 
@@ -451,12 +391,9 @@ def buy_character():
         flash("User not found.", "danger")
         return redirect(url_for("dashboard"))
 
-    # Ensure stat_points is always an integer
-    stat_points = getattr(user, "stat_points", 0) or 0
-
     # Validate bot_id
-    bot_id = request.form.get("bot_id")
-    if not bot_id or not bot_id.isdigit():
+    bot_id = request.form.get("bot_id", "").strip()
+    if not bot_id.isdigit():
         flash("Invalid character selection.", "danger")
         return redirect(url_for("character"))
     bot_id = int(bot_id)
@@ -467,29 +404,40 @@ def buy_character():
         return redirect(url_for("character"))
 
     # Validate purchase_id
-    purchase_id = request.form.get("purchase_id")
-    if not purchase_id or not purchase_id.isdigit():
+    purchase_id = request.form.get("purchase_id", "").strip()
+    if not purchase_id.isdigit():
         flash("No upgrade selected.", "danger")
-        return redirect(url_for("character"))
+        return redirect(url_for("character", bot_id=bot.id))
     purchase_id = int(purchase_id)
 
-    # Find the upgrade item
+    # Find upgrade
     item = next((i for i in CHARACTER_ITEMS if i["id"] == purchase_id), None)
     if not item:
         flash("Invalid upgrade selected.", "danger")
-        return redirect(url_for("character"))
+        return redirect(url_for("character", bot_id=bot.id))
 
-    # Check if user has enough stat points
-    if stat_points < item["cost"]:
+    # Ensure bot stat_points exists
+    bot.stat_points = int(bot.stat_points or 0)
+
+    # Check points (BOT points, not USER points)
+    if bot.stat_points < int(item["cost"]):
         flash("Not enough stat points!", "danger")
-        return redirect(url_for("character"))
+        return redirect(url_for("character", bot_id=bot.id))
 
-    # Deduct points and commit
-    user.stat_points -= item["cost"]
+    # Deduct points from this bot
+    bot.stat_points -= int(item["cost"])
+
+    # Apply upgrade to the bot
+    stat = item.get("stat")
+    value = int(item.get("value", 0))
+
+    if stat in ["hp", "atk", "defense", "speed", "logic", "luck", "energy"]:
+        setattr(bot, stat, int(getattr(bot, stat) or 0) + value)
+
     db.session.commit()
-
     flash(f"{item['name']} purchased for {bot.name}!", "success")
-    return redirect(url_for("character"))
+    return redirect(url_for("character", bot_id=bot.id))
+
 
 
 @app.route("/update_settings", methods=["POST"])
@@ -811,34 +759,40 @@ def combat_log(bot1_id, bot2_id):
     add_bot_xp(bot2, bot2_xp)
 
 
-    # USER XP
+     # USER XP
     xp_gained = 0
     levels_gained = 0
 
+  # Determine winning bot
     winning_bot = None
+    losing_bot = None
 
-    # Determine winning bot
     if winner_name == bot1.name:
         winning_bot = bot1
+        losing_bot = bot2
     elif winner_name == bot2.name:
         winning_bot = bot2
+        losing_bot = bot1
 
-    # if user owns the winning bot
     if winning_bot and winning_bot.user_id == user.id:
         xp_gained = 30
         levels_gained = add_xp(user, xp_gained)
-        user.tokens += 5
+
+        user.tokens = int(user.tokens or 0) + 5
+
+     # BOT-specific stat points reward (per level gained)
+        winning_bot.stat_points = int(winning_bot.stat_points or 0) + (levels_gained * 5)
 
         db.session.commit()
 
-    #user lost
-    elif not winning_bot:
-        pass
-    else:
+    elif losing_bot and losing_bot.user_id == user.id:
         xp_gained = 10
         levels_gained = add_xp(user, xp_gained)
-        db.session.commit()
 
+    # gives loser smaller points
+        losing_bot.stat_points = int(losing_bot.stat_points or 0) + (levels_gained * 2)
+
+        db.session.commit()
         flash(f"Congratulations {user.username}! You gained {xp_gained} XP and {levels_gained} levels.", "success")
 
     # elo rating changes
@@ -898,7 +852,7 @@ def combat_log(bot1_id, bot2_id):
         bot1_hp=stats1["hp"],
         bot1_energy=stats1["energy"],
         bot1_proc=final_proc1,
-        bot1_defense=stats1["def"],   # FIX
+        bot1_defense=stats1["def"],   
         bot1_clk=stats1["clk"],
         bot1_luck=stats1["luck"],
         bot1_weapon_atk=weapon1_atk,
@@ -907,7 +861,7 @@ def combat_log(bot1_id, bot2_id):
         bot2_hp=stats2["hp"],
         bot2_energy=stats2["energy"],
         bot2_proc=final_proc2,
-        bot2_defense=stats2["def"],   # FIX
+        bot2_defense=stats2["def"],   #use def 
         bot2_clk=stats2["clk"],
         bot2_luck=stats2["luck"],
         bot2_weapon_atk=weapon2_atk,
@@ -1232,8 +1186,7 @@ def add_xp(user, amount):
         levels_gained += 1
 
         # Rewards per level
-        user.tokens += 20
-        user.stat_points = int(user.stat_points or 0) + 5  
+        user.tokens = int(user.tokens or 0) + 20 
 
     db.session.commit()
     return levels_gained
