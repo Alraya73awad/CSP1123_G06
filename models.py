@@ -13,7 +13,6 @@ class User(db.Model, UserMixin):
     xp = db.Column(db.Integer, default=0)
     tokens = db.Column(db.Integer, default=0)
     level = db.Column(db.Integer, default=1)
-    stat_points = db.Column(db.Integer, default=0)  
 
     rating = db.Column(db.Integer, default=600)  # ELO-style rating
     wins = db.Column(db.Integer, default=0)
@@ -50,14 +49,12 @@ class Bot(db.Model):
 
     xp = db.Column(db.Integer, default=0)
     level = db.Column(db.Integer, default=1)
+    stat_points = db.Column(db.Integer, default=0)
     special_effect = db.Column(db.String(100), nullable=True)
     extra_attacks = db.Column(db.Integer, default=0)
     ability_used = db.Column(db.Boolean, default=False)
     special_damage = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
-
-    weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"), nullable=True)
-    weapon = db.relationship("Weapon", backref="bots", lazy=True)
 
     @property
     def equipped_weapon(self):
@@ -138,7 +135,7 @@ class WeaponOwnership(db.Model):
     bot = db.relationship("Bot", backref="equipped_weapon_ownership")
 
     def effective_atk(self):
-        return self.weapon.effective_atk()
+        return self.weapon.effective_atk() if self.weapon else 0
 
 class HistoryLog(db.Model):
     __tablename__ = "history_log"

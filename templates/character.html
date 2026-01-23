@@ -70,15 +70,14 @@
         <a href="{{ url_for('dashboard') }}" class="back-btn">Return</a>
     </div>
 
-    <!-- Status Area -->
+   <!-- Status Area -->
     <div class="status-area">
         <p>LEVEL: {{ user.level }}</p>
         <p>Stat Points Available: {{ points }}</p>
         <p>XP Progress:</p>
 
         <div class="xp-bar" style="width: 100%; background: rgba(0,0,0,0.2); height: 25px; border-radius: 6px;">
-            <div style="
-                height: 100%;
+            <div style="height: 100%;
                 width: {{ ((user.xp / xp_to_next) * 100) | round(1) if xp_to_next > 0 else 0 }}%;
                 background: #00ffaa;
                 border-radius: 6px;">
@@ -212,6 +211,7 @@
     margin-top: 35px;
     pointer-events: none;
 }
+
 </style>
 
 <!-- Scripts -->
