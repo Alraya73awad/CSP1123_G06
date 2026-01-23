@@ -35,7 +35,7 @@ body {
 
 }
 
-}
+
 
 /* Terminal container */
 .terminal-container {
@@ -645,9 +645,11 @@ select:focus {
     z-index: 9999;
 }
 .volume-btn {
-    position: absolute;
+    background: transparent;
+    position: fixed;
     bottom: 20px;
-    right: 65px;
+    right: 122px;
+    z-index: 9999;
 }
 /* Combat Log CSS */
 .log-text {
