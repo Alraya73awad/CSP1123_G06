@@ -890,6 +890,8 @@ def combat_log(bot1_id, bot2_id):
     history = History(
         bot1_id=bot1.id,
         bot2_id=bot2.id,
+        user1_id=bot1.user_id,
+        user2_id=bot2.user_id,
         bot1_name=bot1.name,
         bot2_name=bot2.name,
         winner=winner_name,
@@ -934,7 +936,8 @@ def combat_log(bot1_id, bot2_id):
     xp_gained=xp_gained,
     levels_gained=levels_gained,
     seed=seed,
-    new_level=user.level if levels_gained else None
+    new_level=user.level if levels_gained else None,
+    is_replay = False
 )
 
 @app.route("/battle", methods=["GET", "POST"])
@@ -1012,15 +1015,12 @@ def apply_algorithm(bot):
 @app.route("/history")
 @login_required
 def history():
-    user = User.query.get(session["user_id"])
-    
-    # Only show battles where the user's bots participated
-    user_bot_ids = [bot.id for bot in user.bots]
+    user_id = session["user_id"]
     
     battles = History.query.filter(
         or_(
-            History.bot1_id.in_(user_bot_ids),
-            History.bot2_id.in_(user_bot_ids)
+            History.user1_id == user_id,
+            History.user2_id == user_id
         )
     ).order_by(History.timestamp.desc()).all()
     
@@ -1029,16 +1029,10 @@ def history():
 @app.route("/history/<int:history_id>")
 @login_required
 def view_history(history_id):
-    user = User.query.get(session["user_id"])
+    user_id = session["user_id"]
     history = History.query.get_or_404(history_id)
     
-    # Check if user was involved in this battle
-    bot1 = Bot.query.get(history.bot1_id)
-    bot2 = Bot.query.get(history.bot2_id)
-    
-    user_bot_ids = [bot.id for bot in user.bots]
-    
-    if history.bot1_id not in user_bot_ids and history.bot2_id not in user_bot_ids:
+    if history.user1_id != user_id and history.user2_id != user_id:
         flash("You don't have permission to view this battle.", "danger")
         return redirect(url_for("history"))
     
@@ -1089,19 +1083,17 @@ def view_history(history_id):
         weapon_type=history.bot2_weapon_type
     )
     
-    result = full_battle(battleA, battleB)
+    result = full_battle(battleA, battleB, history.seed)
     winner = result["winner"]
     log = result["log"]
-    seed = result["seed"]
 
     return render_template(
         "combat_log.html",
         log=log,
         winner=winner,
-        bot1=bot1,
-        bot2=bot2,
         stats1=stats1,
         stats2=stats2,
+        history=history,
         is_replay=True
     )
 

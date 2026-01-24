@@ -85,6 +85,9 @@ class History(db.Model):
     bot1_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
     bot2_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
 
+    user1_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user2_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
     bot1_name = db.Column(db.String(50), nullable=False)
     bot2_name = db.Column(db.String(50), nullable=False)
 
