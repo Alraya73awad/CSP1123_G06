@@ -28,11 +28,14 @@
     <!-- character dropdown -->
     <div class="character-select">
         <label for="selected-character">Select Character:</label>
-        <select id="selected-character" name="character_id" class="bot-dropdown">
+        <select id="selected-character" name="character_id" class="bot-dropdown" {% if bots|length == 0 %}disabled{% endif %}>
             {% for bot in bots %}
                 <option value="{{ bot.id }}">{{ bot.name }}</option>
             {% endfor %}
         </select>
+        {% if bots|length == 0 %}
+            <p style="margin-top:10px; color:#ffae00;">No bots found. Create a bot first.</p>
+        {% endif %}
     </div>
 
     <h2>Upgrades</h2>
@@ -44,39 +47,44 @@
 
         {% for upgrade in CHARACTER_ITEMS %}
         <div class="store-item" {% if bots|length == 0 %}style="opacity:0.5; pointer-events:none;"{% endif %}>
-            <h3>{{ upgrade.name }}</h3>
-            <p>Cost: {{ upgrade.cost }} Stat Points</p>
+            <h3>{{ upgrade["name"] }}</h3>
+            <p>{{ upgrade["desc"] }}</p>
+            <p>Cost: {{ upgrade["cost"] }} Stat Points</p>
 
             <form method="POST" action="{{ url_for('buy_character') }}">
-                <input type="hidden" name="purchase_id" value="{{ upgrade.id }}">
-                <input type="hidden" name="bot_id"
-                    value="{{ bots[0].id if bots|length > 0 else '' }}"
-                    class="selected-bot-input">
+                <input type="hidden" name="purchase_id" value="{{ upgrade["id"] }}">
+                <input type="hidden" name="bot_id" value="{{ bots[0].id if bots else '' }}">
 
                 <button type="submit" class="buy-btn"
-                        {% if points < upgrade.cost or bots|length == 0 %}disabled{% endif %}>
-                    {% if points < upgrade.cost %}Not enough points{% else %}Purchase{% endif %}
+                        {% if points < upgrade["cost"] or bots|length == 0 %}disabled{% endif %}>
+                    {% if points < upgrade["cost"] %}Not enough points{% else %}Purchase{% endif %}
                 </button>
             </form>
         </div>
         {% endfor %}
     </div>
 
-   <!-- Status Area -->
-<div class="status-area">
-    <p>LEVEL: {{ user.level }}</p>
-    <p>Stat Points Available: {{ stat_points }}</p>
-    <p>XP Progress:</p>
-    <div class="xp-bar" style="width: 100%; background: rgba(0,0,0,0.2); height: 25px; border-radius: 6px;">
-        <div style="height: 100%; 
-                    width: {{ ((user.xp / xp_to_next) * 100) | round(1) if xp_to_next > 0 else 0 }}%; 
-                    background: #00ffaa; 
-                    border-radius: 6px;">
-        </div>
+    <div style="text-align:center; margin-top: 35px;">
+        <a href="{{ url_for('dashboard') }}" class="back-btn">Return</a>
     </div>
-    <p>{{ user.xp }} / {{ xp_to_next }} XP</p>
-</div>
 
+   <!-- Status Area -->
+    <div class="status-area">
+        <p>LEVEL: {{ user.level }}</p>
+        <p>Stat Points Available: {{ points }}</p>
+        <p>XP Progress:</p>
+
+        <div class="xp-bar" style="width: 100%; background: rgba(0,0,0,0.2); height: 25px; border-radius: 6px;">
+            <div style="height: 100%;
+                width: {{ ((user.xp / xp_to_next) * 100) | round(1) if xp_to_next > 0 else 0 }}%;
+                background: #00ffaa;
+                border-radius: 6px;">
+            </div>
+        </div>
+        <p>{{ user.xp }} / {{ xp_to_next }} XP</p>
+    </div>
+
+</div>
 
 <!-- Styles -->
 <style>
@@ -142,6 +150,7 @@
 .buy-btn {
     margin-top: 10px;
     display: block;
+    width: 100%;
     text-align: center;
     border: 2px solid #00ffaa;
     padding: 10px;
@@ -177,13 +186,6 @@
     border-color: #00ffaa;
 }
 
-.bot-dropdown:disabled {
-    color: #555;
-    background: rgba(0,0,0,0.1);
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
 .back-btn {
     margin-top: 30px;
     display: inline-block;
@@ -204,73 +206,11 @@
 }
 
 .status-area {
+    margin-top: 35px;
     pointer-events: none;
 }
 
-/* RESPONSIVE LAYOUTS */
-@media screen and (max-width: 768px) {
-    .terminal-container {
-        padding: 20px;
-    }
-
-    .store-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .store-item h3 {
-        font-size: 1.3rem;
-    }
-
-    .store-item p, .buy-btn {
-        font-size: 1rem;
-    }
-
-    .back-btn {
-        font-size: 1.2rem;
-        padding: 8px 20px;
-    }
-
-    .status-area {
-        font-size: 0.95rem;
-        padding: 12px;
-    }
-
-    .bot-dropdown {
-        font-size: 0.95rem;
-    }
-}
-
-@media screen and (max-width: 480px) {
-    .terminal-container {
-        width: 95%;
-        padding: 15px;
-    }
-
-    .buy-btn {
-        font-size: 0.95rem;
-        padding: 6px;
-    }
-
-    .back-btn {
-        font-size: 1rem;
-        padding: 6px 15px;
-    }
-
-    .store-item h3 {
-        font-size: 1.1rem;
-    }
-
-    .store-item p {
-        font-size: 0.9rem;
-    }
-
-    .status-area {
-        font-size: 0.9rem;
-        padding: 10px;
-    }
-}
 </style>
-
 
 <!-- Scripts -->
 <script>
@@ -285,12 +225,14 @@ updateDateTime();
 
 // Update hidden bot_id inputs when dropdown changes
 const botDropdown = document.getElementById("selected-character");
-botDropdown.addEventListener("change", function() {
-    const selectedBotId = this.value;
-    document.querySelectorAll(".selected-bot-input").forEach(input => {
-        input.value = selectedBotId;
+if (botDropdown) {
+    botDropdown.addEventListener("change", function() {
+        const selectedBotId = this.value;
+        document.querySelectorAll(".selected-bot-input").forEach(input => {
+            input.value = selectedBotId;
+        });
     });
-});
+}
 </script>
 
 {% endblock %}

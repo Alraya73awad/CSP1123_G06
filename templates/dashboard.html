@@ -88,8 +88,8 @@
         <div class="bot-card holo-card">
             <div class="holo-glow"></div>
             <h3>{{ bot.name }} ({{ bot.algorithm }})</h3>
-            <p>BOT LVL: {{ bot.level }} | BOT XP: {{ bot.xp }}</p>
-            <p>STAT PTS: {{ user.stat_points }}</p>
+            <p>BOT LVL: {{ bot.level }} | BOT XP: {{ bot.xp or 0 }} </p>
+            <p>STAT PTS: {{ item.bot.stat_points or 0 }}</p>
             <p>INT: {{ final.int }} | PROC: {{ final.proc }} | DEF: {{ final.def }} | CLK: {{ final.clk }} | LOGIC: {{ final.logic }} | ENT: {{ final.ent }} | PWR: {{ final.pwr }}</p>
         </div>
         {% endfor %}

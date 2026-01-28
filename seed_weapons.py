@@ -12,6 +12,7 @@ def seed_weapons():
             type="Melee",
             atk_bonus=5,
             tier = 1,
+            price = 20,
             description="Standard starter dagger; lightweight and fast."
         ),
         Weapon(
@@ -19,6 +20,7 @@ def seed_weapons():
             type="Ranged",
             atk_bonus=5,
             tier = 1,
+            price = 20,
             description="Fires compressed data packets as projectiles."
         ),
         Weapon(
@@ -26,6 +28,7 @@ def seed_weapons():
             type="Melee",
             atk_bonus=8,
             tier = 2,
+            price = 40,
             description="Emits rhythmic energy waves when swung."
         ),
         Weapon(
@@ -33,6 +36,7 @@ def seed_weapons():
             type="Ranged",
             atk_bonus=8,
             tier = 2,
+            price = 40,
             description="Uses magnetic flux to accelerate energy projectiles."
         ),
         Weapon(
@@ -40,6 +44,7 @@ def seed_weapons():
             type="Melee",
             atk_bonus=16,
             tier = 3,
+            price = 60,
             description="Fists that erase enemy circuits on impact."
         ),
         Weapon(
@@ -47,6 +52,7 @@ def seed_weapons():
             type="Ranged",
             atk_bonus=16,
             tier = 3,
+            price = 60,
             description="Shoots bursts of searing digital energy."
         ),
         Weapon(
@@ -54,6 +60,7 @@ def seed_weapons():
             type="Melee",
             atk_bonus=33,
             tier = 4,
+            price = 80,
             description="A scythe that parses enemies into fragments."
         ),
         Weapon(
@@ -61,6 +68,7 @@ def seed_weapons():
             type="Ranged",
             atk_bonus=33,
             tier = 4,
+            price = 80,
             description="Phases bullets through defenses like a clever exploit."
         ),
         Weapon(
@@ -68,6 +76,7 @@ def seed_weapons():
             type="Melee",
             atk_bonus=55,
             tier = 5,
+            price = 100,
             description="Electrified whip that strikes faster with each swing."
         ),
         Weapon(
@@ -75,6 +84,7 @@ def seed_weapons():
             type="Ranged",
             atk_bonus=55,
             tier = 5,
+            price = 100,
             description="Infects enemies with code that slowly disables them."
         ),
         Weapon(
@@ -82,6 +92,7 @@ def seed_weapons():
             type="Melee",
             atk_bonus=100,
             tier = 6,
+            price = 200,
             description="A smart blade that predicts enemy moves before they strike."
         ),
         Weapon(
@@ -89,6 +100,7 @@ def seed_weapons():
             type="Ranged",
             atk_bonus=100,
             tier = 6,
+            price = 200,
             description="Explodes into fragments of damaging code on impact."
         ),
     ]
