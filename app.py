@@ -775,6 +775,16 @@ def combat_log(bot1_id, bot2_id):
     botB_points = result["botB_points"]
     seed = result["seed"]
 
+    #save bot win or loss
+    if winner_name == bot1.name:
+        bot1.botwins += 1
+        bot2.botlosses += 1
+    else:
+        bot2.botwins += 1
+        bot1.botlosses += 1
+
+    db.session.commit()
+
     # Determine results
     bot1_result = "win" if winner_name == bot1.name else "lose"
     bot2_result = "win" if winner_name == bot2.name else "lose"
@@ -990,11 +1000,35 @@ def battle_select():
         for bot in opponent.bots:
             matched_bots.append(bot)
     
+    opponent_data = []
+    for bot in matched_bots:
+        
+        weapon_type = "None"
+        if bot.weapon:
+            weapon_type = bot.weapon.type  
+
+        total_battles = bot.botwins + bot.botlosses
+        win_rate = (bot.botwins / total_battles * 100) if total_battles > 0 else 0
+        
+        opponent_data.append({
+            'id': bot.id,
+            'name': bot.name,
+            'level': bot.level,
+            'algorithm': bot.algorithm,
+            'owner': User.query.get(bot.user_id).username,
+            'wins': bot.botwins,
+            'losses': bot.botlosses,
+            'total_battles': total_battles,
+            'win_rate': round(win_rate, 1),
+            'weapon_type': weapon_type
+        })
+    
     return render_template(
         "battle.html",
         my_bots=my_bots,
         matched_bots=matched_bots,
-        my_rating=my_rating
+        my_rating=my_rating,
+        opponent_data=opponent_data
     )
 
 def apply_algorithm(bot):

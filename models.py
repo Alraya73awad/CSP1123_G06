@@ -59,6 +59,9 @@ class Bot(db.Model):
     weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"), nullable=True)
     weapon = db.relationship("Weapon", backref="bots", lazy=True)
 
+    botwins = db.Column(db.Integer, default=0)
+    botlosses = db.Column(db.Integer, default=0)
+
     @property
     def equipped_weapon(self):
         for ow in self.equipped_weapon_ownership:

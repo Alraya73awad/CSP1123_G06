@@ -16,7 +16,7 @@
         <tbody>
             {% for h in battles %}
             <tr>
-                <td>{{ h.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
+                <td class="battle-time" data-utc="{{ h.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ') }}">Loading ...</td>
                 <td>Bot {{ h.bot1_name }} vs Bot {{ h.bot2_name }}</td>
                 <td>{{ h.winner }}</td>
                 <td>
@@ -35,4 +35,25 @@
         </div>
 {% endif %}
 <a href="{{ url_for('dashboard') }}">←Dashboard</a>
+{% endblock %}
+
+{% block scripts %}
+<!-- Datetime -->
+<script>
+    function updateBattleTimes() {
+        const timeElements = document.querySelectorAll('.battle-time');
+        
+        timeElements.forEach(function(element) {
+            const utcString = element.getAttribute('data-utc');
+            if (utcString) {
+                const battleDate = new Date(utcString);
+                
+                element.textContent =
+                    battleDate.toLocaleDateString("en-US") + " " +
+                    battleDate.toLocaleTimeString("en-US", { hour12: false });
+            }
+        });
+    }
+    updateBattleTimes();
+</script>
 {% endblock %}

@@ -1,5 +1,5 @@
 from faker import Faker
-from app import app, db, User  # Adjust 'app' to your main file name
+from app import app, db, User 
 from werkzeug.security import generate_password_hash
 import random
 

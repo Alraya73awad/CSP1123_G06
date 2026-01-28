@@ -40,6 +40,8 @@
                 <option value="" disabled selected>Select opponent</option>
                 {% if matched_bots %}
                     {% for bot in matched_bots %}
+                        {% set total_battles = bot.botwins + bot.botlosses %}
+                        {% set win_rate = (bot.botwins / total_battles * 100) | round(1) if total_battles > 0 else 0 %}
                         <option value="{{ bot.id }}">
                             {{ bot.name }} - {{ bot.user.username }} 
                             (Rating: {{ bot.user.rating }})
@@ -49,7 +51,11 @@
                                 ⬇️ Easier
                             {% else %}
                                 ⚖️ Equal
-                            {% endif %}
+                            {% endif %} |
+                            Lvl {{ bot.level }} | 
+                            {{ bot.algorithm }} | 
+                            {{ win_rate }}% WR ({{ bot.botwins }}W - {{ bot.botlosses }}L) | 
+                            {{ bot.weapon.type if bot.weapon else "No weapon" }}
                         </option>
                     {% endfor %}
                 {% else %}
