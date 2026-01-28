@@ -776,6 +776,16 @@ def combat_log(bot1_id, bot2_id):
     botB_points = result["botB_points"]
     seed = result["seed"]
 
+    #save bot win or loss
+    if winner_name == bot1.name:
+        bot1.botwins += 1
+        bot2.botlosses += 1
+    else:
+        bot2.botwins += 1
+        bot1.botlosses += 1
+
+    db.session.commit()
+
     # Determine results
     bot1_result = "win" if winner_name == bot1.name else "lose"
     bot2_result = "win" if winner_name == bot2.name else "lose"
@@ -905,6 +915,8 @@ def combat_log(bot1_id, bot2_id):
     history = History(
         bot1_id=bot1.id,
         bot2_id=bot2.id,
+        user1_id=bot1.user_id,
+        user2_id=bot2.user_id,
         bot1_name=bot1.name,
         bot2_name=bot2.name,
         winner=winner_name,
@@ -949,7 +961,8 @@ def combat_log(bot1_id, bot2_id):
     xp_gained=xp_gained,
     levels_gained=levels_gained,
     seed=seed,
-    new_level=user.level if levels_gained else None
+    new_level=user.level if levels_gained else None,
+    is_replay = False
 )
 
 @app.route("/battle", methods=["GET", "POST"])
@@ -1002,11 +1015,35 @@ def battle_select():
         for bot in opponent.bots:
             matched_bots.append(bot)
     
+    opponent_data = []
+    for bot in matched_bots:
+        
+        weapon_type = "None"
+        if bot.weapon:
+            weapon_type = bot.weapon.type  
+
+        total_battles = bot.botwins + bot.botlosses
+        win_rate = (bot.botwins / total_battles * 100) if total_battles > 0 else 0
+        
+        opponent_data.append({
+            'id': bot.id,
+            'name': bot.name,
+            'level': bot.level,
+            'algorithm': bot.algorithm,
+            'owner': User.query.get(bot.user_id).username,
+            'wins': bot.botwins,
+            'losses': bot.botlosses,
+            'total_battles': total_battles,
+            'win_rate': round(win_rate, 1),
+            'weapon_type': weapon_type
+        })
+    
     return render_template(
         "battle.html",
         my_bots=my_bots,
         matched_bots=matched_bots,
-        my_rating=my_rating
+        my_rating=my_rating,
+        opponent_data=opponent_data
     )
 
 def apply_algorithm(bot):
@@ -1027,15 +1064,12 @@ def apply_algorithm(bot):
 @app.route("/history")
 @login_required
 def history():
-    user = User.query.get(session["user_id"])
-    
-    # Only show battles where the user's bots participated
-    user_bot_ids = [bot.id for bot in user.bots]
+    user_id = session["user_id"]
     
     battles = History.query.filter(
         or_(
-            History.bot1_id.in_(user_bot_ids),
-            History.bot2_id.in_(user_bot_ids)
+            History.user1_id == user_id,
+            History.user2_id == user_id
         )
     ).order_by(History.timestamp.desc()).all()
     
@@ -1044,16 +1078,10 @@ def history():
 @app.route("/history/<int:history_id>")
 @login_required
 def view_history(history_id):
-    user = User.query.get(session["user_id"])
+    user_id = session["user_id"]
     history = History.query.get_or_404(history_id)
     
-    # Check if user was involved in this battle
-    bot1 = Bot.query.get(history.bot1_id)
-    bot2 = Bot.query.get(history.bot2_id)
-    
-    user_bot_ids = [bot.id for bot in user.bots]
-    
-    if history.bot1_id not in user_bot_ids and history.bot2_id not in user_bot_ids:
+    if history.user1_id != user_id and history.user2_id != user_id:
         flash("You don't have permission to view this battle.", "danger")
         return redirect(url_for("history"))
     
@@ -1104,19 +1132,17 @@ def view_history(history_id):
         weapon_type=history.bot2_weapon_type
     )
     
-    result = full_battle(battleA, battleB)
+    result = full_battle(battleA, battleB, history.seed)
     winner = result["winner"]
     log = result["log"]
-    seed = result["seed"]
 
     return render_template(
         "combat_log.html",
         log=log,
         winner=winner,
-        bot1=bot1,
-        bot2=bot2,
         stats1=stats1,
         stats2=stats2,
+        history=history,
         is_replay=True
     )
 
@@ -1212,6 +1238,7 @@ def gear(bot_id):
     )
 
 @app.route("/leaderboard")
+@login_required
 def leaderboard():
     # Get top 50 players by rating
     top_players = User.query.filter(
@@ -1221,18 +1248,49 @@ def leaderboard():
     # Get current user's rank if logged in
     current_user_rank = None
     user_has_matches = False
+    nearby_players = []
+    show_nearby = False
     if "user_id" in session:
         user = User.query.get(session["user_id"])
         user_has_matches = (user.wins + user.losses) > 0
         if user_has_matches:
             higher_rated = (User.query.filter(or_(User.wins > 0, User.losses > 0),User.rating > user.rating).count())
             current_user_rank = higher_rated + 1
+
+    # Only show nearby players if user is NOT in top 50
+    if current_user_rank > 50:
+        show_nearby = True
+                
+        # Get all players with matches, sorted by rating
+        all_ranked_players = User.query.filter(
+            User.wins + User.losses > 0
+        ).order_by(User.rating.desc()).all()
+                
+        # Find user's position in the list
+        user_index = None
+        for i, player in enumerate(all_ranked_players):
+            if player.id == user.id:
+                user_index = i
+                break
+                
+        if user_index is not None:
+            # Get 5 players above and 5 below
+            start_index = max(0, user_index - 5)
+            end_index = min(len(all_ranked_players), user_index + 6)
+                    
+            nearby_players = all_ranked_players[start_index:end_index]
+                    
+            # Calculate the starting rank number for nearby players
+            nearby_start_rank = start_index + 1
     
     return render_template(
         "leaderboard.html",
         top_players=top_players,
         current_user_rank=current_user_rank,
-        user_has_matches = user_has_matches
+        user_has_matches = user_has_matches,
+        nearby_players=nearby_players,
+        show_nearby=show_nearby,
+        nearby_start_rank=nearby_start_rank if show_nearby else None
     )
 
 #xp system

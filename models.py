@@ -56,6 +56,12 @@ class Bot(db.Model):
     special_damage = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
 
+    weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"), nullable=True)
+    weapon = db.relationship("Weapon", backref="bots", lazy=True)
+
+    botwins = db.Column(db.Integer, default=0)
+    botlosses = db.Column(db.Integer, default=0)
+
     @property
     def equipped_weapon(self):
         for ow in self.equipped_weapon_ownership:
@@ -81,6 +87,9 @@ class History(db.Model):
 
     bot1_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
     bot2_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=False)
+
+    user1_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user2_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
     bot1_name = db.Column(db.String(50), nullable=False)
     bot2_name = db.Column(db.String(50), nullable=False)

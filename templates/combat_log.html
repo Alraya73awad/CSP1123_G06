@@ -3,7 +3,11 @@
 {% block content %}
 <div>
 
-    <h2>Battle: {{ bot1.name }} vs {{ bot2.name }}</h2>
+    {% if is_replay %}
+        <h2>Battle: {{ history.bot1_name }} vs {{ history.bot2_name }}</h2>
+    {% else %}
+        <h2>Battle: {{ bot1.name }} vs {{ bot2.name }}</h2>
+    {% endif %}
 
     <h3 class="mt-4">Starting Stats Comparison</h3>
 
@@ -11,8 +15,13 @@
             <thead>
                 <tr>
                     <th>Stat</th>
-                    <th>{{ bot1.name }}</th>
-                    <th>{{ bot2.name }}</th>
+                    {% if is_replay %}
+                        <th>{{ history.bot1_name }}</th>
+                        <th>{{ history.bot2_name }}</th>
+                    {% else %}
+                        <th>{{ bot1.name }}</th>
+                        <th>{{ bot2.name }}</th>
+                    {% endif %}
                 </tr>
             </thead>
 
@@ -136,7 +145,11 @@
     </div>
     {% endif %}
 
-    <a href="{{ url_for('dashboard', bot_id=bot1.id) }}" class="btn btn-secondary mt-3">Back</a>
+    {% if is_replay %}
+        <a href="{{ url_for('history') }}" class="btn btn-secondary mt-3">← Back to History</a>
+    {% else %}
+        <a href="{{ url_for('dashboard', bot_id=bot1.id) }}" class="btn btn-secondary mt-3">← Back to Dashboard</a>
+    {% endif %}
 
 </div>
 {% endblock %}
