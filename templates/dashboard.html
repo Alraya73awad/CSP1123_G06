@@ -106,7 +106,7 @@
 <form method="POST">
 <div class="mb-3">
     <label for="name">Bot Name:</label><br>
-    <input type="text" id="name" name="name" required class="form-control"><br><br>
+    <input type="text" id="name" name="name" required><br><br>
 </div>
 
 <div class="container">
@@ -128,8 +128,8 @@
 
             <!-- The card acts as the label -->
             <label for="{{ code }}" class="card algorithm-card text-center p-3" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ algorithm_descriptions[code] }}">
-                <h5 class="fw-bold">{{ code }}</h5>
-                <p class="text-muted">{{ label }}</p>
+                <h5>{{ code }}</h5>
+                <p>{{ label }}</p>
             </label>
 
         </div>
@@ -141,7 +141,7 @@
 
 
 
-    <button type="submit" class="btn btn-outline-primary mt-4">Create Bot</button>
+    <button type="submit" class="terminal-btn">Create Bot</button>
 
 </form>
 
