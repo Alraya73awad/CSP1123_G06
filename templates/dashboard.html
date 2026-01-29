@@ -233,7 +233,7 @@
           <label for="volumeSlider" class="form-label">
             Volume: <span id="volumePercent" >30%</span>
           </label>
-          <input type="range" id="volumeSlider" min="0" max="100" value="30" class="form-range">
+          <input type="range" id="volumeSlider" min="0" max="100" class="form-range">
         </div>
 
       </div>
@@ -248,32 +248,28 @@
 {% block scripts %}
 <!-- Volume Control Script -->
 <script>
-const volumeModal = document.getElementById('volumeModal');
+document.addEventListener('DOMContentLoaded', function() {
+    const volumeSlider = document.getElementById('volumeSlider');
+    const volumePercent = document.getElementById('volumePercent');
+    const music = document.getElementById('bgMusic');
 
-if (volumeModal) {
-    volumeModal.addEventListener('shown.bs.modal', function() {
-        const volumeSlider = document.getElementById('volumeSlider');
-        const volumePercent = document.getElementById('volumePercent');
-        const music = document.getElementById('bgMusic');
-
-        if (volumeSlider && volumePercent && music) {
-            // Load saved volume
-            const savedVolume = parseFloat(localStorage.getItem('musicVolume')) || 0.3;
-            const volumePercentValue = Math.round(savedVolume * 100);
-            volumeSlider.value = volumePercentValue;
-            volumePercent.textContent = volumePercentValue + '%';
-
-
-            // Volume slider changes
-            volumeSlider.addEventListener('input', function() {
-                const volume = this.value / 100;
-                music.volume = volume;
-                localStorage.setItem('musicVolume', volume);
-                volumePercent.textContent = this.value + '%';
-            });
-
-        }
-    });
-}
+    if (volumeSlider && volumePercent && music) {
+        // Load saved volume from localStorage
+        const savedVolume = parseFloat(localStorage.getItem('musicVolume')) || 0.3;
+        const volumePercentValue = Math.round(savedVolume * 100);
+        
+        // Set initial slider values
+        volumeSlider.value = volumePercentValue;
+        volumePercent.textContent = volumePercentValue + '%';
+        
+        // Update volume when slider changes
+        volumeSlider.addEventListener('input', function() {
+            const volume = this.value / 100;
+            music.volume = volume;
+            localStorage.setItem('musicVolume', volume);
+            volumePercent.textContent = this.value + '%';
+        });
+    }
+});
 </script>
 {% endblock %}
