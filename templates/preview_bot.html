@@ -24,24 +24,18 @@
         </tbody>
     </table>
 
-    <form method="POST">
-        <!-- Hidden fields for final confirmation -->
-        <input type="hidden" name="name" value="{{ request.form.get('name') }}">
-        <input type="hidden" name="algorithm" value="{{ request.form.get('algorithm') }}">
-        <input type="hidden" name="hp" value="{{ new_stats.hp }}">
-        <input type="hidden" name="energy" value="{{ new_stats.energy }}">
-        <input type="hidden" name="atk" value="{{ new_stats.atk }}">
-        <input type="hidden" name="defense" value="{{ new_stats.defense }}">
-        <input type="hidden" name="speed" value="{{ new_stats.speed }}">
-        <input type="hidden" name="logic" value="{{ new_stats.logic }}">
-        <input type="hidden" name="luck" value="{{ new_stats.luck }}">
+    <form method="POST" action="{{ url_for('edit_bot', bot_id=bot.id) }}">
+        <input type="hidden" name="confirm" value="1">
+
+        <input type="hidden" name="name" value="{{ new_name }}">
+        <input type="hidden" name="algorithm" value="{{ new_algorithm }}">
 
 
         {% for stat, val in new_stats.items() %}
             <input type="hidden" name="{{ stat }}" value="{{ val }}">
         {% endfor %}
 
-        <button type="submit" name="confirm" value="1" class="btn btn-success">Confirm Changes</button>
+        <button type="submit" name="confirm" value="1" id="confirm-btn" class="btn btn-success">Confirm Changes</button>
         <a href="{{ url_for('edit_bot', bot_id=bot.id) }}" class="btn btn-secondary">Back</a>
     </form>
 

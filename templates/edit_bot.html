@@ -91,6 +91,17 @@
         </div>
 
         <h5>Adjust Stats</h5>
+        <div class="stat-points-panel">
+            <p>
+                <strong>Stat Points Available:</strong>
+                <span id="sp-available">{{ bot.stat_points }}</span>
+            </p>
+            <p>
+                <strong>Stat Points Required:</strong>
+                <span id="sp-required">0</span>
+            </p>    
+        </div>
+
         <!-- ATK -->
         <div style="display:flex; flex-direction: column;" class="mb-3 stat-row">
             <label data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC</label>
@@ -159,44 +170,67 @@
 
         <button type="submit" name="preview" value="1" class="btn btn-primary">Preview Upgrades</button>
         <a href="{{ url_for('manage_bot') }}" class="btn btn-secondary">Cancel</a>
-
+        
     </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script type="application/json" id="current-stats">
+{{ {
+  'hp': bot.hp,
+  'atk': bot.atk,
+  'defense': bot.defense,
+  'speed': bot.speed,
+  'logic': bot.logic,
+  'luck': bot.luck,
+  'energy': bot.energy
+} | tojson }}
+</script>
+
 <script>
-document.querySelectorAll(".stat-row").forEach(row => {
+const CURRENT_STATS = JSON.parse(document.getElementById("current-stats").textContent);
+
+function recalcRequired() {
+  let required = 0;
+
+  document.querySelectorAll(".stat-row").forEach(row => {
     const slider = row.querySelector(".stat-slider");
     const number = row.querySelector(".stat-number");
-
-    // Skip rows that aren't slider-based (like weapon selector)
     if (!slider || !number) return;
 
-    slider.addEventListener("input", () => {
-        number.value = slider.value;
-    });
+    const stat = slider.name; // hp, defense, speed, etc
+    const desired = parseInt(number.value || slider.value, 10);
+    const current = CURRENT_STATS[stat];
 
-    number.addEventListener("input", () => {
-        slider.value = number.value;
-    });
+    if (!Number.isNaN(desired) && desired > current) {
+      required += (desired - current);
+    }
+  });
 
-    const enforceLimits = () => {
-        if (number.value === "") return;
-        if (number.value < slider.min) number.value = slider.min;
-        if (number.value > slider.max) number.value = slider.max;
-        slider.value = number.value;
-    };
+  const output = document.getElementById("sp-required");
+  if (output) output.textContent = required;
+}
 
-    number.addEventListener("blur", enforceLimits);
+document.querySelectorAll(".stat-row").forEach(row => {
+  const slider = row.querySelector(".stat-slider");
+  const number = row.querySelector(".stat-number");
+  if (!slider || !number) return;
 
-    number.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            enforceLimits();
-            number.blur();
-        }
-    });
+  slider.addEventListener("input", () => {
+    number.value = slider.value;
+    recalcRequired();
+  });
+
+  number.addEventListener("input", () => {
+    slider.value = number.value;
+    recalcRequired();
+  });
+
+  number.addEventListener("blur", recalcRequired);
 });
+
+// initial calculation
+recalcRequired();
 </script>
 {% endblock %}
