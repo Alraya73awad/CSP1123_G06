@@ -150,7 +150,6 @@ input[type="submit"] {
 }
 
 button.btn {
-  width: 100%;
   padding: 0px 24px;
   font-family: var(--font-terminal);
   font-size: 1.1rem;
@@ -643,8 +642,9 @@ select:focus {
     border-radius: 8px;
     padding: 1rem;
     background-color: rgba(0, 0, 0, 0.3); 
-    max-width: 300px;
+    width: 300px;
     margin: 0 auto;
+    margin-top: 30px;
 }
 
 .bot-dropdown, .buy-btn {
