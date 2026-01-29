@@ -84,11 +84,11 @@
             {% endif %}
         {% endwith %}
 
-        <a href="{{ url_for('dashboard') }}" class="btn">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-cancel">
             Cancel
         </a>
 
-        <button type="submit" class="btn btn-lg" {% if not my_bots or not matched_bots %}disabled{% endif %}>
+        <button type="submit" class="btn" {% if not my_bots or not matched_bots %}disabled{% endif %}>
             START BATTLE
         </button>
         

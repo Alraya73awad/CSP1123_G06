@@ -169,13 +169,13 @@ document.addEventListener('click', function() {
         <div class="modal-body">
           <div class="mb-3">
             <label>Username</label>
-            <input class="form-control" name="username"
+            <input type="text" class="form-control" name="username"
                    value="{{ current_user.username if current_user else '' }}">
           </div>
 
           <div class="mb-3">
             <label>Email</label>
-            <input class="form-control" name="email"
+            <input type="text" class="form-control" name="email"
                    value="{{ current_user.email if current_user else '' }}">
           </div>
 

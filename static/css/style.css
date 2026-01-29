@@ -84,7 +84,7 @@ body {
 }
 
 /* Text glow */
-h1, h5, p, label, input, button, a, .log-text {
+h1, h2, h3, h4, h5, p, label, input, button, a, .log-text {
   color: var(--terminal-text);
   text-shadow: 0 0 5px var(--terminal-glow), 0 0 10px var(--terminal-glow);
 }
@@ -97,6 +97,66 @@ input[type="submit"] {
 }
 
 /* Neon buttons */
+.btn {
+    background: transparent !important;
+    border: 2px solid var(--terminal-glow);
+    color: var(--terminal-glow);
+    box-shadow: 0 0 10px var(--terminal-glow);
+    text-shadow: 0 0 5px var(--terminal-glow);
+    transition: all 0.2s ease-in-out;
+    width: auto;
+    padding: 0px 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn:hover {
+    background: var(--terminal-glow) !important;
+    border: 2px solid var(--terminal-glow);
+    box-shadow: 0 0 20px var(--terminal-glow);
+    color: black;
+}
+
+.btn:disabled {
+    background: transparent !important;
+    border: 2px solid var(--terminal-dim);
+    color: var(--terminal-glow);
+    box-shadow: 0 0 10px var(--terminal-dim);
+    text-shadow: 0 0 5px var(--terminal-dim);
+    transition: all 0.2s ease-in-out;
+    width: 20%;
+}
+
+.btn-cancel {
+    background: transparent !important;
+    border: 2px solid red !important;
+    color: red !important;
+    box-shadow: 0 0 10px red !important;
+    text-shadow: 0 0 5px red !important;
+    transition: all 0.2s ease-in-out !important;
+    width: 20% !important;
+}
+
+.btn-cancel:hover {
+    background: red !important;
+    border: 2px solid red !important;
+    box-shadow: 0 0 20px red !important;
+    color: black !important;
+}
+
+.bot-actions form {
+  width: 20%;
+}
+
+button.btn {
+  width: 100%;
+  padding: 0px 24px;
+  font-family: var(--font-terminal);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
 .terminal-btn, .start-game-button
   .start-game-button {
   display: inline-block;
@@ -131,9 +191,11 @@ input[type="text"], input[type="password"], input[type="email"], textarea, selec
   font-family: var(--font-terminal);
 }
 
-input:focus, textarea:focus, select:focus {
-  outline: none;
+input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus, textarea:focus, select:focus {
+  outline: 2px solid var(--terminal-glow); 
+  background: rgba(0, 255, 170, 0.1);     
   border-color: var(--terminal-glow);
+  color: var(--terminal-text);             
   box-shadow: 0 0 10px var(--terminal-glow);
 }
 
@@ -142,15 +204,10 @@ a.start-game-button, a.login-button {
     text-decoration: none;
 }
 
-
-input[type="text"], input[type="password"], input[type="email"], textarea, select {
-    width: 100%;
-    padding: 10px;
-    border: 2px solid #00ffaa;
-    background: rgba(0, 255, 170, 0.05);
-    border-radius: 6px;
-    color: #00ffaa;
-    font-family: 'VT323', monospace;
+select option, select option:disabled {
+    background-color: #000a12;
+    color: var(--terminal-glow);
+    font-family: var(--font-terminal);
 }
 
 .alert {
@@ -160,11 +217,6 @@ input[type="text"], input[type="password"], input[type="email"], textarea, selec
     border: 1px solid #00ffea;
 }
 
-input:focus, textarea:focus, select:focus {
-    outline: none;
-    border-color: #00ffaa;
-    box-shadow: 0 0 10px #00ffaa;
-}
 
 /* Cursor blink */
 .blink {
@@ -230,21 +282,24 @@ header {
 /* bot */
 
 .bot-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 cards per row */
+    gap: 20px;                             
+    justify-items: center;                 
+    margin-top: 20px;
 }
 
 .bot-card {
-    border: 1px solid #00ff00;
+    border: 1px solid var(--terminal-glow);
     padding: 15px;
-    width: 220px;
     font-family: "VT323", monospace;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--terminal-bg);
+    width: auto;
+    box-sizing: border-box;
 }
 
 .bot-card h3 {
-    color: #00ff80;
+    color: var(--terminal-glow);
     margin-bottom: 10px;
 }
 
@@ -346,7 +401,7 @@ header {
     text-align: center;
 }
 /* Grids  */
-.stats-grid, .action-grid, .bot-list {
+.stats-grid, .action-grid{
     display: grid;
     gap: 60px;
     margin-bottom: 30px;  
@@ -354,10 +409,6 @@ header {
 
 .stats-grid {
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-}
-
-.bot-list {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 /* --- XP BAR --- */
@@ -613,8 +664,10 @@ select:focus {
 
 .neon-btn:hover {
     background: rgba(0, 255, 255, 0.15) !important;
+    border: 2px solid #00ffff;
     box-shadow: 0 0 20px #00ffff;
-    color: #ffffff;
+    text-shadow: 0 0 5px #00ffff;
+    color: #00ffff;
 }
 .back-home-btn {
     position: absolute;
@@ -746,20 +799,53 @@ select:focus {
   transform: translateY(-4px);
   box-shadow: 0 0 15px var(--terminal-glow);
 }
+
+.modal-dialog {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .modal-content {
-  background: rgba(0,0,0,0.92);
-  color: #00ffaa;
-  border: 2px solid #00ffaa;
-  box-shadow: 0 0 20px rgba(0,255,170,0.35);
+    background: rgba(0,0,0,0.92);
+    color: #00ffaa;
+    border: 2px solid #00ffaa;
+    box-shadow: 0 0 20px rgba(0,255,170,0.35);
 }
 
 .modal-header, .modal-footer {
   border-color: rgba(0,255,170,0.25);
 }
+
 .modal,
 .modal-backdrop{
-  position: fixed !important;
-  inset: 0;
-  margin: 0 !important;
-  transform: none !important;
+    position: fixed !important;
+    inset: 0;
+}
+
+.form-range {
+    width: 100%;
+    height: 8px;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.form-range::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 8px;
+    background:#000a12;
+    border-radius: 5px;
+    border: 1px solid var(--terminal-glow);
+    box-shadow: 0 0 8px rgba(0, 255, 170, 0.3);
+}
+
+/* The slider thumb (draggable circle) - WebKit */
+.form-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--terminal-glow);
+    border: 2px solid var(--terminal-screen);
+    border-radius: 50%;
+    cursor: pointer;
 }
