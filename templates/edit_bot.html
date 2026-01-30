@@ -1,26 +1,6 @@
 {% extends "base.html" %}
 
 {% block head %}
-<style>
-.algorithm-card {
-    border: 2px solid #ccc;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.algorithm-card:hover {
-    border-color: #0d6efd !important;
-    background-color: #f0f8ff !important;
-}
-
-.algorithm-radio:checked + .algorithm-card {
-    border-color: #0d6efd;
-    background-color: #e7f1ff;
-    box-shadow: 0 0 8px rgba(13, 110, 253, 0.4);
-}
-
-</style>
 {% endblock %}
 
 {% block content %}
@@ -48,9 +28,9 @@
         </div>
 
         <div class="mb-3">
-            <label class="form-label fw-bold">Select Algorithm</label>
+            <label>Select Algorithm</label>
 
-            <div class="row row-cols-1 row-cols-md-3 g-3">
+            <div>
 
                 {% for code, label in algorithms.items() %}
                 <div class="col">
@@ -65,9 +45,9 @@
                         {% if bot.algorithm == code %} checked {% endif %}>
 
                     <!-- CARD LABEL -->
-                    <label class="btn card p-3 text-center algorithm-card" for="alg-{{ code }}" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ algorithm_descriptions[code] }}">
+                    <label for="alg-{{ code }}" class="card algorithm-card text-center p-3" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ algorithm_descriptions[code] }}">
                         <h6>{{ code }}</h6>
-                        <p class="small">{{ label }}</p>
+                        <p>{{ label }}</p>
                     </label>
 
                 </div>
@@ -79,7 +59,7 @@
 
         <div class="mb-4">
             <h5>Current Stats</h5>
-            <ul class="list-group">
+            <ul class="edit-bot-list">
                 <li class="list-group-item" data-bs-toggle="tooltip" title="Integrity Core (INT): Your bot's maximum health.">INT: {{ bot.hp }}</li>
                 <li class="list-group-item" data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC: {{ bot.atk }}</li>
                 <li class="list-group-item" data-bs-toggle="tooltip" title="Defense Matrix (DEF): Reduces incoming damage.">DEF: {{ bot.defense }}</li>
@@ -94,7 +74,7 @@
         <!-- ATK -->
         <div style="display:flex; flex-direction: column;" class="mb-3 stat-row">
             <label data-bs-toggle="tooltip" title="Processing Output (PROC): Physical damage output. Increases the amount of damage your bot deals.">PROC</label>
-            <a href="{{ url_for('gear', bot_id=bot.id) }}">Go to Gear</a>
+            <a href="{{ url_for('gear', bot_id=bot.id) }}" style="font-style: italic;">Go to Gear</a>
         </div>
 
         <!-- HP -->
