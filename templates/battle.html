@@ -12,7 +12,7 @@
     <div class="alert alert-info">
         <strong>Matchmaking Range:</strong> {{ my_rating - 200 }} - {{ my_rating + 200 }} rating
         <br>
-        <small class="text-muted">You'll face opponents with similar skill levels</small>
+        <small>You'll face opponents with similar skill levels</small>
     </div>
 
     <form method="POST" class="mt-3">
@@ -20,7 +20,7 @@
         <!-- Select Your Bot -->
         <div class="mb-3">
             <label class="form-label"><strong>Choose Your Bot:</strong></label>
-            <select name="bot1" class="form-select" required>
+            <select name="bot1" required>
                 <option value="" disabled selected>Select your bot</option>
                 {% for bot in my_bots %}
                     <option value="{{ bot.id }}">
@@ -36,7 +36,7 @@
         <!-- Select Opponent -->
         <div class="mb-3">
             <label class="form-label"><strong>Choose Opponent:</strong></label>
-            <select name="bot2" class="form-select" required>
+            <select name="bot2" required>
                 <option value="" disabled selected>Select opponent</option>
                 {% if matched_bots %}
                     {% for bot in matched_bots %}
@@ -84,21 +84,21 @@
             {% endif %}
         {% endwith %}
 
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary ms-2">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-cancel">
             Cancel
         </a>
 
-        <button type="submit" class="btn btn-danger btn-lg" {% if not my_bots or not matched_bots %}disabled{% endif %}>
+        <button type="submit" class="btn" {% if not my_bots or not matched_bots %}disabled{% endif %}>
             START BATTLE
         </button>
         
         {% if not my_bots or not matched_bots %}
-            <br><small class="text-muted">Button disabled: {{ "Create a bot first" if not my_bots else "No opponents available" }}</small>
+            <br><small>Button disabled: {{ "Create a bot first" if not my_bots else "No opponents available" }}</small>
         {% endif %}
     </form>
 
     <br>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+    <a href="{{ url_for('dashboard') }}" class="btn">← Back to Dashboard</a>
 </div>
 
 {% endblock %}

@@ -106,7 +106,7 @@
 <form method="POST">
 <div class="mb-3">
     <label for="name">Bot Name:</label><br>
-    <input type="text" id="name" name="name" required class="form-control"><br><br>
+    <input type="text" id="name" name="name" required><br><br>
 </div>
 
 <div class="container">
@@ -128,8 +128,8 @@
 
             <!-- The card acts as the label -->
             <label for="{{ code }}" class="card algorithm-card text-center p-3" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ algorithm_descriptions[code] }}">
-                <h5 class="fw-bold">{{ code }}</h5>
-                <p class="text-muted">{{ label }}</p>
+                <h5>{{ code }}</h5>
+                <p>{{ label }}</p>
             </label>
 
         </div>
@@ -141,7 +141,7 @@
 
 
 
-    <button type="submit" class="btn btn-outline-primary mt-4">Create Bot</button>
+    <button type="submit" class="terminal-btn">Create Bot</button>
 
 </form>
 
@@ -221,11 +221,10 @@
 
 <!-- Volume Modal -->
 <div class="modal fade" id="volumeModal" tabindex="-1" aria-labelledby="volumeModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="volumeModalLabel">Music Controls</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <!-- Volume Slider -->
@@ -233,12 +232,12 @@
           <label for="volumeSlider" class="form-label">
             Volume: <span id="volumePercent" >30%</span>
           </label>
-          <input type="range" id="volumeSlider" min="0" max="100" value="30" class="form-range">
+          <input type="range" id="volumeSlider" min="0" max="100" class="form-range">
         </div>
 
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary neon-btn" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn neon-btn" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -248,32 +247,28 @@
 {% block scripts %}
 <!-- Volume Control Script -->
 <script>
-const volumeModal = document.getElementById('volumeModal');
+document.addEventListener('DOMContentLoaded', function() {
+    const volumeSlider = document.getElementById('volumeSlider');
+    const volumePercent = document.getElementById('volumePercent');
+    const music = document.getElementById('bgMusic');
 
-if (volumeModal) {
-    volumeModal.addEventListener('shown.bs.modal', function() {
-        const volumeSlider = document.getElementById('volumeSlider');
-        const volumePercent = document.getElementById('volumePercent');
-        const music = document.getElementById('bgMusic');
-
-        if (volumeSlider && volumePercent && music) {
-            // Load saved volume
-            const savedVolume = parseFloat(localStorage.getItem('musicVolume')) || 0.3;
-            const volumePercentValue = Math.round(savedVolume * 100);
-            volumeSlider.value = volumePercentValue;
-            volumePercent.textContent = volumePercentValue + '%';
-
-
-            // Volume slider changes
-            volumeSlider.addEventListener('input', function() {
-                const volume = this.value / 100;
-                music.volume = volume;
-                localStorage.setItem('musicVolume', volume);
-                volumePercent.textContent = this.value + '%';
-            });
-
-        }
-    });
-}
+    if (volumeSlider && volumePercent && music) {
+        // Load saved volume from localStorage
+        const savedVolume = parseFloat(localStorage.getItem('musicVolume')) || 0.3;
+        const volumePercentValue = Math.round(savedVolume * 100);
+        
+        // Set initial slider values
+        volumeSlider.value = volumePercentValue;
+        volumePercent.textContent = volumePercentValue + '%';
+        
+        // Update volume when slider changes
+        volumeSlider.addEventListener('input', function() {
+            const volume = this.value / 100;
+            music.volume = volume;
+            localStorage.setItem('musicVolume', volume);
+            volumePercent.textContent = this.value + '%';
+        });
+    }
+});
 </script>
 {% endblock %}

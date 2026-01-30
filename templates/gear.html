@@ -9,7 +9,7 @@
         <form method="POST">
             <div class="mb-3">
                 <label for="equip_weapon">Select Weapon:</label>
-                <select name="equip_weapon" id="equip_weapon" class="form-select">
+                <select name="equip_weapon" id="equip_weapon">
                     <option value="">-- None --</option>
                     {% for ow in owned_weapons %}
                         <option value="{{ ow.id }}" {% if ow.equipped and ow.bot_id == bot.id %}selected{% endif %}>
@@ -22,8 +22,8 @@
         </form>
 
     {% if owned_weapons %}
-    <table class="table table-bordered mt-3">
-        <thead class="table-light">
+    <table class="bot-details-table">
+        <thead>
             <tr>
                 <th>Weapon</th>
                 <th>Level</th>
