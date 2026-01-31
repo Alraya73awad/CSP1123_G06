@@ -38,7 +38,6 @@ def create_test_players(num_players=100):
             level = random.randint(1, 20)
             xp = random.randint(0, level * 100)
             tokens = random.randint(0, 1000)
-            stat_points = random.randint(0, level * 2)
             
             # Create the user
             user = User(
@@ -50,8 +49,7 @@ def create_test_players(num_players=100):
                 rating=rating,
                 level=level,
                 xp=xp,
-                tokens=tokens,
-                stat_points=stat_points
+                tokens=tokens
             )
             
             db.session.add(user)
