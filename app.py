@@ -6,11 +6,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from functools import wraps
 from extensions import db
-from constants import UPGRADES, STORE_ITEMS, PASSIVE_ITEMS
+from constants import UPGRADES, STORE_ITEMS
 from battle import BattleBot, full_battle
 
 # Models
-from models import User, Bot, History, HistoryLog, Weapon, Admins
+from models import User, Bot, History, HistoryLog, Weapon, Admins, Ability
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -199,13 +199,16 @@ def character_page(bot_id):
 
     if user["is_admin"]:
         owned_weapons = Weapon.query.all()
+        owned_abilities = Ability.query.all()
     else:
         owned_weapons = user.weapons.all()
+        owned_abilities = user.abilities.all()
 
     return render_template(
         "character_page.html",
         bot=bot,
-        owned_weapons=owned_weapons
+        owned_weapons=owned_weapons,
+        owned_abilities=owned_abilities
     )
 
 #dashboard
@@ -321,7 +324,9 @@ def armory():
     user = User.query.get(session["user_id"])
     credits = user.tokens if user else 0
     weapons = Weapon.query.all()
-    return render_template("armory.html", weapons=weapons, credits=credits)
+    abilities = Ability.query.all()
+
+    return render_template("armory.html", weapons=weapons, credits=credits, abilities=abilities)
 
 @app.route("/buy_weapon/<int:weapon_id>", methods=["POST"])
 @login_required
@@ -354,7 +359,7 @@ def sell_weapon(weapon_id, bot_id):
 
     weapon = Weapon.query.get_or_404(weapon_id)
 
-    # Ownership check: admins can sell any, normal users only their own
+    # Verify ownership unless admin
     if not is_admin and weapon not in user.weapons:
         flash("You don't own this weapon.", "danger")
         return redirect(url_for("edit_bot", bot_id=bot_id))
@@ -362,7 +367,6 @@ def sell_weapon(weapon_id, bot_id):
     refund = int(weapon.price * 0.6)
     user.xp += refund
 
-    # Remove weapon from inventory for normal users
     if not is_admin:
         db.session.delete(weapon)
 
@@ -390,35 +394,33 @@ def store():
 
     return render_template(
         "armory.html",
-        store_items=STORE_ITEMS,     
-        passive_items=PASSIVE_ITEMS, 
+        store_items=STORE_ITEMS,      
         bots=bots,
         credits=credits
     )
 
-@app.route('/buy_passive/<int:passive_id>', methods=['POST'])
+@app.route("/buy_ability/<int:ability_id>", methods=["POST"])
 @login_required
-def buy_passive(passive_id):
-    user = User.query.get(session['user_id'])
-    bot_id = request.form.get('bot_id')
-    bot = Bot.query.get(bot_id)
+def buy_ability(ability_id):
+    user = User.query.get(session["user_id"])
+    ability = Ability.query.get_or_404(ability_id)
 
-    passive = next((p for p in PASSIVE_ITEMS if p["id"] == passive_id), None)
-    if not passive:
-        flash("Passive not found", "danger")
+    # Already owned?
+    if ability in user.abilities:
+        flash("You already own this ability.", "warning")
         return redirect(url_for("armory"))
 
-    if user.tokens < passive["cost"]:
-        flash("Not enough credits!", "danger")
-        return redirect(url_for("amrory"))
+    if user.tokens < ability.price:
+        flash("Not enough credits to purchase this ability.", "danger")
+        return redirect(url_for("armory"))
 
-    user.tokens -= passive["cost"]
-
-    bot.passive_effect = passive["name"]
+    # Deduct credits and add ability
+    user.tokens -= ability.price
+    user.abilities.append(ability)
 
     db.session.commit()
-    flash(f"{bot.name} learned passive: {passive['name']}", "success")
-    return redirect(url_for("amrory"))
+    flash(f"You purchased {ability.name}!", "success")
+    return redirect(url_for("armory"))
 
 @app.route('/character')
 def character():
@@ -605,8 +607,9 @@ def edit_bot(bot_id):
         if ability_id:
             try:
                 aid = int(ability_id)
-                if is_admin or any(a.id == aid for a in user.abilities):
+                if is_admin or user.abilities.filter_by(id=aid).first():
                     bot.ability_id = aid
+
             except ValueError:
                 flash("Invalid ability selection.", "danger")
 
@@ -616,6 +619,7 @@ def edit_bot(bot_id):
 
     # For GET requests, show all weapons/abilities if admin, else only owned
     owned_weapons = Weapon.query.all() if is_admin else user.weapons.all()
+    owned_abilities = Ability.query.all() if is_admin else user.abilities.all()
 
     return render_template(
         "edit_bot.html",
@@ -624,9 +628,11 @@ def edit_bot(bot_id):
         algorithms=algorithms,
         algorithm_descriptions=algorithm_descriptions,
         owned_weapons=owned_weapons,
+        owned_abilities=owned_abilities,
         xp_balance=user.xp,
         is_admin=is_admin
     )
+
 @app.route('/bot/<int:bot_id>')
 @login_required
 def bot_details(bot_id):
@@ -706,7 +712,9 @@ def combat_log(bot1_id, bot2_id):
         clk=stats1["clk"],
         luck=stats1["luck"],
         weapon_atk=weapon1.effective_atk() if weapon1 else 0,
-        weapon_type=weapon1.type if weapon1 else None
+        weapon_type=weapon1.type if weapon1 else None,
+        special_effect=bot1.special_effect.name if bot1.special_effect else None,
+        equipped_ability=bot1.ability.name if bot1.ability else None
     )
 
     battleB = BattleBot(
@@ -718,7 +726,9 @@ def combat_log(bot1_id, bot2_id):
         clk=stats2["clk"],
         luck=stats2["luck"],
         weapon_atk=weapon2.effective_atk() if weapon2 else 0,
-        weapon_type=weapon2.type if weapon2 else None
+        weapon_type=weapon2.type if weapon2 else None,
+        special_effect=bot2.special_effect.name if bot2.special_effect else None,
+        equipped_ability=bot2.ability.name if bot2.ability else None
     )
 
     winner, log = full_battle(battleA, battleB)

@@ -1,9 +1,9 @@
 import random
 
-
 class BattleBot:
-    def __init__(self, name, hp, energy, proc, defense, speed=0, clk=0, luck=0, weapon=None,
-                 weapon_atk=0, weapon_type=None, special_effect=None):
+    def __init__(self, name, hp, energy, proc, defense, speed=0, clk=0, luck=0,
+                 weapon=None, weapon_atk=0, weapon_type=None, special_effect=None,
+                 equipped_ability=None):
         self.name = name
         self.hp = hp
         self.energy = energy
@@ -18,63 +18,34 @@ class BattleBot:
         self.special_effect = special_effect
         self.extra_attacks = 0
         self.ability_used = False
+        self.equipped_ability = equipped_ability  # one passive ability only
+        self.backup_used = False                  # track Backup OS usage
 
     def is_alive(self):
         return self.hp > 0 and self.energy > 0
+
 
 ARENA_FLAVOR = {
     "ironclash": "⚔️ Welcome to the Ironclash Colosseum — a savage pit where melee warriors gain the upper hand, while ranged bots struggle to keep their distance.",
     "skyline": "🌌 Enter the Skyline Expanse — a vast battlefield of open skies where ranged fighters dominate with precision, leaving melee bots exposed.",
     "neutral": "🌀 The Neutral Arena stands silent — no terrain favors, no hidden edges, only raw willpower decides the victor.",
     "frozen": "❄️ The Frozen Wastes stretch bleak and icy — footing is treacherous, winds howl, and fortress AIs endure while both melee and ranged fighters struggle to land their blows."
-
 }
 
-
 ARENA_EFFECTS = {
-    "ironclash": {
-        "favored": "melee",
-        "damage_bonus": 1.10,
-        "whiff_melee": 0.05,
-        "whiff_ranged": 0.15,
-        "spd_mod": 1.0,
-        "def_mod": 1.0
-    },
-    "skyline": {
-        "favored": "ranged",
-        "damage_bonus": 1.10,
-        "whiff_melee": 0.15,
-        "whiff_ranged": 0.05,
-        "spd_mod": 1.0,
-        "def_mod": 1.0
-    },
-    "neutral": {
-        "favored": None,
-        "damage_bonus": 1.0,
-        "whiff_melee": 0.1,
-        "whiff_ranged": 0.1,
-        "spd_mod": 1.0,
-        "def_mod": 1.0
-    },
-    "frozen": {
-        "favored": None,
-        "damage_bonus": 1.0,
-        "whiff_melee": 0.07,   # slippery footing
-        "whiff_ranged": 0.07,  # cold winds
-        "spd_mod": 0.90,       # –10% SPD
-        "def_mod": 1.10        # +10% DEF
-    }
+    "ironclash": {"favored": "melee", "damage_bonus": 1.10, "whiff_melee": 0.05, "whiff_ranged": 0.15, "spd_mod": 1.0, "def_mod": 1.0},
+    "skyline": {"favored": "ranged", "damage_bonus": 1.10, "whiff_melee": 0.15, "whiff_ranged": 0.05, "spd_mod": 1.0, "def_mod": 1.0},
+    "neutral": {"favored": None, "damage_bonus": 1.0, "whiff_melee": 0.1, "whiff_ranged": 0.1, "spd_mod": 1.0, "def_mod": 1.0},
+    "frozen": {"favored": None, "damage_bonus": 1.0, "whiff_melee": 0.07, "whiff_ranged": 0.07, "spd_mod": 0.90, "def_mod": 1.10}
 }
 
 def log_line(log, type, text):
     log.append((type.strip().lower(), text))
 
-
 def arena_name(arena):
     if arena is None:
         return "Neutral"
     return str(arena).title()
-
 
 def calculate_turn_order(botA, botB):
     if botA.clk > botB.clk:
@@ -82,7 +53,7 @@ def calculate_turn_order(botA, botB):
     elif botB.clk > botA.clk:
         return [botB, botA]
     else:
-        return random.sample([botA, botB], 2)  # random order if equal
+        return random.sample([botA, botB], 2)
 
 def apply_arena_modifiers(bot, arena):
     effects = ARENA_EFFECTS.get(arena, ARENA_EFFECTS["neutral"])
@@ -91,8 +62,8 @@ def apply_arena_modifiers(bot, arena):
 
 def get_effective_proc(bot):
     return bot.proc + (bot.weapon_atk if bot.weapon_atk else 0)
-    
-    
+
+# --- Active special effects ---
 def use_ability(attacker, defender, log, round_num=1):
     if attacker.ability_used:
         return
@@ -135,7 +106,7 @@ def use_ability(attacker, defender, log, round_num=1):
         log_line(log, "special",
                  f"⏳ {attacker.name} bends time with Time Dilation, preparing to strike twice!")
 
-
+# --- Passive ability effects ---
 def calculate_damage(attacker, defender, log, arena=None):
     base_proc = get_effective_proc(attacker) - (defender.defense * 0.7)
     base_proc = max(base_proc, 0)
@@ -157,9 +128,13 @@ def calculate_damage(attacker, defender, log, arena=None):
         base_proc *= variance
 
     # Critical hit
+    crit_multiplier = 2.0
+    if attacker.equipped_ability == "Critical Logic":
+        crit_multiplier *= 1.1
+
     if random.randint(1, 100) <= attacker.luck:
         log_line(log, "crit", f"💥 Critical Hit! {attacker.name} lands a devastating strike!")
-        base_proc *= 2
+        base_proc *= crit_multiplier
 
     # Dodge
     if defender.clk > attacker.clk:
@@ -168,13 +143,10 @@ def calculate_damage(attacker, defender, log, arena=None):
             log_line(log, "dodge", f"🌀 {defender.name} dodged the attack!")
             return 0
 
-    
-
     apply_arena_modifiers(attacker, arena)
     apply_arena_modifiers(defender, arena)
 
     return base_proc
-
 
 def battle_round(botA, botB, log, arena="neutral", round_num=1):
     turn_order = calculate_turn_order(botA, botB)
@@ -185,15 +157,18 @@ def battle_round(botA, botB, log, arena="neutral", round_num=1):
         if not defender.is_alive():
             break
 
-        attacker.energy -= 10
+        # Energy cost (Efficient Circuit reduces cost)
+        energy_cost = 10
+        if attacker.equipped_ability == "Efficient Circuit":
+            energy_cost = int(energy_cost * 0.9)
+        attacker.energy -= energy_cost
         attacker.energy = max(attacker.energy, 0)
 
         if not attacker.is_alive():
             log_line(log, "energy", f"{attacker.name} has been defeated (out of energy)!")
             return defender.name
 
-        use_ability(attacker, defender, log, round_num)
-
+        # First attack
         damage = calculate_damage(attacker, defender, log, arena=arena)
         defender.hp -= damage
         if defender.hp < 0:
@@ -206,17 +181,42 @@ def battle_round(botA, botB, log, arena="neutral", round_num=1):
 
         log_line(log, "status", f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
 
-        if attacker.extra_attacks > 0 and defender.is_alive():
+        # Backup OS check
+        if defender.hp <= 0:
+            if defender.equipped_ability == "Backup OS" and not defender.backup_used:
+                defender.hp = 1
+                defender.backup_used = True
+                log_line(log, "ability", f"💾 {defender.name}'s Backup OS activates! Survives with 1 HP!")
+                log_line(log, "status", f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
+
+            else:
+                defender.hp = 0
+                log_line(log, "defeat", f"{defender.name} has been defeated!")
+                return attacker.name
+
+        # Active special ability (log AFTER first attack so order looks natural)
+        use_ability(attacker, defender, log, round_num)
+
+        # Extra attack (Time Dilation)
+        if attacker.extra_attacks > 0:
             attacker.extra_attacks -= 1
             extra_dmg = calculate_damage(attacker, defender, log, arena=arena)
             defender.hp -= extra_dmg
             if defender.hp < 0:
                 defender.hp = 0
-            log_line(log, "attack", f"{attacker.name} strikes again with Time Dilation for {extra_dmg:.2f} damage!")
 
-        if not defender.is_alive():
-            log_line(log, "defeat", f"{defender.name} has been defeated!")
-            return attacker.name
+            if defender.hp <= 0:
+                if defender.equipped_ability == "Backup OS" and not defender.backup_used:
+                    defender.hp = 1
+                    defender.backup_used = True
+                    log_line(log, "ability", f"💾 {defender.name}'s Backup OS activates! Survives with 1 HP!")
+                else:
+                    defender.hp = 0
+                    log_line(log, "defeat", f"{defender.name} has been defeated!")
+                    return attacker.name
+
+            log_line(log, "attack", f"{attacker.name} strikes again with Time Dilation for {extra_dmg:.2f} damage!")
+            log_line(log, "status", f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
 
 
 def full_battle(botA, botB, arena="neutral"):
@@ -224,6 +224,12 @@ def full_battle(botA, botB, arena="neutral"):
     round_num = 1
     intro_line = ARENA_FLAVOR.get(arena, f"🏟️ Battle begins in the {arena_name(arena)} Arena!")
     log_line(log, "arena", intro_line)
+
+    # Announce abilities
+    if botA.equipped_ability:
+        log_line(log, "ability", f"{botA.name} enters battle with {botA.equipped_ability} equipped.")
+    if botB.equipped_ability:
+        log_line(log, "ability", f"{botB.name} enters battle with {botB.equipped_ability} equipped.")
 
     while botA.is_alive() and botB.is_alive():
         log_line(log, "round", f"(Round {round_num})")
@@ -238,11 +244,12 @@ def full_battle(botA, botB, arena="neutral"):
 
 # Test battle
 if __name__ == "__main__":
-    bot1 = BattleBot("Alpha", hp=100, energy=50, proc=30, defense=10,
-                     clk=14, luck=10, weapon_type="melee", special_effect="Time Dilation", weapon = "code cutter")
-    bot2 = BattleBot("Beta", hp=120, energy=50, proc=25, defense=12,
-                     clk=14, luck=10, weapon_type="ranged", special_effect="Evolve Protocol")
+    bot1 = BattleBot("Alpha", hp=100, energy=100, proc=30, defense=10,
+                     clk=14, luck=10, weapon_type="melee", weapon="Code Cutter",
+                     special_effect="Time Dilation", equipped_ability="Critical Logic")
+    bot2 = BattleBot("Beta", hp=120, energy=100, proc=25, defense=12,
+                     clk=14, luck=10, weapon_type="ranged", weapon="Bit Blaster",
+                     special_effect="Evolve Protocol", equipped_ability="Backup OS")
 
-    #Randomly pick Ironclash, Skyline, or Neutral
     chosen_arena = random.choice(["ironclash", "skyline", "neutral", "frozen"])
     winner, log = full_battle(bot1, bot2, arena=chosen_arena)

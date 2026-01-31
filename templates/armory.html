@@ -35,40 +35,42 @@
 
     <!-- Weapons Tab -->
     <h3 class="mt-4">Weapons</h3>
-<div class="row">
-  {% for weapon in weapons %}
-  <div class="col-md-4 mb-4">
-    <div class="card h-100">
-      <div class="card-body">
-        <h5 class="card-title">{{ weapon.name }}</h5>
-        <p class="card-text">{{ weapon.desc }}</p>
-        <p>Tier: {{ weapon.tier }} | ATK +{{ weapon.effective_atk() }}</p>
-        <p>Cost: {{ weapon.price }} Credits</p>
+    <div class="row">
+      {% for weapon in weapons %}
+      <div class="col-md-4 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">{{ weapon.name }}</h5>
+            <p class="card-text">{{ weapon.description }}</p>
+            <p>Tier: {{ weapon.tier }} | ATK +{{ weapon.effective_atk() }}</p>
+            <p>Cost: {{ weapon.price }} Credits</p>
 
-        <form method="POST" action="{{ url_for('buy_weapon', weapon_id=weapon.id) }}">
-          <button type="submit" class="btn btn-primary">Purchase</button>
-        </form>
-      </div>
-    </div>
-  </div>
-  {% endfor %}
-</div>
-
-    <!-- Abilities Tab -->
-    <h3 class="mt-4">Abilities</h3>
-    <div class="store-grid">
-      {% for ability in abilities %}
-      <div class="store-item">
-          <h3>{{ ability.name }}</h3>
-          <p>{{ ability.desc }}</p>
-          <p>Cost: {{ ability.price if ability.price is not none else ability.cost }} Credits</p>
-
-          <form method="POST" action="{{ url_for('buy_ability', ability_id=ability.id) }}">
-              <button type="submit" class="buy-btn">Purchase</button>
-          </form>
+            <form method="POST" action="{{ url_for('buy_weapon', weapon_id=weapon.id) }}">
+              <button type="submit" class="btn btn-primary">Purchase</button>
+            </form>
+          </div>
+        </div>
       </div>
       {% endfor %}
     </div>
+
+    <!-- Abilities Tab -->
+<h3 class="mt-4">Abilities</h3>
+<div class="store-grid">
+  {% for ability in abilities %}
+  <div class="store-item card p-3 mb-3">
+      <h5 class="card-title">{{ ability.name }}</h5>
+      <p class="card-text" style="color:#fff; font-weight:500;">
+          {{ ability.description }}
+      </p>
+      <p><strong>Cost:</strong> {{ ability.price if ability.price is not none else 0 }} Credits</p>
+
+      <form method="POST" action="{{ url_for('buy_ability', ability_id=ability.id) }}">
+          <button type="submit" class="btn btn-success">Purchase</button>
+      </form>
+  </div>
+  {% endfor %}
+</div>
 
     <div style="text-align:center; margin-top: 50px;">
         <a href="{{ url_for('dashboard') }}" class="back-btn">Return</a>

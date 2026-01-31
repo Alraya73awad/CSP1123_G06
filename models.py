@@ -2,12 +2,20 @@ from extensions import db
 from flask_login import UserMixin
 from datetime import datetime
 
+# --- Association Tables ---
 user_weapons = db.Table(
     "user_weapons",
     db.Column("user_id", db.Integer, db.ForeignKey("user.id"), primary_key=True),
     db.Column("weapon_id", db.Integer, db.ForeignKey("weapons.id"), primary_key=True)
 )
 
+user_abilities = db.Table(
+    "user_abilities",
+    db.Column("user_id", db.Integer, db.ForeignKey("user.id"), primary_key=True),
+    db.Column("ability_id", db.Integer, db.ForeignKey("abilities.id"), primary_key=True)
+)
+
+# --- User Model ---
 class User(db.Model, UserMixin):
     __tablename__ = "user"
     id = db.Column(db.Integer, primary_key=True)
@@ -22,12 +30,12 @@ class User(db.Model, UserMixin):
 
     bots = db.relationship("Bot", backref="user", lazy=True)
     weapons = db.relationship("Weapon", secondary=user_weapons, backref="owners", lazy="dynamic")
-
+    abilities = db.relationship("Ability", secondary=user_abilities, backref="owners", lazy="dynamic")
 
     def get_id(self):
         return str(self.id)
 
-
+# --- Bot Model ---
 class Bot(db.Model):
     __tablename__ = "bot"
 
@@ -46,68 +54,19 @@ class Bot(db.Model):
     extra_attacks = db.Column(db.Integer, default=0)
     ability_used = db.Column(db.Boolean, default=False)
     special_damage = db.Column(db.Integer, default=0)
+
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
 
     weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"), nullable=True)
     weapon = db.relationship("Weapon", backref="bots")
 
+    ability_id = db.Column(db.Integer, db.ForeignKey("abilities.id"), nullable=True)
+    ability = db.relationship("Ability", backref="bots")
+
     def __repr__(self):
         return f"<Bot {self.name}>"
 
-def __repr__(self):
-        return f"<Bot {self.name}>"
-
-def award_battle_rewards(self, user, result):
-        xp_gain = {"win": 50, "lose": 20, "draw": 30}
-        token_gain = {"win": 10, "lose": 3, "draw": 5}
-
-        old_level = user.level
-
-        user.xp += xp_gain.get(result, 0)
-        user.tokens += token_gain.get(result, 0)
-
-        while user.xp >= user.level * 100:
-            user.xp -= user.level * 100
-            user.level += 1
-
-        db.session.commit()
-        return user.level > old_level
-
-class History(db.Model):
-    __tablename__ = "history"
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    bot1_id = db.Column(db.Integer, db.ForeignKey("bot.id"), nullable=False)
-    bot2_id = db.Column(db.Integer, db.ForeignKey("bot.id"), nullable=False)
-
-    bot1_name = db.Column(db.String(50), nullable=False)
-    bot2_name = db.Column(db.String(50), nullable=False)
-
-    winner = db.Column(db.String(50))
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-
-    logs = db.relationship(
-        "HistoryLog",
-        backref="history",
-        cascade="all, delete-orphan"
-    )
-
-
-class HistoryLog(db.Model):
-    __tablename__ = "history_log"
-
-    id = db.Column(db.Integer, primary_key=True)
-
-    history_id = db.Column(
-        db.Integer,
-        db.ForeignKey("history.id"),
-        nullable=False
-    )
-
-    type = db.Column(db.String(20))
-    text = db.Column(db.Text)
-
+# --- Weapon Model ---
 class Weapon(db.Model):
     __tablename__ = "weapons"
 
@@ -130,11 +89,52 @@ class Weapon(db.Model):
             5: {"base": 55, "per_level": 14},
             6: {"base": 100, "per_level": 20},
         }
-
         stats = tier_stats[self.tier]
-
         return stats["base"] + (self.level - 1) * stats["per_level"]
-    
+
+# --- Ability Model ---
+class Ability(db.Model):
+    __tablename__ = "abilities"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    price = db.Column(db.Integer, default=0)
+    description = db.Column(db.String(200), nullable=False)
+    energy_cost = db.Column(db.Integer, default=0)
+    effect_type = db.Column(db.String(50), nullable=False)
+    effect_value = db.Column(db.Integer, default=0)
+
+# --- History Model ---
+class History(db.Model):
+    __tablename__ = "history"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    bot1_id = db.Column(db.Integer, db.ForeignKey("bot.id"), nullable=False)
+    bot2_id = db.Column(db.Integer, db.ForeignKey("bot.id"), nullable=False)
+
+    bot1_name = db.Column(db.String(50), nullable=False)
+    bot2_name = db.Column(db.String(50), nullable=False)
+
+    winner = db.Column(db.String(50))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    logs = db.relationship(
+        "HistoryLog",
+        backref="history",
+        cascade="all, delete-orphan"
+    )
+
+# --- HistoryLog Model ---
+class HistoryLog(db.Model):
+    __tablename__ = "history_log"
+
+    id = db.Column(db.Integer, primary_key=True)
+    history_id = db.Column(db.Integer, db.ForeignKey("history.id"), nullable=False)
+    type = db.Column(db.String(20))
+    text = db.Column(db.Text)
+
+# --- Admins Model ---
 class Admins(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
