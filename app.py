@@ -1333,3 +1333,32 @@ if __name__ == "__main__":
 @login_required
 def database():
     return render_template("database.html")
+
+#Database Pages
+@app.route("/database/getting-started")
+def database_getting_started():
+    return render_template("database_pages/getting_started.html", active_database="getting_started")
+
+@app.route("/database/combat")
+def database_combat():
+    return render_template("database_pages/combat.html", active_database="combat")
+
+@app.route("/database/algorithms")
+def database_algorithms():
+    return render_template("database_pages/algorithms.html", active_database="algorithms")
+
+@app.route("/database/weapons")
+def database_weapons():
+    return render_template("database_pages/weapons.html", active_database="weapons")
+
+@app.route("/database/upgrades")
+def database_upgrades():
+    return render_template("database_pages/upgrades.html", active_database="upgrades")
+
+@app.route("/database/stats")
+def database_stats():
+    return render_template("database_pages/stats.html", active_database="stats")
+
+@app.route("/database/leaderboard")
+def database_rating_system():
+    return render_template("database_pages/rating_system.html", active_database="rating_system")
