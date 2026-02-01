@@ -2,8 +2,7 @@ import random
 
 class BattleBot:
     def __init__(self, name, hp, energy, proc, defense, speed=0, clk=0, luck=0,
-                 weapon=None, weapon_atk=0, weapon_type=None, special_effect=None,
-                 equipped_ability=None):
+                 weapon=None, weapon_atk=0, weapon_type=None, special_effect=None, equipped_ability=None):
         self.name = name
         self.hp = hp
         self.energy = energy
