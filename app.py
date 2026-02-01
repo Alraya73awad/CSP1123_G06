@@ -317,62 +317,7 @@ def create_bot():
 def getattr_filter(obj, name):
     return getattr(obj, name)
 
-# Armory routes
-@app.route("/armory")
-@login_required
-def armory():
-    user = User.query.get(session["user_id"])
-    credits = user.tokens if user else 0
-    weapons = Weapon.query.all()
-    abilities = Ability.query.all()
 
-    return render_template("armory.html", weapons=weapons, credits=credits, abilities=abilities)
-
-@app.route("/buy_weapon/<int:weapon_id>", methods=["POST"])
-@login_required
-def buy_weapon(weapon_id):
-    user = User.query.get(session["user_id"])
-    weapon = Weapon.query.get_or_404(weapon_id)
-
-    # Already owned?
-    if weapon in user.weapons:
-        flash("You already own this weapon.", "warning")
-        return redirect(url_for("armory"))
-
-    if user.tokens < weapon.price:
-        flash("Not enough credits to purchase this weapon.", "danger")
-        return redirect(url_for("armory"))
-
-    # Deduct credits and add weapon
-    user.tokens -= weapon.price
-    user.weapons.append(weapon)
-
-    db.session.commit()
-    flash(f"You purchased {weapon.name}!", "success")
-    return redirect(url_for("armory"))
-
-@app.route('/sell-weapon/<int:weapon_id>/<int:bot_id>', methods=['POST'])
-@login_required
-def sell_weapon(weapon_id, bot_id):
-    user = User.query.get(session["user_id"])
-    is_admin = session.get("is_admin", False)
-
-    weapon = Weapon.query.get_or_404(weapon_id)
-
-    # Verify ownership unless admin
-    if not is_admin and weapon not in user.weapons:
-        flash("You don't own this weapon.", "danger")
-        return redirect(url_for("edit_bot", bot_id=bot_id))
-
-    refund = int(weapon.price * 0.6)
-    user.xp += refund
-
-    if not is_admin:
-        db.session.delete(weapon)
-
-    db.session.commit()
-    flash(f"Sold {weapon.name} for {refund} XP.", "success")
-    return redirect(url_for("edit_bot", bot_id=bot_id))
 
 # manage bot
 @app.route('/manage_bot')
@@ -385,7 +330,7 @@ def manage_bot():
     return render_template('manage_bot.html', bots=user_bots)
 
 # Other pages
-@app.route('/amrory')
+@app.route('/store')
 @login_required
 def store():
     user = User.query.get(session['user_id'])
@@ -393,34 +338,13 @@ def store():
     credits = user.tokens
 
     return render_template(
-        "armory.html",
-        store_items=STORE_ITEMS,      
+        "store.html",
+        store_items=STORE_ITEMS,
         bots=bots,
         credits=credits
     )
 
-@app.route("/buy_ability/<int:ability_id>", methods=["POST"])
-@login_required
-def buy_ability(ability_id):
-    user = User.query.get(session["user_id"])
-    ability = Ability.query.get_or_404(ability_id)
 
-    # Already owned?
-    if ability in user.abilities:
-        flash("You already own this ability.", "warning")
-        return redirect(url_for("armory"))
-
-    if user.tokens < ability.price:
-        flash("Not enough credits to purchase this ability.", "danger")
-        return redirect(url_for("armory"))
-
-    # Deduct credits and add ability
-    user.tokens -= ability.price
-    user.abilities.append(ability)
-
-    db.session.commit()
-    flash(f"You purchased {ability.name}!", "success")
-    return redirect(url_for("armory"))
 
 @app.route('/character')
 def character():
@@ -777,7 +701,7 @@ def apply_algorithm(bot):
     weapon_bonus = weapon.atk_bonus if weapon else 0
 
     # Return new effective stats
-    return {
+    return {  
         "hp": int(bot.hp * effects.get("hp", 1.0)),
         "energy": int(bot.energy * effects.get("energy", 1.0)),
         "proc": int(bot.atk * effects.get("proc", 1.0)),
