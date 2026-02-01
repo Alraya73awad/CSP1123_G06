@@ -23,7 +23,7 @@
             <li>
                 <a href="{{ url_for('database_algorithms') }}" 
                    class="{% if active_database == 'algorithms' %}active{% endif %}">
-                    <i class="fa-solid fa-robot"></i> Bot Algorithms
+                    <i class="fa-solid fa-robot"></i> Algorithms
                 </a>
             </li>
             <li>
@@ -48,6 +48,12 @@
                 <a href="{{ url_for('database_rating_system') }}" 
                    class="{% if active_database == 'rating_system' %}active{% endif %}">
                     <i class="fa-solid fa-trophy"></i> Rating System
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('database_arenas') }}" 
+                   class="{% if active_database == 'arenas' %}active{% endif %}">
+                    <i class="fa-solid fa-globe"></i> Arenas
                 </a>
             </li>
         </ul>

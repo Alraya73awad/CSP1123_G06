@@ -1362,3 +1362,7 @@ def database_stats():
 @app.route("/database/leaderboard")
 def database_rating_system():
     return render_template("database_pages/rating_system.html", active_database="rating_system")
+
+@app.route("/database/arenas")
+def database_arenas():
+    return render_template("database_pages/arenas.html", active_database="arenas")
