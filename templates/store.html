@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block page_title %}Store | Clash of Code{% endblock %}
+
+{% block content %}
+<div class="terminal-container">
+
+    <!-- Header -->
+    <div class="header">
+        <span>CLASH OF CODE TERMINAL — STORE MODULE</span>
+        <span id="datetime-display">--/--/---- --:--:--</span>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-area">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <h1>Store</h1>
+    <p>Welcome to the Store! Here you can purchase upgrades for your bots.</p>
+
+    <!-- Player Status -->
+    <div class="status-area mb-4">
+        <p><strong>STORE STATUS:</strong> ACTIVE</p>
+        <p><strong>User Credits:</strong> {{ credits if credits is not none else 9999 }}</p>
+        <p><strong>XP Balance:</strong> {{ xp_balance if xp_balance is not none else 1234 }}</p>
+        <p>Awaiting Purchase Command...</p>
+    </div>
+
+    <!-- Store Items -->
+    <h3 class="mt-4">Available Upgrades</h3>
+    <div class="row">
+      {% for item in store_items %}
+      <div class="col-md-4 mb-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title">{{ item.name }}</h5>
+            <p class="card-text">{{ item.get('desc', 'Upgrade your bot stats') }}</p>
+            <p>Cost: {{ item.cost }} Credits</p>
+
+            <form method="POST" action="{{ url_for('buy') }}">
+              <input type="hidden" name="purchase_id" value="{{ item.id }}">
+              <select name="bot_id" class="form-control mb-2" required>
+                <option value="">Select Bot</option>
+                {% for bot in bots %}
+                <option value="{{ bot.id }}">{{ bot.name }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-primary">Purchase</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="text-align:center; margin-top: 50px;">
+        <a href="{{ url_for('dashboard') }}" class="back-btn">Return</a>
+    </div>
+</div>
+{% endblock %}
