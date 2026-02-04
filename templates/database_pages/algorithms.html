@@ -1,0 +1,72 @@
+{% extends "database.html" %}
+
+{% block database_content %}
+<h1><i class="fa-solid fa-robot"></i> Algorithms</h1>
+
+<section class="database-section">
+    <h2>What Algorithms Do</h2>
+    <p>
+        Algorithms are the AI cores that shape how your bot fights. Each algorithm applies
+        fixed stat multipliers that are factored into combat and into the stat previews you
+        see on the dashboard and manage screens. Pick one to define your bot's identity:
+        raw damage, fortified defense, balanced stability, high speed, adaptive variance,
+        or unpredictable chaos.
+    </p>
+</section>
+
+<section class="database-section">
+    <h2>How Modifiers Are Applied</h2>
+    <p>
+        Algorithm effects are multiplicative buffs/nerfs on base stats. For example,
+        PROC and DEF are scaled by the algorithm multiplier, then used in combat formulas.
+        If an algorithm does not list a stat, that stat stays unchanged.
+    </p>
+    <p>
+        Weapon attack is added to base PROC, then the algorithm PROC multiplier is applied.
+        This means aggressive algorithms amplify weapon damage more than defensive ones.
+    </p>
+</section>
+
+<section class="database-section">
+    <h2>Algorithm Catalog</h2>
+    <p>
+        <strong>VEX-01 - Aggressive</strong><br>
+        Vexor Assault Kernel. +15% PROC, -10% DEF. Ideal for burst damage and fast takedowns,
+        but fragile if fights drag on.
+    </p>
+    <p>
+        <strong>BASL-09 - Defensive</strong><br>
+        Bastion Logic Framework. +20% DEF, -10% CLK. A fortress AI that shrugs off hits but
+        acts later and dodges less often.
+    </p>
+    <p>
+        <strong>EQUA-12 - Balanced</strong><br>
+        Equilibrium Core Matrix. No buffs or nerfs. Best for flexible builds or testing weapons
+        without algorithm bias.
+    </p>
+    <p>
+        <strong>ADAPT-X - Adaptive</strong><br>
+        Adaptive Pattern Synthesizer. +5% ENT, -10% PROC. High-variance playstyle that leans into
+        crits and rare effects at the cost of raw output.
+    </p>
+    <p>
+        <strong>RUSH-09 - Speed</strong><br>
+        Rapid Unit Synchronization Hub. +20% CLK, -10% DEF. Strikes first and dodges more, but
+        can crumble under sustained pressure.
+    </p>
+    <p>
+        <strong>CHAOS-RND - Random</strong><br>
+        Chaotic Execution Driver. No fixed stat multipliers. The build relies on standard
+        combat randomness (crits, dodges, arena variance) to swing outcomes.
+    </p>
+</section>
+
+<section class="database-section">
+    <h2>XP Multipliers</h2>
+    <p>
+        Algorithms also affect how fast your bot levels in battle. Higher-risk cores earn more XP:
+        VEX-01 (1.15x), BASL-09 (1.10x), EQUA-12 (1.00x), ADAPT-X (1.20x), RUSH-09 (1.10x),
+        CHAOS-RND (1.30x).
+    </p>
+</section>
+{% endblock %}

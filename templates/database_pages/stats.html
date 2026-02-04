@@ -1,0 +1,90 @@
+{% extends "database.html" %}
+
+{% block database_content %}
+<h1><i class="fa-solid fa-chart-bar"></i> Stats Explained</h1>
+
+<section class="database-section">
+    <h2>Integrity Core (INT)</h2>
+    <p>
+        Your bot's maximum health.
+    </p>
+    <br>
+    <p>
+        Higher INT means your bot can absorb more damage before shutting down. It is the
+        backbone stat for endurance builds and helps you survive long, drawn-out fights.
+    </p>
+</section>
+
+<section class="database-section">
+    <h2>Processing Output (PROC)</h2>
+    <p>
+        Physical damage output.
+    </p>
+    <br>
+    <p>
+        PROC scales the damage of your standard attacks and benefits most from strong
+        weapons and aggressive algorithms. If you want quick knockouts, invest here.
+    </p>
+</section>
+
+<section class="database-section">
+    <h2>Defense Matrix (DEF)</h2>
+    <p>
+        Reduces incoming damage.
+    </p>
+    <br>
+    <p>
+        DEF keeps you alive by dampening enemy hits. High DEF pairs well with INT and
+        regen-focused upgrades, creating a bot that wins by outlasting opponents.
+    </p>
+</section>
+
+<section class="database-section">
+    <h2>Clock Rate (CLK)</h2>
+    <p>
+        Turn order + evasion. Faster bots act earlier and dodge more often.
+    </p>
+    <br>
+    <p>
+        CLK decides tempo. Acting first can decide entire rounds, and speed advantages
+        help you avoid damage over time. It is the core stat for agile, hit-and-run builds.
+    </p>
+</section>
+
+<section class="database-section">
+    <h2>Adaptive Logic (LOGIC)</h2>
+    <p>
+        AI decision-making efficiency. Improves accuracy and special move success.
+    </p>
+    <br>
+    <p>
+        LOGIC helps your bot execute its plan with fewer mistakes. It is the stat for
+        precision and consistency, especially on builds that rely on special protocols.
+    </p>
+</section>
+
+<section class="database-section">
+    <h2>Entropy Coefficient (ENT)</h2>
+    <p>
+        Random bonus events, crit chance, and rare effects. Unpredictable but powerful.
+    </p>
+    <br>
+    <p>
+        ENT is the risk stat. High Entropy can swing battles with sudden critical hits
+        and surprise outcomes, but it is less reliable than steady damage or defense.
+    </p>
+</section>
+
+<section class="database-section">
+    <h2>Power Core Capacity (PWR)</h2>
+    <p>
+        Resource used for skills or abilities. Higher energy allows more actions.
+    </p>
+    <br>
+    <p>
+        PWR keeps your bot active longer in combat. If you notice your bot shutting down
+        early, increasing PWR can keep pressure on opponents across multiple rounds.
+    </p>
+</section>
+
+{% endblock %}

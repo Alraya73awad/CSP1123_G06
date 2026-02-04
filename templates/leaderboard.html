@@ -13,7 +13,7 @@
 {% endif %}
 <!-- TOP50 -->
 <div class="table-responsive mt-4">
-    <table class="table table-dark table-striped">
+    <table class="bot-details-table">
         <thead>
             <tr>
                 <th>#</th>
@@ -62,7 +62,7 @@
     </div>
     
     <h3>Your Competition (Nearby Players)</h3>
-    <table class="table table-dark table-striped">
+    <table class="bot-details-table">
         <thead>
             <tr>
                 <th>#</th>
@@ -78,7 +78,7 @@
             <tr {% if current_user and player.id == current_user.id %}class="table-success fw-bold"{% endif %}>
                 <td>
                     <strong>{{ nearby_start_rank + loop.index0 }}</strong>
-                    {% if current_user and player.id == current_user.id %}👈 YOU{% endif %}
+                    {% if current_user and player.id == current_user.id %}(YOU){% endif %}
                 </td>
                 <td>{{ player.username }}</td>
                 <td><span style="color:yellow;">{{ player.rating }}</span></td>

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="database-container">
+    
+    <!-- Left Sidebar -->
+    <aside class="database-sidebar">
+        <h2>DATABASE INDEX</h2>
+        
+        <ul class="database-links">
+            <li>
+                <a href="{{ url_for('database_getting_started') }}" 
+                   class="{% if active_database == 'getting_started' %}active{% endif %}">
+                    <i class="fa-regular fa-circle-question"></i> Getting Started
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('database_combat') }}" 
+                   class="{% if active_database == 'combat' %}active{% endif %}">
+                    <i class="fa-solid fa-shield-halved"></i> Combat System
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('database_algorithms') }}" 
+                   class="{% if active_database == 'algorithms' %}active{% endif %}">
+                    <i class="fa-solid fa-robot"></i> Algorithms
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('database_weapons') }}" 
+                   class="{% if active_database == 'weapons' %}active{% endif %}">
+                    <i class="fa-solid fa-gun"></i> Weapons
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('database_upgrades') }}" 
+                   class="{% if active_database == 'upgrades' %}active{% endif %}">
+                    <i class="fa-solid fa-screwdriver-wrench"></i> Upgrades
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('database_stats') }}" 
+                   class="{% if active_database == 'stats' %}active{% endif %}">
+                    <i class="fa-solid fa-chart-bar"></i> Stats Explained
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('database_rating_system') }}" 
+                   class="{% if active_database == 'rating_system' %}active{% endif %}">
+                    <i class="fa-solid fa-trophy"></i> Rating System
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('database_arenas') }}" 
+                   class="{% if active_database == 'arenas' %}active{% endif %}">
+                    <i class="fa-solid fa-globe"></i> Arenas
+                </a>
+            </li>
+        </ul>
+    </aside>
+    
+    <!-- Right Content Area -->
+    <main class="database-content">
+        {% block database_content %}
+        <!-- Individual database pages will fill this -->
+        {% endblock %}
+        
+        <!-- Page Navigation (if multi-page) -->
+        {% if pages %}
+        <div class="database-pagination">
+            {% if prev_page %}
+                <a href="{{ prev_page }}" class="btn btn-secondary">← Previous</a>
+            {% endif %}
+            
+            <span class="page-indicator">Page {{ current_page }}/{{ total_pages }}</span>
+            
+            {% if next_page %}
+                <a href="{{ next_page }}" class="btn btn-secondary">Next →</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Back to Dashboard -->
+        <div class="database-footer">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        </div>
+    </main>
+    
+</div>
+{% endblock %}

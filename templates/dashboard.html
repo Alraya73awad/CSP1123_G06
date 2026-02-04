@@ -38,6 +38,33 @@
     {% endif %}
 {% endwith %}
 
+<!-- Hamburger Menu -->
+<input type="checkbox" id="menu-toggle" class="menu-toggle">
+<label for="menu-toggle" class="hamburger-btn">
+    <span></span>
+    <span></span>
+    <span></span>
+</label>
+
+<nav class="hamburger-menu">
+    <div class="menu-header">
+        <h3>MENU</h3>
+    </div>
+    
+    <ul class="menu-list">
+        
+        {% if current_user %}
+        <li><a href="#" data-bs-toggle="modal" data-bs-target="#volumeModal"> <i class="fa-solid fa-volume-high"></i> Volume</a></li>
+        <li><a href="#" data-bs-toggle="modal" data-bs-target="#settingsModal"> <i class="fa-solid fa-gear"></i> Settings</a></li>
+        <li><a href="{{ url_for('leaderboard') }}"> <i class="fa-solid fa-ranking-star"></i> Leaderboard</a></li>
+        <li><a href="{{ url_for('database') }}"> <i class="fa-solid fa-database"></i> Database</a></li>
+        {% endif %}
+    </ul>
+</nav>
+
+<!-- Overlay (closes menu when clicking outside) -->
+<label for="menu-toggle" class="menu-overlay"></label>
+
 <!-- header -->
 <div class="dashboard-header cyber-header">
     <h2>Welcome, <span class="highlight">{{ current_user.username }}</span></h2>
@@ -147,13 +174,6 @@
 
 <br><br>
 
-
-<a href="{{ url_for('home') }}" class="icon-btn back-home-btn">
-    <i class="fa-solid fa-house"></i>
-</a>
-
-
-
 <style>
 .btn-terminal {
     padding: 12px 30px;
@@ -200,23 +220,6 @@
     </svg>
     <p>{{ current_user.xp }} / {{ current_user.level * 100 }} XP</p>
 </div>
-
-<!-- dashboard header -->
-<div class="dashboard-header d-flex justify-content-between align-items-center">
-     <button class="icon-btn settings-btn" data-bs-toggle="modal" data-bs-target="#settingsModal">
-    <i class="fa-solid fa-gear"></i>
-    </button>
-    <button class="icon-btn volume-btn" data-bs-toggle="modal" data-bs-target="#volumeModal">
-        <i class="fa-solid fa-volume-high"></i>
-    </button>
-</div>
-
-<!-- settings modal -->
-<button class="icon-btn settings-btn"
-        data-bs-toggle="modal"
-        data-bs-target="#settingsModal">
-    <i class="fa-solid fa-gear"></i>
-</button>
 
 
 <!-- Volume Modal -->
@@ -269,6 +272,31 @@ document.addEventListener('DOMContentLoaded', function() {
             volumePercent.textContent = this.value + '%';
         });
     }
+});
+</script>
+
+<script>
+// Close hamburger menu when modal opens, reopen when modal closes
+document.addEventListener('DOMContentLoaded', function() {
+    const menuToggle = document.getElementById('menu-toggle');
+    
+    // Listen for all modal open/close events
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(function(modal) {
+        // Close menu when modal opens
+        modal.addEventListener('show.bs.modal', function() {
+            if (menuToggle && menuToggle.checked) {
+                menuToggle.checked = false;
+            }
+        });
+        
+        // Reopen menu when modal closes
+        modal.addEventListener('hidden.bs.modal', function() {
+            if (menuToggle) {
+                menuToggle.checked = true;
+            }
+        });
+    });
 });
 </script>
 {% endblock %}
