@@ -740,6 +740,7 @@ select:focus {
 .log-text.defeat { color:magenta; }
 .log-text.round { color:#00ffaa; }
 .log-text.battleover { color:#00ffaa; }
+.log-text.special { color:orange; }
 
 .stats-comparison td, .stats-comparison th, .stats-comparison tr {
   background-color: transparent !important;

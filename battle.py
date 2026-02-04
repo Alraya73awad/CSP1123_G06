@@ -3,8 +3,22 @@ from constants import ALGORITHM_XP_MULTIPLIER
 
 
 class BattleBot:
-    def __init__(self, name, hp, energy, proc, defense, speed=0, clk=0, luck=0, logic=0,
-                 weapon_atk=0, weapon_type=None, special_effect=None):
+    def __init__(
+        self,
+        name,
+        hp,
+        energy,
+        proc,
+        defense,
+        speed=0,
+        clk=0,
+        luck=0,
+        logic=0,
+        weapon_atk=0,
+        weapon_type=None,
+        special_effect=None,
+        algorithm=None,
+    ):
         self.name = name
         self.hp = hp
         self.energy = energy
@@ -17,6 +31,7 @@ class BattleBot:
         self.weapon_atk = weapon_atk   
         self.weapon_type = weapon_type    # "ranged" or "melee"
         self.special_effect = special_effect
+        self.algorithm = algorithm  
 
         self.damage_dealt = 0
         self.critical_hits = 0
@@ -25,6 +40,9 @@ class BattleBot:
         
         self.extra_attacks = 0
         self.ability_used = False
+
+        # Internal flags for algorithm-specific behavior
+        self._adapt_logic_applied = False
 
     def is_alive(self):
         return self.hp > 0 and self.energy > 0
@@ -229,6 +247,38 @@ def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
     botA.rounds_alive += 1
     botB.rounds_alive += 1
 
+    # CHAOS-RND: per-turn random buffs/debuffs to two stats
+    def apply_chaos(bot):
+        if getattr(bot, "algorithm", None) != "CHAOS-RND":
+            return
+
+        stats = ["hp", "energy", "proc", "defense", "clk", "luck", "logic"]
+        chosen = rng.sample(stats, 2)
+        changes = []
+
+        for stat in chosen:
+            direction = rng.choice(["up", "down"])
+            factor = 1.10 if direction == "up" else 0.90
+            old_value = getattr(bot, stat)
+            new_value = int(old_value * factor)
+            # Ensure stats don't drop below 1 for core attributes
+            if stat in {"hp", "energy", "proc", "defense", "clk", "luck", "logic"}:
+                new_value = max(new_value, 1)
+            setattr(bot, stat, new_value)
+            changes.append((stat, direction, old_value, new_value))
+
+        # Log a concise summary of changes
+        if changes:
+            parts = []
+            for stat, direction, old, new in changes:
+                sign = "+" if direction == "up" else "-"
+                parts.append(f"{stat.upper()} {sign}10% ({old} → {new})")
+            msg = f"⚙️ CHAOS-RND surges! {bot.name}'s " + ", ".join(parts) + "."
+            log_line(log, "special", msg)
+
+    apply_chaos(botA)
+    apply_chaos(botB)
+
     turn_order = calculate_turn_order(botA, botB, rng)
 
     for attacker in turn_order:
@@ -289,6 +339,19 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
     log_line(log, "arena", intro_line)
 
     while botA.is_alive() and botB.is_alive():
+        # ADAPT-X: after 2 full rounds, permanently boost LOGIC by +10%
+        if round_num == 3:
+            for bot in (botA, botB):
+                if getattr(bot, "algorithm", None) == "ADAPT-X" and not getattr(bot, "_adapt_logic_applied", False):
+                    old_logic = bot.logic
+                    bot.logic = int(bot.logic * 1.10)
+                    bot._adapt_logic_applied = True
+                    log_line(
+                        log,
+                        "special",
+                        f"🤖 {bot.name} has adapted! LOGIC increased from {old_logic} to {bot.logic}.",
+                    )
+
         log_line(log, "round", f"(Round {round_num})")
 
         winner = battle_round(
@@ -324,10 +387,30 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
 
 # Test battle
 if __name__ == "__main__":
-    bot1 = BattleBot("Alpha", hp=100, energy=50, proc=30, defense=10,
-                     clk=14, luck=10, weapon_type="melee", special_effect="Time Dilation")
-    bot2 = BattleBot("Beta", hp=120, energy=50, proc=25, defense=12,
-                     clk=14, luck=10, weapon_type="ranged", special_effect="Evolve Protocol")
+    bot1 = BattleBot(
+        "Alpha",
+        hp=100,
+        energy=50,
+        proc=30,
+        defense=10,
+        clk=14,
+        luck=10,
+        weapon_type="melee",
+        special_effect="Time Dilation",
+        algorithm="CHAOS-RND",
+    )
+    bot2 = BattleBot(
+        "Beta",
+        hp=120,
+        energy=50,
+        proc=25,
+        defense=12,
+        clk=14,
+        luck=10,
+        weapon_type="ranged",
+        special_effect="Evolve Protocol",
+        algorithm="ADAPT-X",
+    )
 
     # 🎲 Randomly pick Ironclash, Skyline, Neutral, or Frozen
     chosen_arena = random.choice(["ironclash", "skyline", "neutral", "frozen"])

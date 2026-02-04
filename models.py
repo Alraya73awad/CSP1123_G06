@@ -109,6 +109,7 @@ class History(db.Model):
     bot1_logic = db.Column(db.Integer, default=0)
     bot1_weapon_atk = db.Column(db.Integer, default=0)
     bot1_weapon_type = db.Column(db.String(20))
+    bot1_algorithm = db.Column(db.String(50))
     
     # Bot 2 stats snapshot
     bot2_hp = db.Column(db.Integer)
@@ -120,6 +121,7 @@ class History(db.Model):
     bot2_logic = db.Column(db.Integer, default=0)
     bot2_weapon_atk = db.Column(db.Integer, default=0)
     bot2_weapon_type = db.Column(db.String(20))
+    bot2_algorithm = db.Column(db.String(50))
 
 
 class WeaponOwnership(db.Model):
