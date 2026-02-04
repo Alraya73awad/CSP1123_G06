@@ -12,7 +12,7 @@ from battle import BattleBot, full_battle, calculate_bot_stat_points
 from seed_weapons import seed_weapons
 
 
-from models import User, Bot, History, HistoryLog, Weapon, WeaponOwnership
+from models import User, Bot, History, Weapon, WeaponOwnership
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -950,11 +950,6 @@ def combat_log(bot1_id, bot2_id):
         bot2_weapon_type=(weapon2_ow.weapon.type if weapon2_ow else None),
     )
     db.session.add(history)
-    db.session.flush()
-
-    for type, text in log:
-        entry = HistoryLog(history_id=history.id, type=type, text=text)
-        db.session.add(entry)
 
     db.session.commit()
 
