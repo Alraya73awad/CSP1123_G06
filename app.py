@@ -754,6 +754,7 @@ def combat_log(bot1_id, bot2_id):
         defense=stats1["def"],   # FIX
         clk=stats1["clk"],
         luck=stats1["luck"],
+        logic=stats1["logic"],
         weapon_atk=weapon1_atk,
         weapon_type=weapon1_ow.weapon.type if weapon1_ow else None
     )
@@ -766,6 +767,7 @@ def combat_log(bot1_id, bot2_id):
         defense=stats2["def"],   # FIX
         clk=stats2["clk"],
         luck=stats2["luck"],
+        logic=stats2["logic"],
         weapon_atk=weapon2_atk,
         weapon_type=weapon2_ow.weapon.type if weapon2_ow else None
     )
@@ -933,6 +935,7 @@ def combat_log(bot1_id, bot2_id):
         bot1_defense=stats1["def"],   
         bot1_clk=stats1["clk"],
         bot1_luck=stats1["luck"],
+        bot1_logic=stats1["logic"],
         bot1_weapon_atk=weapon1_atk,
         bot1_weapon_type=(weapon1_ow.weapon.type if weapon1_ow else None),
 
@@ -942,6 +945,7 @@ def combat_log(bot1_id, bot2_id):
         bot2_defense=stats2["def"],   #use def 
         bot2_clk=stats2["clk"],
         bot2_luck=stats2["luck"],
+        bot2_logic=stats2["logic"],
         bot2_weapon_atk=weapon2_atk,
         bot2_weapon_type=(weapon2_ow.weapon.type if weapon2_ow else None),
     )
@@ -1064,6 +1068,7 @@ def apply_algorithm(bot):
         "def": int(bot.defense * effects.get("def", 1.0)),   # FIX: key + multiplier key
         "clk": int(bot.speed * effects.get("clk", 1.0)),
         "luck": int(bot.luck * effects.get("luck", 1.0)),
+        "logic": int((bot.logic or 0) * effects.get("logic", 1.0)),
     }
 
 @app.route("/history")
@@ -1097,6 +1102,7 @@ def view_history(history_id):
         "def": history.bot1_defense,  
         "clk": history.bot1_clk,
         "luck": history.bot1_luck,
+        "logic": history.bot1_logic or 0,
         "weapon_atk": history.bot1_weapon_atk if history.bot1_weapon_atk else 0,
         "weapon_type": history.bot1_weapon_type
     }
@@ -1108,11 +1114,12 @@ def view_history(history_id):
         "def": history.bot2_defense,   
         "clk": history.bot2_clk,
         "luck": history.bot2_luck,
+        "logic": history.bot2_logic or 0,
         "weapon_atk": history.bot2_weapon_atk if history.bot2_weapon_atk else 0,
         "weapon_type": history.bot2_weapon_type
     }
     
-    # Recreate BattleBots
+    # Recreate BattleBots with stored stats (including logic for accurate replay)
     battleA = BattleBot(
         name=history.bot1_name,
         hp=history.bot1_hp,
@@ -1121,6 +1128,7 @@ def view_history(history_id):
         defense=history.bot1_defense,
         clk=history.bot1_clk,
         luck=history.bot1_luck,
+        logic=stats1["logic"],
         weapon_atk=history.bot1_weapon_atk,
         weapon_type=history.bot1_weapon_type
     )
@@ -1133,6 +1141,7 @@ def view_history(history_id):
         defense=history.bot2_defense,
         clk=history.bot2_clk,
         luck=history.bot2_luck,
+        logic=stats2["logic"],
         weapon_atk=history.bot2_weapon_atk,
         weapon_type=history.bot2_weapon_type
     )

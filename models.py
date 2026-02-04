@@ -112,6 +112,7 @@ class History(db.Model):
     bot1_defense = db.Column(db.Integer)
     bot1_clk = db.Column(db.Integer)
     bot1_luck = db.Column(db.Integer)
+    bot1_logic = db.Column(db.Integer, default=0)
     bot1_weapon_atk = db.Column(db.Integer, default=0)
     bot1_weapon_type = db.Column(db.String(20))
     
@@ -122,6 +123,7 @@ class History(db.Model):
     bot2_defense = db.Column(db.Integer)
     bot2_clk = db.Column(db.Integer)
     bot2_luck = db.Column(db.Integer)
+    bot2_logic = db.Column(db.Integer, default=0)
     bot2_weapon_atk = db.Column(db.Integer, default=0)
     bot2_weapon_type = db.Column(db.String(20))
 

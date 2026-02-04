@@ -3,7 +3,7 @@ from constants import ALGORITHM_XP_MULTIPLIER
 
 
 class BattleBot:
-    def __init__(self, name, hp, energy, proc, defense, speed=0, clk=0, luck=0,
+    def __init__(self, name, hp, energy, proc, defense, speed=0, clk=0, luck=0, logic=0,
                  weapon_atk=0, weapon_type=None, special_effect=None):
         self.name = name
         self.hp = hp
@@ -13,6 +13,7 @@ class BattleBot:
         self.speed = speed
         self.clk = clk       # Reflex/clock stat
         self.luck = luck     # % chance for crit/dodge
+        self.logic = logic   # Predict enemy moves: reduces incoming crit, reduces enemy dodge, chance to negate debuffs
         self.weapon_atk = weapon_atk   
         self.weapon_type = weapon_type    # "ranged" or "melee"
         self.special_effect = special_effect
@@ -101,6 +102,20 @@ def get_effective_proc(bot):
     return bot.proc + (bot.weapon_atk if bot.weapon_atk else 0)
 
 
+def roll_negate_debuff(defender, rng):
+    """
+    LOGIC gives a chance to negate debuffs applied by the attacker.
+    When you add debuff effects (e.g. defense down, slow), call this first;
+    if it returns True, the debuff is negated and should not be applied.
+    Negate chance = defender.logic / (100 + defender.logic).
+    """
+    logic = float(defender.logic or 0)
+    if logic <= 0:
+        return False
+    negate_chance = logic / (100.0 + logic)
+    return rng.random() < negate_chance
+
+
 def calculate_bot_stat_points(bot, result):
     points = 0
     if result == "win":
@@ -180,19 +195,26 @@ def calculate_damage(attacker, defender, log, rng, arena="neutral"):
     if attacker.weapon_type == "ranged":
         base_proc *= rng.uniform(0.85, 1.15)
 
-    # Critical hit check
-    is_crit = rng.randint(1, 100) <= int(attacker.luck or 0)
+    # Critical hit check — defender LOGIC reduces incoming crit chance
+    # Effective Crit Chance = BaseCrit × (100 / (100 + Defender LOGIC))
+    base_crit_pct = float(attacker.luck or 0)
+    defender_logic = float(defender.logic or 0)
+    effective_crit_pct = base_crit_pct * (100.0 / (100.0 + defender_logic))
+    is_crit = rng.random() < (effective_crit_pct / 100.0)
     if is_crit:
         attacker.critical_hits += 1
         log_line(log, "crit", f"💥 Critical Hit! {attacker.name} lands a devastating strike!")
         base_proc *= 2.0
 
-    # Dodge check 
+    # Dodge check — attacker LOGIC reduces defender's effective dodge (accuracy)
+    # Final Dodge = Dodge Chance × (100 / (100 + Attacker LOGIC))
     if defender.clk > attacker.clk:
         clk_gap = defender.clk - attacker.clk
         dodge_chance = (clk_gap * (defender.luck / 100.0)) / 100.0  # keep it small
-        dodge_chance = max(0.0, min(dodge_chance, 0.35))            # cap at 35%
-        if rng.random() < dodge_chance:
+        dodge_chance = max(0.0, min(dodge_chance, 0.35))             # cap at 35%
+        attacker_logic = float(attacker.logic or 0)
+        final_dodge = dodge_chance * (100.0 / (100.0 + attacker_logic))
+        if rng.random() < final_dodge:
             defender.dodges += 1
             log_line(log, "dodge", f"🌀 {defender.name} dodged the attack!")
             return 0.0
