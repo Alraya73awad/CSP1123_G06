@@ -99,7 +99,7 @@ body {
 /* Text glow */
 h1, h2, h3, h4, h5, p, label, input, button, a, .log-text, li {
   color: var(--terminal-text);
-  text-shadow: 0 0 5px var(--terminal-glow), 0 0 10px var(--terminal-glow);
+  text-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
 }
 button,
 a,
@@ -742,6 +742,19 @@ select:focus {
 .log-text.battleover { color:#00ffaa; }
 .log-text.special { color:orange; }
 
+/* Combat log layout */
+.combat-log-output {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+.combat-log-output .log-text {
+    display: block;
+    margin: 20px 0;
+}
+
 .stats-comparison td, .stats-comparison th, .stats-comparison tr {
   background-color: transparent !important;
   border-color: #00ffaa;
@@ -1066,6 +1079,24 @@ td.text-success {
     background: rgba(0, 255, 170, 0.2);
     border-color: var(--terminal-glow);
     box-shadow: 0 0 10px rgba(0, 255, 170, 0.3);
+}
+
+/* Bootstrap card theme */
+.card {
+    background: var(--terminal-screen);
+    border: 2px solid var(--terminal-glow);
+    color: var(--terminal-text);
+    box-shadow: 0 0 12px rgba(0, 255, 170, 0.35);
+    border-radius: 12px;
+}
+
+.card-header {
+    background: rgba(0, 255, 170, 0.08);
+    border-bottom: 1px solid var(--terminal-glow);
+}
+
+.card-body {
+    background: transparent;
 }
 
 /* Content Area */

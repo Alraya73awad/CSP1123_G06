@@ -2,27 +2,6 @@
 
 {% block page_title %}Dashboard | Clash of Code{% endblock %}
 
-<style>
-.algorithm-card {
-    border: 2px solid #ccc;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.algorithm-card:hover {
-    border-color: #0d6efd;
-    background-color: #f0f8ff;
-}
-
-.algorithm-radio:checked + .algorithm-card {
-    border-color: #0d6efd;
-    background-color: #e7f1ff;
-    box-shadow: 0 0 8px rgba(13, 110, 253, 0.4);
-}
-
-</style>
-
 {% block content %}
 
 <h1>USER DASHBOARD // MAIN INTERFACE</h1>
@@ -58,6 +37,7 @@
         <li><a href="#" data-bs-toggle="modal" data-bs-target="#settingsModal"> <i class="fa-solid fa-gear"></i> Settings</a></li>
         <li><a href="{{ url_for('leaderboard') }}"> <i class="fa-solid fa-ranking-star"></i> Leaderboard</a></li>
         <li><a href="{{ url_for('database') }}"> <i class="fa-solid fa-database"></i> Database</a></li>
+        <li><a href="{{ url_for('profile') }}"> <i class="fa-solid fa-user"></i> Profile</a></li>
         {% endif %}
     </ul>
 </nav>
@@ -99,7 +79,7 @@
     <a href="{{ url_for('battle_select') }}" class="action-button">BATTLE</a>
     <a href="{{ url_for('manage_bot') }}" class="action-button">MANAGE BOTS</a>
     <a href="{{ url_for('store') }}" class="action-button">STORE</a>
-    <a href="{{ url_for('character') }}" class="action-button">CHARACTER</a>
+    <a href="{{ url_for('character') }}" class="action-button">UPGRADES</a>
     <a href="{{ url_for('history') }}" class="action-button">HISTORY</a>
 </div>
 

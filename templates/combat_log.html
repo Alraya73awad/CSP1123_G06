@@ -49,6 +49,18 @@
                     </td>
                 </tr>
 
+                <!-- ALGORITHM ROW -->
+                <tr>
+                    <td><strong>ALGORITHM</strong></td>
+                    {% if is_replay %}
+                        <td>{{ history.bot1_algorithm }}</td>
+                        <td>{{ history.bot2_algorithm }}</td>
+                    {% else %}
+                        <td>{{ bot1.algorithm }}</td>
+                        <td>{{ bot2.algorithm }}</td>
+                    {% endif %}
+                </tr>
+
                 <!-- PROC (Total ATK including weapon) ROW -->
                 <tr>
                     <td>PROC</td>
@@ -124,14 +136,13 @@
         </table>
 
     <div>
-        <div style="
+        <div class="combat-log-output" style="
             max-height: 70vh;
             overflow-y: auto;
             background: black;
             padding: 15px;
             border-radius: 6px;
             border: 1px solid #ddd;
-            white-space: pre-wrap;
         ">
             {% for type, line in log %}
                 <span class="log-text {{type}}">{{ line }}</span>

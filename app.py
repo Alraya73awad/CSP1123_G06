@@ -3,12 +3,10 @@ import random
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
-from sqlalchemy import or_
 from functools import wraps
-from sqlalchemy import or_
 
 from extensions import db
-from constants import CURRENCY_NAME,CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS, UPGRADES
+from constants import CURRENCY_NAME,CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS, UPGRADES, RANK_TIERS
 from battle import BattleBot, full_battle, calculate_bot_stat_points
 from seed_weapons import seed_weapons
 
@@ -39,6 +37,20 @@ def inject_current_user():
     if "user_id" in session:
         user = User.query.get(session["user_id"])
     return dict(current_user=user)
+
+def get_rank_tier(rating):
+    for tier in RANK_TIERS:
+        max_rating = tier["max"]
+        if max_rating is None:
+            if rating >= tier["min"]:
+                return tier
+        elif tier["min"] <= rating <= max_rating:
+            return tier
+    return RANK_TIERS[0]
+
+@app.context_processor
+def inject_rank_helpers():
+    return dict(get_rank_tier=get_rank_tier, rank_tiers=RANK_TIERS)
 
 with app.app_context():
     db.create_all()
@@ -402,22 +414,6 @@ def profile():
     # Calculate win rate
     total_battles = user.wins + user.losses
     win_rate = (user.wins / total_battles * 100) if total_battles > 0 else 0
-    
-    # Determine rank tier
-    def get_rank_tier(rating):
-        if rating < 800:
-            return {"name": "Prototype", "icon": "🔧", "color": "text-secondary"}
-        elif rating < 1000:
-            return {"name": "Circuit", "icon": "⚡", "color": "text-success"}
-        elif rating < 1200:
-            return {"name": "Processor", "icon": "🖥️", "color": "text-info"}
-        elif rating < 1400:
-            return {"name": "Mainframe", "icon": "💻", "color": "text-primary"}
-        elif rating < 1600:
-            return {"name": "Quantum", "icon": "🌌", "color": "text-warning"}
-        else:
-            return {"name": "Nexus", "icon": "🔮", "color": "text-danger"}
-    
     rank = get_rank_tier(user.rating)
 
     return render_template(
@@ -813,10 +809,6 @@ def combat_log(bot1_id, bot2_id):
             bot.xp -= bot_xp_to_next_level(bot.level)
             bot.level += 1
             levels_gained += 1
-
-            bot.hp = int(bot.hp or 0) + 10
-            bot.atk = int(bot.atk or 0) + 2
-            bot.defense = int(bot.defense or 0) + 2
 
             bot.stat_points += 5
 
@@ -1289,7 +1281,7 @@ def leaderboard():
             current_user_rank = higher_rated + 1
 
     # Only show nearby players if user is NOT in top 50
-    if current_user_rank > 50:
+    if current_user_rank is not None and current_user_rank > 50:
         show_nearby = True
                 
         # Get all players with matches, sorted by rating
