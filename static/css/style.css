@@ -880,7 +880,7 @@ select:focus {
 .bot-details-table, .bot-details-table th, .bot-details-table td, .bot-details-table tr {
     background:var(--terminal-bg) !important;
     color: var(--terminal-glow);
-    text-shadow: 0 0 5px var(--terminal-glow), 0 0 10px var(--terminal-glow);
+    text-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
     width: 100%;
     table-layout: fixed;
     border-collapse: collapse;

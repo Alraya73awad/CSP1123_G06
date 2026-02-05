@@ -85,7 +85,7 @@ algorithm_effects = {
         # No effects
     },
     "ADAPT-X": {    
-        "ent": 1.05,
+        "luck": 1.05,
         "proc": 0.9
     },
     "RUSH-09": {    

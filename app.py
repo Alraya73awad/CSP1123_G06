@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 from functools import wraps
+from sqlalchemy import or_
 
 from extensions import db
 from constants import CURRENCY_NAME,CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS, UPGRADES, RANK_TIERS
@@ -182,7 +183,7 @@ def dashboard():
             "def": int(bot.defense or 0),
             "clk": int(bot.speed or 0),
             "logic": int(bot.logic or 0),
-            "ent": int(bot.luck or 0),
+            "luck": int(bot.luck or 0),
             "pwr": int(bot.energy or 0),
         }
 
@@ -259,7 +260,7 @@ def manage_bot():
             "def": bot.defense,   
             "clk": bot.speed,
             "logic": bot.logic,
-            "ent": bot.luck,
+            "luck": bot.luck,
             "pwr": bot.energy
         }
 
@@ -565,6 +566,10 @@ def edit_bot(bot_id):
                 low, high = STAT_LIMITS[stat]
                 if val < low or val > high:
                     errors.append(f"{stat.upper()} must be between {low} and {high}.")
+                    continue
+                current_val = int(getattr(bot, stat) or 0)
+                if val < current_val:
+                    errors.append(f"{stat.upper()} cannot be lower than the current value ({current_val}).")
 
             if errors:
                 for e in errors:
@@ -606,6 +611,11 @@ def edit_bot(bot_id):
                 low, high = STAT_LIMITS[stat]
                 if val < low or val > high:
                     errors.append(f"{stat.upper()} must be between {low} and {high}.")
+                    continue
+                current_val = int(getattr(bot, stat) or 0)
+                if val < current_val:
+                    errors.append(f"{stat.upper()} cannot be lower than the current value ({current_val}).")
+                    continue
                 final_stats[stat] = val
 
             if errors:
@@ -669,7 +679,7 @@ def bot_details(bot_id):
         "def": bot.defense,   
         "clk": bot.speed,
         "logic": bot.logic,
-        "ent": bot.luck,
+        "luck": bot.luck,
         "pwr": bot.energy
     }
 
@@ -704,7 +714,7 @@ def bot_list():
             "def": bot.defense,   
             "clk": bot.speed,
             "logic": bot.logic,
-            "ent": bot.luck,
+            "luck": bot.luck,
             "pwr": bot.energy
         }
         effects = algorithm_effects.get(bot.algorithm, {})
