@@ -3,8 +3,22 @@ from constants import ALGORITHM_XP_MULTIPLIER
 
 
 class BattleBot:
-    def __init__(self, name, hp, energy, proc, defense, speed=0, clk=0, luck=0,
-                 weapon_atk=0, weapon_type=None, special_effect=None):
+    def __init__(
+        self,
+        name,
+        hp,
+        energy,
+        proc,
+        defense,
+        speed=0,
+        clk=0,
+        luck=0,
+        logic=0,
+        weapon_atk=0,
+        weapon_type=None,
+        special_effect=None,
+        algorithm=None,
+    ):
         self.name = name
         self.hp = hp
         self.energy = energy
@@ -13,9 +27,11 @@ class BattleBot:
         self.speed = speed
         self.clk = clk       # Reflex/clock stat
         self.luck = luck     # % chance for crit/dodge
+        self.logic = logic   # Predict enemy moves: reduces incoming crit, reduces enemy dodge, chance to negate debuffs
         self.weapon_atk = weapon_atk   
         self.weapon_type = weapon_type    # "ranged" or "melee"
         self.special_effect = special_effect
+        self.algorithm = algorithm  
 
         self.damage_dealt = 0
         self.critical_hits = 0
@@ -24,6 +40,9 @@ class BattleBot:
         
         self.extra_attacks = 0
         self.ability_used = False
+
+        # Internal flags for algorithm-specific behavior
+        self._adapt_logic_applied = False
 
     def is_alive(self):
         return self.hp > 0 and self.energy > 0
@@ -99,6 +118,20 @@ def apply_arena_modifiers(bot, arena):
 
 def get_effective_proc(bot):
     return bot.proc + (bot.weapon_atk if bot.weapon_atk else 0)
+
+
+def roll_negate_debuff(defender, rng):
+    """
+    LOGIC gives a chance to negate debuffs applied by the attacker.
+    When you add debuff effects (e.g. defense down, slow), call this first;
+    if it returns True, the debuff is negated and should not be applied.
+    Negate chance = defender.logic / (100 + defender.logic).
+    """
+    logic = float(defender.logic or 0)
+    if logic <= 0:
+        return False
+    negate_chance = logic / (100.0 + logic)
+    return rng.random() < negate_chance
 
 
 def calculate_bot_stat_points(bot, result):
@@ -180,19 +213,26 @@ def calculate_damage(attacker, defender, log, rng, arena="neutral"):
     if attacker.weapon_type == "ranged":
         base_proc *= rng.uniform(0.85, 1.15)
 
-    # Critical hit check
-    is_crit = rng.randint(1, 100) <= int(attacker.luck or 0)
+    # Critical hit check — defender LOGIC reduces incoming crit chance
+    # Effective Crit Chance = BaseCrit × (100 / (100 + Defender LOGIC))
+    base_crit_pct = float(attacker.luck or 0)
+    defender_logic = float(defender.logic or 0)
+    effective_crit_pct = base_crit_pct * (100.0 / (100.0 + defender_logic))
+    is_crit = rng.random() < (effective_crit_pct / 100.0)
     if is_crit:
         attacker.critical_hits += 1
         log_line(log, "crit", f"💥 Critical Hit! {attacker.name} lands a devastating strike!")
         base_proc *= 2.0
 
-    # Dodge check 
+    # Dodge check — attacker LOGIC reduces defender's effective dodge (accuracy)
+    # Final Dodge = Dodge Chance × (100 / (100 + Attacker LOGIC))
     if defender.clk > attacker.clk:
         clk_gap = defender.clk - attacker.clk
         dodge_chance = (clk_gap * (defender.luck / 100.0)) / 100.0  # keep it small
-        dodge_chance = max(0.0, min(dodge_chance, 0.35))            # cap at 35%
-        if rng.random() < dodge_chance:
+        dodge_chance = max(0.0, min(dodge_chance, 0.35))             # cap at 35%
+        attacker_logic = float(attacker.logic or 0)
+        final_dodge = dodge_chance * (100.0 / (100.0 + attacker_logic))
+        if rng.random() < final_dodge:
             defender.dodges += 1
             log_line(log, "dodge", f"🌀 {defender.name} dodged the attack!")
             return 0.0
@@ -206,6 +246,38 @@ def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
     # Track rounds alive
     botA.rounds_alive += 1
     botB.rounds_alive += 1
+
+    # CHAOS-RND: per-turn random buffs/debuffs to two stats
+    def apply_chaos(bot):
+        if getattr(bot, "algorithm", None) != "CHAOS-RND":
+            return
+
+        stats = ["hp", "energy", "proc", "defense", "clk", "luck", "logic"]
+        chosen = rng.sample(stats, 2)
+        changes = []
+
+        for stat in chosen:
+            direction = rng.choice(["up", "down"])
+            factor = 1.10 if direction == "up" else 0.90
+            old_value = getattr(bot, stat)
+            new_value = int(old_value * factor)
+            # Ensure stats don't drop below 1 for core attributes
+            if stat in {"hp", "energy", "proc", "defense", "clk", "luck", "logic"}:
+                new_value = max(new_value, 1)
+            setattr(bot, stat, new_value)
+            changes.append((stat, direction, old_value, new_value))
+
+        # Log a concise summary of changes
+        if changes:
+            parts = []
+            for stat, direction, old, new in changes:
+                sign = "+" if direction == "up" else "-"
+                parts.append(f"{stat.upper()} {sign}10% ({old} → {new})")
+            msg = f"⚙️ CHAOS-RND surges! {bot.name}'s " + ", ".join(parts) + "."
+            log_line(log, "special", msg)
+
+    apply_chaos(botA)
+    apply_chaos(botB)
 
     turn_order = calculate_turn_order(botA, botB, rng)
 
@@ -267,6 +339,19 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
     log_line(log, "arena", intro_line)
 
     while botA.is_alive() and botB.is_alive():
+        # ADAPT-X: after 2 full rounds, permanently boost LOGIC by +10%
+        if round_num == 3:
+            for bot in (botA, botB):
+                if getattr(bot, "algorithm", None) == "ADAPT-X" and not getattr(bot, "_adapt_logic_applied", False):
+                    old_logic = bot.logic
+                    bot.logic = int(bot.logic * 1.10)
+                    bot._adapt_logic_applied = True
+                    log_line(
+                        log,
+                        "special",
+                        f"🤖 {bot.name} has adapted! LOGIC increased from {old_logic} to {bot.logic}.",
+                    )
+
         log_line(log, "round", f"(Round {round_num})")
 
         winner = battle_round(
@@ -302,10 +387,30 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
 
 # Test battle
 if __name__ == "__main__":
-    bot1 = BattleBot("Alpha", hp=100, energy=50, proc=30, defense=10,
-                     clk=14, luck=10, weapon_type="melee", special_effect="Time Dilation")
-    bot2 = BattleBot("Beta", hp=120, energy=50, proc=25, defense=12,
-                     clk=14, luck=10, weapon_type="ranged", special_effect="Evolve Protocol")
+    bot1 = BattleBot(
+        "Alpha",
+        hp=100,
+        energy=50,
+        proc=30,
+        defense=10,
+        clk=14,
+        luck=10,
+        weapon_type="melee",
+        special_effect="Time Dilation",
+        algorithm="CHAOS-RND",
+    )
+    bot2 = BattleBot(
+        "Beta",
+        hp=120,
+        energy=50,
+        proc=25,
+        defense=12,
+        clk=14,
+        luck=10,
+        weapon_type="ranged",
+        special_effect="Evolve Protocol",
+        algorithm="ADAPT-X",
+    )
 
     # 🎲 Randomly pick Ironclash, Skyline, Neutral, or Frozen
     chosen_arena = random.choice(["ironclash", "skyline", "neutral", "frozen"])
