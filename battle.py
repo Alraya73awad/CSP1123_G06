@@ -243,11 +243,13 @@ def calculate_damage(attacker, defender, log, rng, arena="neutral"):
 
 
 def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
+    round_had_damage = False
+
     # Track rounds alive
     botA.rounds_alive += 1
     botB.rounds_alive += 1
 
-    # CHAOS-RND: per-turn random buffs/debuffs to two stats
+    # CHAOS-RND: per-turn random buffs/debuffs
     def apply_chaos(bot):
         if getattr(bot, "algorithm", None) != "CHAOS-RND":
             return
@@ -260,21 +262,16 @@ def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
             direction = rng.choice(["up", "down"])
             factor = 1.10 if direction == "up" else 0.90
             old_value = getattr(bot, stat)
-            new_value = int(old_value * factor)
-            # Ensure stats don't drop below 1 for core attributes
-            if stat in {"hp", "energy", "proc", "defense", "clk", "luck", "logic"}:
-                new_value = max(new_value, 1)
+            new_value = max(int(old_value * factor), 1)
             setattr(bot, stat, new_value)
             changes.append((stat, direction, old_value, new_value))
 
-        # Log a concise summary of changes
         if changes:
-            parts = []
-            for stat, direction, old, new in changes:
-                sign = "+" if direction == "up" else "-"
-                parts.append(f"{stat.upper()} {sign}10% ({old} → {new})")
-            msg = f"⚙️ CHAOS-RND surges! {bot.name}'s " + ", ".join(parts) + "."
-            log_line(log, "special", msg)
+            parts = [
+                f"{stat.upper()} {'+' if d=='up' else '-'}10% ({old} → {new})"
+                for stat, d, old, new in changes
+            ]
+            log_line(log, "special", f"⚙️ CHAOS-RND surges! {bot.name}'s " + ", ".join(parts) + ".")
 
     apply_chaos(botA)
     apply_chaos(botB)
@@ -287,32 +284,38 @@ def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
         if not attacker.is_alive() or not defender.is_alive():
             continue
 
-        attacker.energy -= 10
-        attacker.energy = max(attacker.energy, 0)
+        attacker.energy = max(attacker.energy - 10, 0)
 
         if not attacker.is_alive():
             log_line(log, "energy", f"{attacker.name} has been defeated (out of energy)!")
-            return defender.name
+            return {"winner": defender.name, "damage": round_had_damage}
 
         use_ability(attacker, defender, log=log, round_num=round_num, rng=rng)
 
         damage = calculate_damage(attacker, defender, log, rng, arena=arena)
+        if damage > 0:
+            round_had_damage = True
+
         defender.hp = max(defender.hp - damage, 0)
 
         log_line(log, "attack", f"{attacker.name} attacks {defender.name} for {damage:.2f} damage!")
         log_line(log, "status", f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
 
+        # Extra attacks
         if attacker.extra_attacks > 0 and defender.is_alive():
             attacker.extra_attacks -= 1
             extra_dmg = calculate_damage(attacker, defender, log, rng, arena=arena)
+            if extra_dmg > 0:
+                round_had_damage = True
+
             defender.hp = max(defender.hp - extra_dmg, 0)
             log_line(log, "attack", f"{attacker.name} strikes again for {extra_dmg:.2f} damage!")
 
         if not defender.is_alive():
             log_line(log, "defeat", f"{defender.name} has been defeated!")
-            return attacker.name
+            return {"winner": attacker.name, "damage": True}
 
-    return None
+    return {"winner": None, "damage": round_had_damage}
 
 
 def full_battle(botA, botB, seed=None, arena="neutral"):
@@ -324,7 +327,11 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
     round_num = 1
     winner = None
 
-    # Apply arena mods ONCE (not every hit)
+    # DRAW rule: draw when both bots don’t land any hits for 10 turns in a row
+    NO_HIT_TURN_LIMIT = 10
+    no_hit_turns = 0
+
+    # Apply arena mods ONCE 
     apply_arena_modifiers(botA, arena)
     apply_arena_modifiers(botB, arena)
 
@@ -350,6 +357,10 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
 
         log_line(log, "round", f"(Round {round_num})")
 
+        # Track HP BEFORE the round
+        hpA_before = float(botA.hp or 0)
+        hpB_before = float(botB.hp or 0)
+
         winner = battle_round(
             botA,
             botB,
@@ -363,9 +374,41 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
             log_line(log, "battleover", f"Battle Over! Winner: {winner}")
             break
 
+        # Track HP 
+        hpA_after = float(botA.hp or 0)
+        hpB_after = float(botB.hp or 0)
+
+        # Only count REAL damage
+        dmg_to_A = max(0.0, hpA_before - hpA_after)
+        dmg_to_B = max(0.0, hpB_before - hpB_after)
+        damage_this_round = dmg_to_A + dmg_to_B
+
+        if damage_this_round <= 0:
+            no_hit_turns += 2
+            log_line(
+                log,
+                "system",
+                f" No hits landed this round. No-hit turns: {no_hit_turns}/{NO_HIT_TURN_LIMIT}"
+            )
+
+            if no_hit_turns >= NO_HIT_TURN_LIMIT:
+                winner = "draw"
+                log_line(
+                    log,
+                    "battleover",
+                    f" DRAW! No hits landed for {NO_HIT_TURN_LIMIT} turns in a row."
+                )
+                break
+        else:
+            no_hit_turns = 0
+
         round_num += 1
 
-    if winner == botA.name:
+    # Points for draw / no winner
+    if winner == "draw" or winner is None:
+        botA_points = 0
+        botB_points = 0
+    elif winner == botA.name:
         botA_points = calculate_bot_stat_points(botA, "win")
         botB_points = calculate_bot_stat_points(botB, "lose")
     else:
@@ -379,6 +422,7 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
         "botA_points": botA_points,
         "botB_points": botB_points
     }
+
 
 
 # Test battle

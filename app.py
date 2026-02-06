@@ -785,23 +785,29 @@ def combat_log(bot1_id, bot2_id):
     result = full_battle(battleA, battleB)
     winner_name = result["winner"]
     log = result["log"]
+    is_draw = (winner_name == "draw" or winner_name is None)
     botA_points = result["botA_points"]
     botB_points = result["botB_points"]
     seed = result["seed"]
 
-    #save bot win or loss
-    if winner_name == bot1.name:
-        bot1.botwins += 1
-        bot2.botlosses += 1
-    else:
-        bot2.botwins += 1
-        bot1.botlosses += 1
+    # save bot win or loss (skip if draw)
+    if not is_draw:
+        if winner_name == bot1.name:
+            bot1.botwins += 1
+            bot2.botlosses += 1
+        else:
+            bot2.botwins += 1
+            bot1.botlosses += 1
 
     db.session.commit()
 
     # Determine results
-    bot1_result = "win" if winner_name == bot1.name else "lose"
-    bot2_result = "win" if winner_name == bot2.name else "lose"
+    if is_draw:
+        bot1_result = "draw"
+        bot2_result = "draw"
+    else:
+        bot1_result = "win" if winner_name == bot1.name else "lose"
+        bot2_result = "win" if winner_name == bot2.name else "lose"
 
     # BOT XP SYSTEM
     def bot_xp_to_next_level(level):
@@ -826,8 +832,13 @@ def combat_log(bot1_id, bot2_id):
 
     # Calculate XP per bot
     def calculate_bot_xp(battle_bot, result):
-        base = 20 if result == "win" else 10
-        return base
+        if result == "win":
+            return 20
+        elif result == "lose":
+            return 5
+        elif result == "draw":
+            return 10 
+        return 0
 
     # Apply XP
     bot1_xp = calculate_bot_xp(battleA, bot1_result)
@@ -863,17 +874,11 @@ def combat_log(bot1_id, bot2_id):
 
         user.tokens = int(user.tokens or 0) + 5
 
-     # BOT-specific stat points reward (per level gained)
-        winning_bot.stat_points = int(winning_bot.stat_points or 0) + (levels_gained * 5)
-
         db.session.commit()
 
     elif losing_bot and losing_bot.user_id == user.id:
         xp_gained = 10
         levels_gained = add_xp(user, xp_gained)
-
-    # gives loser smaller points
-        losing_bot.stat_points = int(losing_bot.stat_points or 0) + (levels_gained * 2)
 
         db.session.commit()
         flash(f"Congratulations {user.username}! You gained {xp_gained} XP and {levels_gained} levels.", "success")
@@ -881,7 +886,7 @@ def combat_log(bot1_id, bot2_id):
     # elo rating changes
     is_ranked = (bot1.user_id != bot2.user_id)
     
-    if is_ranked:
+    if is_ranked and not is_draw:
         if winner_name == bot1.name:
             winner_user = bot1.user
             loser_user = bot2.user
@@ -1349,13 +1354,7 @@ def add_xp(user, amount):
         user.tokens = int(user.tokens or 0) + 20 
 
     db.session.commit()
-    return levels_gained
-
-
-if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True, port=5001, use_reloader=False) 
+    return levels_gained 
 
 @app.route("/database")
 @login_required
@@ -1394,3 +1393,9 @@ def database_rating_system():
 @app.route("/database/arenas")
 def database_arenas():
     return render_template("database_pages/arenas.html", active_database="arenas")
+
+
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True, port=5001, use_reloader=False)
