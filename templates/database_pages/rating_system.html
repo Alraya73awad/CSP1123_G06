@@ -19,12 +19,16 @@
         at the kind of players and builds you'll face in ranked battles.
     </p>
     <p>
-        <strong>Prototype</strong> <= 799<br>
-        <strong>Circuit</strong> 800-999<br>
-        <strong>Processor</strong> 1000-1199<br>
-        <strong>Mainframe</strong> 1200-1399<br>
-        <strong>Quantum</strong> 1400-1599<br>
-        <strong>Nexus</strong> 1600+
+        {% for tier in rank_tiers %}
+            <span style="color: {{ tier.color }};">
+                <strong>{{ tier.icon }} {{ tier.name }}</strong>
+                {% if tier.max is none %}
+                    {{ tier.min }}+
+                {% else %}
+                    {{ tier.min }}-{{ tier.max }}
+                {% endif %}
+            </span><br>
+        {% endfor %}
     </p>
 </section>
 

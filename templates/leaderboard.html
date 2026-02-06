@@ -6,7 +6,9 @@
 {% if current_user and user_has_matches %}
     <div class="alert alert-info">
         <strong>Your Rank:</strong> #{{ current_user_rank }} 
-        <span>- {{ current_user.rating }} Rating</span>
+        {% set my_tier = get_rank_tier(current_user.rating) %}
+        <span style="color: {{ my_tier.color }};">- {{ current_user.rating }} Rating</span>
+        <span style="color: {{ my_tier.color }};">({{ my_tier.icon }} {{ my_tier.name }})</span>
     </div>
 {% else %}
     <p>Play matches to earn a spot on the leaderboard!</p>
@@ -26,6 +28,7 @@
         </thead>
         <tbody>
             {% for player in top_players %}
+            {% set tier = get_rank_tier(player.rating) %}
             <tr {% if current_user and player.id == current_user.id %}class="table-primary"{% endif %}>
                 <td>
                     <strong>{{ loop.index }}</strong>
@@ -34,14 +37,9 @@
                     {% if loop.index == 3 %}🥉{% endif %}
                 </td>
                 <td>{{ player.username }}</td>
-                <td><span style="color:yellow;">{{ player.rating }}</span></td>
+                <td><span style="color: {{ tier.color }};">{{ player.rating }}</span></td>
                 <td>
-                    {% if player.rating >= 1600 %}🔮 Nexus
-                    {% elif player.rating >= 1400 %}🌌 Quantum
-                    {% elif player.rating >= 1200 %}💻 Mainframe
-                    {% elif player.rating >= 1000 %}🖥️ Processor
-                    {% elif player.rating >= 800 %}⚡ Circuit
-                    {% else %}🔧 Prototype{% endif %}
+                    <span style="color: {{ tier.color }};">{{ tier.icon }} {{ tier.name }}</span>
                 </td>
                 <td>
                     <span style="color: #00ffaa;">{{ player.wins }}W</span>
@@ -75,20 +73,16 @@
         </thead>
         <tbody>
             {% for player in nearby_players %}
+            {% set tier = get_rank_tier(player.rating) %}
             <tr {% if current_user and player.id == current_user.id %}class="table-success fw-bold"{% endif %}>
                 <td>
                     <strong>{{ nearby_start_rank + loop.index0 }}</strong>
                     {% if current_user and player.id == current_user.id %}(YOU){% endif %}
                 </td>
                 <td>{{ player.username }}</td>
-                <td><span style="color:yellow;">{{ player.rating }}</span></td>
+                <td><span style="color: {{ tier.color }};">{{ player.rating }}</span></td>
                 <td>
-                    {% if player.rating >= 1600 %}🔮 Nexus
-                    {% elif player.rating >= 1400 %}🌌 Quantum
-                    {% elif player.rating >= 1200 %}💻 Mainframe
-                    {% elif player.rating >= 1000 %}🖥️ Processor
-                    {% elif player.rating >= 800 %}⚡ Circuit
-                    {% else %}🔧 Prototype{% endif %}
+                    <span style="color: {{ tier.color }};">{{ tier.icon }} {{ tier.name }}</span>
                 </td>
                 <td>
                     <span style="color: #00ffaa;">{{ player.wins }}W</span>

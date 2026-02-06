@@ -1,5 +1,15 @@
 CURRENCY_NAME = "Tokens"
 
+# Rank tiers (shared UI/logic)
+RANK_TIERS = [
+    {"name": "Prototype", "min": 0, "max": 799, "icon": "🔧", "color": "lightblue"},
+    {"name": "Circuit", "min": 800, "max": 999, "icon": "⚡", "color": "yellow"},
+    {"name": "Processor", "min": 1000, "max": 1199, "icon": "🖥️", "color": "orange"},
+    {"name": "Mainframe", "min": 1200, "max": 1399, "icon": "💻", "color": "cyan"},
+    {"name": "Quantum", "min": 1400, "max": 1599, "icon": "🌌", "color": "magenta"},
+    {"name": "Nexus", "min": 1600, "max": None, "icon": "🔮", "color": "red"},
+]
+
 CHARACTER_ITEMS = [
     {
         "id": 101,
@@ -75,7 +85,7 @@ algorithm_effects = {
         # No effects
     },
     "ADAPT-X": {    
-        "ent": 1.05,
+        "luck": 1.05,
         "proc": 0.9
     },
     "RUSH-09": {    
