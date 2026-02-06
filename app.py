@@ -103,11 +103,20 @@ def login():
         return redirect(url_for("dashboard"))
 
     if request.method == "POST":
-        user = User.query.filter_by(username=request.form["username"]).first()
-        if user and check_password_hash(user.password, request.form["password"]):
+        identifier = request.form["username"]
+        password = request.form["password"]
+
+        user = User.query.filter(
+            or_(
+                User.username == identifier,
+                User.email == identifier
+            )
+        ).first()
+
+        if user and check_password_hash(user.password, password):
             session["user_id"] = user.id
             flash("Login successful!", "success")
-            return redirect(url_for("dashboard"))  
+            return redirect(url_for("dashboard"))
         else:
             flash("Invalid credentials", "danger")
 
@@ -1398,4 +1407,4 @@ def database_arenas():
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True, port=5001, use_reloader=False)
+    app.run(debug=True, port=5005, use_reloader=False)
