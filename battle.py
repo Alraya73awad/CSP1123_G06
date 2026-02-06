@@ -297,9 +297,7 @@ def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
         use_ability(attacker, defender, log=log, round_num=round_num, rng=rng)
 
         damage = calculate_damage(attacker, defender, log, rng, arena=arena)
-        defender.hp -= damage
-        if defender.hp < 0:
-            defender.hp = 0
+        defender.hp = max(defender.hp - damage, 0)
 
         log_line(log, "attack", f"{attacker.name} attacks {defender.name} for {damage:.2f} damage!")
         log_line(log, "status", f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
@@ -307,10 +305,8 @@ def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
         if attacker.extra_attacks > 0 and defender.is_alive():
             attacker.extra_attacks -= 1
             extra_dmg = calculate_damage(attacker, defender, log, rng, arena=arena)
-            defender.hp -= extra_dmg
-            if defender.hp < 0:
-                defender.hp = 0
-            log_line(log, "attack", f"{attacker.name} strikes again with Time Dilation for {extra_dmg:.2f} damage!")
+            defender.hp = max(defender.hp - extra_dmg, 0)
+            log_line(log, "attack", f"{attacker.name} strikes again for {extra_dmg:.2f} damage!")
 
         if not defender.is_alive():
             log_line(log, "defeat", f"{defender.name} has been defeated!")
