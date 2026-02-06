@@ -337,8 +337,6 @@ def character():
         if not selected_bot:
             selected_bot = bots[0]
 
-    stat_points = int(getattr(selected_bot, "stat_points", 0) or 0) if selected_bot else 0
-
     xp_to_next = XP_TABLE.get(user.level, {"to_next": 50})["to_next"]
 
     return render_template(
@@ -346,10 +344,11 @@ def character():
         user=user,
         bots=bots,
         selected_bot=selected_bot,
-        stat_points=stat_points,
+        tokens=int(user.tokens or 0),
         xp_to_next=xp_to_next,
         CHARACTER_ITEMS=CHARACTER_ITEMS
     )
+
 
 @app.route("/equip_weapon_from_store", methods=["POST"])
 @login_required
@@ -475,16 +474,14 @@ def buy_character():
         flash("Invalid upgrade selected.", "danger")
         return redirect(url_for("character", bot_id=bot.id))
 
-    # Ensure bot stat_points exists
-    bot.stat_points = int(bot.stat_points or 0)
+    cost = int(item["cost"])
+    user.tokens = int(user.tokens or 0)
 
-    # Check points (BOT points, not USER points)
-    if bot.stat_points < int(item["cost"]):
-        flash("Not enough stat points!", "danger")
+    if user.tokens < cost:
+        flash("Not enough tokens!", "danger")
         return redirect(url_for("character", bot_id=bot.id))
 
-    # Deduct points from this bot
-    bot.stat_points -= int(item["cost"])
+    user.tokens -= cost
 
     # Apply upgrade to the bot
     stat = item.get("stat")
@@ -492,10 +489,13 @@ def buy_character():
 
     if stat in ["hp", "atk", "defense", "speed", "logic", "luck", "energy"]:
         setattr(bot, stat, int(getattr(bot, stat) or 0) + value)
+    else:
+        flash(f"{item['name']} purchased, but stat '{stat}' isn't implemented in Bot yet.", "warning")
 
     db.session.commit()
-    flash(f"{item['name']} purchased for {bot.name}!", "success")
+    flash(f"{item['name']} purchased for {bot.name}! (-{cost} tokens)", "success")
     return redirect(url_for("character", bot_id=bot.id))
+
 
 
 
@@ -539,31 +539,34 @@ def edit_bot(bot_id):
         user_id=session["user_id"]
     ).first_or_404()
 
-    if request.method == 'POST':
+    def read_stat(name):
+        raw_num = (request.form.get(f"{name}_number") or "").strip()
+        raw_slider = (request.form.get(name) or "").strip()
 
-        def read_stat(name):
-            raw_num = request.form.get(f"{name}_number", "").strip()
-            raw_slider = request.form.get(name, "").strip()
+        chosen = raw_num if raw_num != "" else raw_slider
+        if chosen == "":
+            return getattr(bot, name)
 
-            
-            chosen = raw_num if raw_num != "" else raw_slider
+        try:
+            return int(chosen)
+        except ValueError:
+            return None
 
-            # If still empty, fallback to existing bot value
-            if chosen == "" or chosen is None:
-                return getattr(bot, name)
-            try:
-                return int(chosen)
-            except ValueError:
-                return None 
+    if request.method == "POST":
+        new_name = (request.form.get("name") or "").strip()
+        new_algorithm = (request.form.get("algorithm") or "").strip()
 
-        # Gather values
-        new_stats = {}
-        for stat in STAT_LIMITS.keys():
-            new_stats[stat] = read_stat(stat)
+        # Gather stats from sliders
+        new_stats = {stat: read_stat(stat) for stat in STAT_LIMITS.keys()}
 
         if "preview" in request.form:
-            # validate types and ranges
             errors = []
+
+            if not new_name:
+                errors.append("Bot name cannot be empty.")
+            if not new_algorithm:
+                errors.append("Please select an algorithm.")
+
             for stat, val in new_stats.items():
                 if val is None:
                     errors.append(f"{stat.upper()} must be an integer.")
@@ -575,26 +578,29 @@ def edit_bot(bot_id):
             if errors:
                 for e in errors:
                     flash(e, "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
+                return redirect(url_for("edit_bot", bot_id=bot_id) + "?flash=1")
 
-            return render_template('preview_bot.html', bot=bot, new_stats=new_stats)
+            return render_template(
+                "preview_bot.html",
+                bot=bot,
+                new_stats=new_stats,
+                new_name=new_name,
+                new_algorithm=new_algorithm
+            )
 
         if "confirm" in request.form:
-            new_name = request.form.get("name", "").strip()
-            new_algorithm = request.form.get("algorithm", "").strip()
-
-
             if not new_name:
                 flash("Bot name cannot be empty.", "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id))
+                return redirect(url_for("edit_bot", bot_id=bot_id) + "?flash=1")
 
             if not new_algorithm:
                 flash("Please select an algorithm.", "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id))
+                return redirect(url_for("edit_bot", bot_id=bot_id) + "?flash=1")
 
-
-            final_stats = {}
             errors = []
+            final_stats = {}
+
+            # Validate stats again (never trust the client)
             for stat in STAT_LIMITS.keys():
                 raw = request.form.get(stat)
                 if raw is None:
@@ -605,6 +611,7 @@ def edit_bot(bot_id):
                 except ValueError:
                     errors.append(f"{stat.upper()} must be an integer.")
                     continue
+
                 low, high = STAT_LIMITS[stat]
                 if val < low or val > high:
                     errors.append(f"{stat.upper()} must be between {low} and {high}.")
@@ -613,54 +620,49 @@ def edit_bot(bot_id):
             if errors:
                 for e in errors:
                     flash(e, "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
-            
-            # Read new name + algorithm
-            new_name = request.form.get("name", "").strip()
-            new_algorithm = request.form.get("algorithm", "").strip()
+                return redirect(url_for("edit_bot", bot_id=bot_id) + "?flash=1")
 
-            # Prevent empty name / algorithm
-            if not new_name:
-                flash("Bot name cannot be empty.", "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
+            # Cost = ONLY increases
+            required = 0
+            for stat, new_val in final_stats.items():
+                cur = int(getattr(bot, stat) or 0)
+                diff = new_val - cur
+                if diff > 0:
+                    required += diff
 
-            if not new_algorithm:
-                flash("Please select an algorithm.", "danger")
-                return redirect(url_for('edit_bot', bot_id=bot_id) + "?flash=1")
+            available = int(bot.stat_points or 0)
+            if required > available:
+                flash(f"Not enough stat points. Required {required}, you have {available}.", "danger")
+                return redirect(url_for("edit_bot", bot_id=bot_id) + "?flash=1")
 
             changed = (
                 bot.name != new_name or
                 bot.algorithm != new_algorithm or
-                bot.hp != final_stats['hp'] or
-                bot.energy != final_stats['energy'] or
-                bot.atk != final_stats['atk'] or
-                bot.defense != final_stats['defense'] or
-                bot.speed != final_stats['speed'] or
-                bot.logic != final_stats['logic'] or
-                bot.luck != final_stats['luck'] 
+                any(int(getattr(bot, s) or 0) != int(final_stats[s]) for s in final_stats)
             )
-
             if not changed:
                 flash("No changes were made.", "warning")
-                return redirect(url_for('bot_list', bot_id=bot_id) + "?flash=1")
-            
+                return redirect(url_for("edit_bot", bot_id=bot_id) + "?flash=1")
+
+            # Apply + deduct ONCE
+            bot.stat_points = available - required
             bot.name = new_name
             bot.algorithm = new_algorithm
-            
-            bot.hp = final_stats['hp']
-            bot.energy = final_stats['energy']
-            bot.atk = final_stats['atk']
-            bot.defense = final_stats['defense']
-            bot.speed = final_stats['speed']
-            bot.logic = final_stats['logic']
-            bot.luck = final_stats['luck']
-
+            for stat, val in final_stats.items():
+                setattr(bot, stat, val)
 
             db.session.commit()
             flash("Bot updated successfully.", "success")
-            return redirect(url_for('manage_bot') + "?flash=1")
+            return redirect(url_for("manage_bot") + "?flash=1")
 
-    return render_template('edit_bot.html', bot=bot, stat_limits=STAT_LIMITS, algorithms = algorithms, algorithm_descriptions=algorithm_descriptions, show_flashes = False)
+    return render_template(
+        "edit_bot.html",
+        bot=bot,
+        stat_limits=STAT_LIMITS,
+        algorithms=algorithms,
+        algorithm_descriptions=algorithm_descriptions,
+        show_flashes=False
+    )
 
 @app.route('/bot/<int:bot_id>')
 @login_required
@@ -803,6 +805,7 @@ def combat_log(bot1_id, bot2_id):
     def add_bot_xp(bot, amount):
         bot.xp = int(bot.xp or 0)
         bot.level = int(bot.level or 1)
+        bot.stat_points = int(bot.stat_points or 0)
 
         bot.xp += int(amount)
         levels_gained = 0
@@ -815,6 +818,8 @@ def combat_log(bot1_id, bot2_id):
             bot.hp = int(bot.hp or 0) + 10
             bot.atk = int(bot.atk or 0) + 2
             bot.defense = int(bot.defense or 0) + 2
+
+            bot.stat_points += 5
 
         return levels_gained
 
