@@ -43,19 +43,19 @@
             <!-- Rank Tier Breakdown -->
             <div class="mt-4">
                 <h6>Rank Tiers:</h6>
-                <ul class=\"list-unstyled\">
+                <ul class="list-unstyled">
                     {% for tier in rank_tiers %}
-                        <li style=\"color: {{ tier.color }};\">
+                        <li style="color: {{ tier.color }};">
                             {{ tier.icon }} <strong>{{ tier.name }}:</strong>
                             {% if tier.max is none %}
                                 {{ tier.min }}+ (Elite neural networks)
                             {% else %}
                                 {{ tier.min }} - {{ tier.max }}
-                                {% if tier.name == \"Prototype\" %}(Experimental builds){% endif %}
-                                {% if tier.name == \"Circuit\" %}(Basic systems){% endif %}
-                                {% if tier.name == \"Processor\" %}(Optimized units){% endif %}
-                                {% if tier.name == \"Mainframe\" %}(Advanced networks){% endif %}
-                                {% if tier.name == \"Quantum\" %}(Cutting-edge tech){% endif %}
+                                {% if tier.name == "Prototype" %}(Experimental builds){% endif %}
+                                {% if tier.name == "Circuit" %}(Basic systems){% endif %}
+                                {% if tier.name == "Processor" %}(Optimized units){% endif %}
+                                {% if tier.name == "Mainframe" %}(Advanced networks){% endif %}
+                                {% if tier.name == "Quantum" %}(Cutting-edge tech){% endif %}
                             {% endif %}
                         </li>
                     {% endfor %}
