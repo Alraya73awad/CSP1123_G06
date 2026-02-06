@@ -141,6 +141,12 @@ def login_required(f):
 @login_required
 def dashboard():
     user = User.query.get(session["user_id"])
+    if not user:
+        session.clear()
+        flash("Session expired. Please log in again.", "warning")
+        return redirect(url_for("login"))
+    # rest of code
+
 
     # HANDLE BOT CREATION (FORM SUBMIT)
     if request.method == "POST":
