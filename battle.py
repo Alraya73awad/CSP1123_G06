@@ -323,6 +323,7 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
     log = []
     round_num = 1
     winner = None
+    MAX_ROUNDS = 10
 
     # Apply arena mods ONCE (not every hit)
     apply_arena_modifiers(botA, arena)
@@ -334,7 +335,7 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
     )
     log_line(log, "arena", intro_line)
 
-    while botA.is_alive() and botB.is_alive():
+    while botA.is_alive() and botB.is_alive() and round_num <= MAX_ROUNDS:
         # ADAPT-X: after 2 full rounds, permanently boost LOGIC by +10%
         if round_num == 3:
             for bot in (botA, botB):
@@ -364,13 +365,21 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
             break
 
         round_num += 1
+    
+    if round_num > MAX_ROUNDS and winner is None:
+        winner = "draw"
+        log_line(log, "battleover", " DRAW! Maximum rounds reached.")
 
-    if winner == botA.name:
+    if winner == "draw" or winner is None:
+        botA_points = 0
+        botB_points = 0
+    elif winner == botA.name:
         botA_points = calculate_bot_stat_points(botA, "win")
         botB_points = calculate_bot_stat_points(botB, "lose")
     else:
         botB_points = calculate_bot_stat_points(botB, "win")
         botA_points = calculate_bot_stat_points(botA, "lose")
+
 
     return {
         "winner": winner,
