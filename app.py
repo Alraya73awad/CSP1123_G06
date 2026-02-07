@@ -191,16 +191,20 @@ def register():
 @app.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
-        identifier = request.form.get("email")
+        email = request.form.get("email")
         new_password = request.form.get("new_password")
-        user = User.query.filter(or_(User.username == identifier, User.email == identifier)).first()
+
+        user = User.query.filter_by(email=email).first()
+
         if user:
             user.password = generate_password_hash(new_password)
             db.session.commit()
             flash("Password reset successfully!", "success")
         else:
-            flash("Player ID not found.", "danger")
+            flash("Email not found.", "danger")
+
         return redirect(url_for("login"))
+
     return render_template("forgot_password.html")
 
 def login_required(f):
