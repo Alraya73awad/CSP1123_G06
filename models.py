@@ -18,6 +18,7 @@ class User(db.Model, UserMixin):
     wins = db.Column(db.Integer, default=0)
     losses = db.Column(db.Integer, default=0)
     banned = db.Column(db.Boolean, default=False)
+    banned = db.Column(db.Boolean, default=False)
 
     bots = db.relationship("Bot", backref="user", lazy=True)
 
