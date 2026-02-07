@@ -62,6 +62,13 @@ class Bot(db.Model):
     botwins = db.Column(db.Integer, default=0)
     botlosses = db.Column(db.Integer, default=0)
 
+    upgrade_armor_plating = db.Column(db.Boolean, default=False)
+    upgrade_overclock_unit = db.Column(db.Boolean, default=False)
+    upgrade_regen_core = db.Column(db.Boolean, default=False)
+    upgrade_critical_subroutine = db.Column(db.Boolean, default=False)
+    upgrade_energy_recycler = db.Column(db.Boolean, default=False)
+    upgrade_emp_shield = db.Column(db.Boolean, default=False)
+
     @property
     def equipped_weapon(self):
         for ow in self.equipped_weapon_ownership:
@@ -108,8 +115,15 @@ class History(db.Model):
     bot1_luck = db.Column(db.Integer)
     bot1_logic = db.Column(db.Integer, default=0)
     bot1_weapon_atk = db.Column(db.Integer, default=0)
+    bot1_weapon_name = db.Column(db.String(50))
     bot1_weapon_type = db.Column(db.String(20))
     bot1_algorithm = db.Column(db.String(50))
+    bot1_upgrade_armor_plating = db.Column(db.Boolean, default=False)
+    bot1_upgrade_overclock_unit = db.Column(db.Boolean, default=False)
+    bot1_upgrade_regen_core = db.Column(db.Boolean, default=False)
+    bot1_upgrade_critical_subroutine = db.Column(db.Boolean, default=False)
+    bot1_upgrade_energy_recycler = db.Column(db.Boolean, default=False)
+    bot1_upgrade_emp_shield = db.Column(db.Boolean, default=False)
     
     # Bot 2 stats snapshot
     bot2_hp = db.Column(db.Integer)
@@ -120,8 +134,15 @@ class History(db.Model):
     bot2_luck = db.Column(db.Integer)
     bot2_logic = db.Column(db.Integer, default=0)
     bot2_weapon_atk = db.Column(db.Integer, default=0)
+    bot2_weapon_name = db.Column(db.String(50))
     bot2_weapon_type = db.Column(db.String(20))
     bot2_algorithm = db.Column(db.String(50))
+    bot2_upgrade_armor_plating = db.Column(db.Boolean, default=False)
+    bot2_upgrade_overclock_unit = db.Column(db.Boolean, default=False)
+    bot2_upgrade_regen_core = db.Column(db.Boolean, default=False)
+    bot2_upgrade_critical_subroutine = db.Column(db.Boolean, default=False)
+    bot2_upgrade_energy_recycler = db.Column(db.Boolean, default=False)
+    bot2_upgrade_emp_shield = db.Column(db.Boolean, default=False)
 
 
 class WeaponOwnership(db.Model):

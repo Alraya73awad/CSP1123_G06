@@ -6,16 +6,7 @@
 
 <h1>USER DASHBOARD // MAIN INTERFACE</h1>
 
-<!-- flash .essages -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        <div class="flash-area">
-            {% for category, message in messages %}
-                <div class="flash {{ category }}">{{ message }}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
-{% endwith %}
+
 
 <!-- Hamburger Menu -->
 <input type="checkbox" id="menu-toggle" class="menu-toggle">

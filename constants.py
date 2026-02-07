@@ -16,48 +16,42 @@ CHARACTER_ITEMS = [
         "name": "Armor Plating",
         "desc": "+10% DEF",
         "cost": 30,
-        "stat": "defense",
-        "value": 10
+        "flag": "upgrade_armor_plating"
     },
     {
         "id": 102,
         "name": "Overclock Unit",
         "desc": "+10% SPD but costs 5 Energy per turn",
         "cost": 40,
-        "stat": "speed",
-        "value": 10
+        "flag": "upgrade_overclock_unit"
     },
     {
         "id": 103,
         "name": "Regen Core",
         "desc": "Regain 5% HP each turn",
         "cost": 40,
-        "stat": "hp",
-        "value": 5
+        "flag": "upgrade_regen_core"
     },
     {
         "id": 104,
         "name": "Critical Subroutine",
         "desc": "+5% Crit Chance",
         "cost": 40,
-        "stat": "crit",
-        "value": 5
+        "flag": "upgrade_critical_subroutine"
     },
     {
         "id": 105,
         "name": "Energy Recycler",
         "desc": "Gain 10 Energy each turn",
         "cost": 40,
-        "stat": "energy",
-        "value": 10
+        "flag": "upgrade_energy_recycler"
     },
     {
         "id": 106,
         "name": "EMP Shield",
         "desc": "Immune to Energy drain effects",
         "cost": 40,
-        "stat": "energy",
-        "value": 10
+        "flag": "upgrade_emp_shield"
     }
 ]
 
