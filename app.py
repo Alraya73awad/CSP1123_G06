@@ -1758,11 +1758,6 @@ def database_rating_system():
 def database_arenas():
     return render_template("database_pages/arenas.html", active_database="arenas")
 
-@app.route("/database")
-@login_required
-def database():
-    return render_template("database.html")
-
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
