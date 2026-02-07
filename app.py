@@ -181,8 +181,13 @@ def register():
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if "user_id" not in session:
+        user_id = session.get("user_id")
+        if not user_id:
             flash("Please log in to continue.", "warning")
+            return redirect(url_for("login"))
+        if not User.query.get(user_id):
+            session.clear()
+            flash("Session expired. Please log in again.", "warning")
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
