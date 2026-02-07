@@ -635,7 +635,7 @@ def delete_bot(bot_id):
         user_id=session["user_id"]
     ).first_or_404()
 
-    # Detach bot from history before delete to avoid FK / NOT NULL issues
+    # Detach bot from history before delete (requires bot1_id/bot2_id to be nullable)
     History.query.filter_by(bot1_id=bot.id).update({"bot1_id": None})
     History.query.filter_by(bot2_id=bot.id).update({"bot2_id": None})
 

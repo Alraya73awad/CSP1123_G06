@@ -16,30 +16,32 @@ depends_on = None
 
 
 def upgrade():
-    # Ensure table name matches model: bots
-    op.execute(
-        """
-        DO $$
-        BEGIN
-            IF to_regclass('public.bot') IS NOT NULL AND to_regclass('public.bots') IS NULL THEN
-                ALTER TABLE public.bot RENAME TO bots;
-            END IF;
-        END$$;
-        """
-    )
-
-    # Fix FK to reference bots table
-    op.execute("ALTER TABLE weapon_ownership DROP CONSTRAINT IF EXISTS weapon_ownership_bot_id_fkey;")
-    op.execute(
-        """
-        ALTER TABLE weapon_ownership
-        ADD CONSTRAINT weapon_ownership_bot_id_fkey
-        FOREIGN KEY (bot_id) REFERENCES bots (id) ON DELETE SET NULL;
-        """
-    )
-
     bind = op.get_bind()
     dialect = bind.dialect.name
+
+    # Ensure table name matches model: bots
+    if dialect == "postgresql":
+        op.execute(
+            """
+            DO $$
+            BEGIN
+                IF to_regclass('public.bot') IS NOT NULL AND to_regclass('public.bots') IS NULL THEN
+                    ALTER TABLE public.bot RENAME TO bots;
+                END IF;
+            END$$;
+            """
+        )
+
+    # Fix FK to reference bots table
+    if dialect != "sqlite":
+        op.execute("ALTER TABLE weapon_ownership DROP CONSTRAINT IF EXISTS weapon_ownership_bot_id_fkey;")
+        op.execute(
+            """
+            ALTER TABLE weapon_ownership
+            ADD CONSTRAINT weapon_ownership_bot_id_fkey
+            FOREIGN KEY (bot_id) REFERENCES bots (id) ON DELETE SET NULL;
+            """
+        )
 
     def existing_cols(table_name):
         cols = set()
@@ -135,20 +137,22 @@ def downgrade():
         batch_op.drop_column("upgrade_overclock_unit")
         batch_op.drop_column("upgrade_armor_plating")
 
-    op.execute("ALTER TABLE weapon_ownership DROP CONSTRAINT IF EXISTS weapon_ownership_bot_id_fkey;")
-    op.execute(
-        """
-        DO $$
-        BEGIN
-            IF to_regclass('public.bot') IS NOT NULL THEN
-                ALTER TABLE weapon_ownership
-                ADD CONSTRAINT weapon_ownership_bot_id_fkey
-                FOREIGN KEY (bot_id) REFERENCES bot (id);
-            ELSIF to_regclass('public.bots') IS NOT NULL THEN
-                ALTER TABLE weapon_ownership
-                ADD CONSTRAINT weapon_ownership_bot_id_fkey
-                FOREIGN KEY (bot_id) REFERENCES bots (id);
-            END IF;
-        END$$;
-        """
-    )
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.execute("ALTER TABLE weapon_ownership DROP CONSTRAINT IF EXISTS weapon_ownership_bot_id_fkey;")
+        op.execute(
+            """
+            DO $$
+            BEGIN
+                IF to_regclass('public.bot') IS NOT NULL THEN
+                    ALTER TABLE weapon_ownership
+                    ADD CONSTRAINT weapon_ownership_bot_id_fkey
+                    FOREIGN KEY (bot_id) REFERENCES bot (id);
+                ELSIF to_regclass('public.bots') IS NOT NULL THEN
+                    ALTER TABLE weapon_ownership
+                    ADD CONSTRAINT weapon_ownership_bot_id_fkey
+                    FOREIGN KEY (bot_id) REFERENCES bots (id);
+                END IF;
+            END$$;
+            """
+        )

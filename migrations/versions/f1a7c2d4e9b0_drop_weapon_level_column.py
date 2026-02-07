@@ -16,8 +16,28 @@ depends_on = None
 
 
 def upgrade():
-    with op.batch_alter_table("weapons", schema=None) as batch_op:
-        batch_op.drop_column("level")
+    bind = op.get_bind()
+    dialect = bind.dialect.name
+
+    def existing_cols(table_name):
+        if dialect == "postgresql":
+            result = bind.execute(
+                sa.text(
+                    """
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public' AND table_name = :t
+                    """
+                ),
+                {"t": table_name},
+            )
+            return {row[0] for row in result}
+        result = bind.execute(sa.text(f"PRAGMA table_info({table_name});"))
+        return {row[1] for row in result}
+
+    if "level" in existing_cols("weapons"):
+        with op.batch_alter_table("weapons", schema=None) as batch_op:
+            batch_op.drop_column("level")
 
 
 def downgrade():
