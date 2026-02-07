@@ -7,12 +7,8 @@ from functools import wraps
 from sqlalchemy import or_
 
 from extensions import db
-from sqlalchemy.exc import OperationalError, ProgrammingError
 from constants import CURRENCY_NAME,CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS, UPGRADES, RANK_TIERS
 from battle import BattleBot, full_battle, calculate_bot_stat_points, ARENA_EFFECTS
-from seed_weapons import seed_weapons
-
-
 from models import User, Bot, History, Weapon, WeaponOwnership
 
 app = Flask(__name__, instance_relative_config=True)
@@ -89,25 +85,6 @@ def apply_upgrade_arena_effects(stats, upgrades, arena="neutral"):
 @app.context_processor
 def inject_upgrade_helpers():
     return dict(get_upgrade_labels=get_upgrade_labels)
-
-_weapons_seeded = False
-
-def ensure_weapons_seeded():
-    global _weapons_seeded
-    if _weapons_seeded:
-        return
-    try:
-        if Weapon.query.count() == 0:
-            seed_weapons()
-        _weapons_seeded = True
-    except (OperationalError, ProgrammingError):
-        # Tables may not exist yet during migrations/startup
-        pass
-
-@app.before_request
-def seed_weapons_on_first_request():
-    ensure_weapons_seeded()
-
 
 def calculate_elo_change(winner_rating, loser_rating, k_factor=32):
     """
