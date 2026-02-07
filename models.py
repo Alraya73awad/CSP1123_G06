@@ -18,7 +18,6 @@ class User(db.Model, UserMixin):
     wins = db.Column(db.Integer, default=0)
     losses = db.Column(db.Integer, default=0)
     banned = db.Column(db.Boolean, default=False)
-    banned = db.Column(db.Boolean, default=False)
 
     bots = db.relationship("Bot", backref="user", lazy=True)
 
@@ -197,16 +196,3 @@ class Weapon(db.Model):
         }
         stats = tier_stats.get(self.tier, {"base": 5, "per_level": 1})
         return stats["base"] + (level - 1) * stats["per_level"]
-
-class Admin(db.Model, UserMixin):
-    __tablename__ = "admin"
-
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-
-    role = db.Column(db.String(50), default="moderator")  # optional
-
-    def get_id(self):
-        return str(self.id)
