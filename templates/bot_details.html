@@ -20,7 +20,7 @@
         <strong>Weapon:</strong>
         {% set equipped = bot.equipped_weapon %}
         {% if equipped %}
-            {{ equipped.weapon.name }} (+{{ equipped.weapon.effective_atk() }} PROC)
+            {{ equipped.weapon.name }} (+{{ equipped.effective_atk() }} PROC)
         {% else %}
             None
         {% endif %}

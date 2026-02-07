@@ -15,7 +15,7 @@
                     <option value="">-- None --</option>
                     {% for ow in owned_weapons %}
                         <option value="{{ ow.id }}" {% if ow.equipped and ow.bot_id == bot.id %}selected{% endif %}>
-                            {{ ow.weapon.name }} (Lv {{ ow.weapon.level }}, ATK {{ ow.weapon.effective_atk() }})
+                            {{ ow.weapon.name }} (Lv {{ ow.level }}, ATK {{ ow.effective_atk() }})
                         </option>
                     {% endfor %}
                 </select>
@@ -40,14 +40,14 @@
             {% for ow in owned_weapons %}
             <tr>
                 <td>{{ ow.weapon.name }}</td>
-                <td>{{ ow.weapon.level }}</td>
-                <td>{{ ow.weapon.effective_atk() }}</td>
+                <td>{{ ow.level }}</td>
+                <td>{{ ow.effective_atk() }}</td>
                 <td>{{ ow.weapon.max_level }}</td>
                 <td>
                     {% set base_price = ow.weapon.price or 0 %}
-                    {% set current_level = ow.weapon.level or 1 %}
+                    {% set current_level = ow.level or 1 %}
                     {% set next_cost = (base_price * (1 + 0.6 * (current_level - 1))) | round(0, 'common') | int %}
-                    {% if ow.weapon.level >= ow.weapon.max_level %}
+                    {% if ow.level >= ow.weapon.max_level %}
                         Max
                     {% else %}
                         {{ next_cost }}
@@ -57,7 +57,7 @@
                     <form method="POST" style="display:inline;">
                         <input type="hidden" name="weapon_ownership_id" value="{{ ow.id }}">
                         <button type="submit" class="btn btn-sm btn-warning level-up-btn"
-                            {% if ow.weapon.level >= ow.weapon.max_level or user_tokens < next_cost %} disabled {% endif %}>
+                            {% if ow.level >= ow.weapon.max_level or user_tokens < next_cost %} disabled {% endif %}>
                             Level Up
                         </button>
                     </form>

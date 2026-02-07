@@ -405,7 +405,7 @@ def store():
     bots = Bot.query.filter_by(user_id=user.id).all()
     credits = int(user.tokens or 0)
 
-    weapons = Weapon.query.all()
+    weapons = Weapon.query.order_by(Weapon.tier.asc(), Weapon.price.asc(), Weapon.name.asc()).all()
 
     owned = WeaponOwnership.query.filter_by(user_id=user.id).all()
     owned_map = {ow.weapon_id: ow for ow in owned} 
@@ -1509,32 +1509,41 @@ def view_history(history_id):
 
 @app.route("/weapons")
 def weapons_shop():
-    weapons = Weapon.query.all()
+    weapons = Weapon.query.order_by(Weapon.tier.asc(), Weapon.price.asc(), Weapon.name.asc()).all()
     return render_template("weapons.html", weapons=weapons)
 
 @app.route("/weapon/<int:weapon_id>/level_up", methods=["POST"])
 @login_required
 def level_up_weapon(weapon_id):
-    weapon = Weapon.query.get_or_404(weapon_id)
     user = User.query.get(session["user_id"])
+    ownership = WeaponOwnership.query.filter_by(user_id=user.id, weapon_id=weapon_id).first()
+    if not ownership or not ownership.weapon:
+        flash("You do not own this weapon.", "warning")
+        return redirect(url_for("store"))
 
-    if weapon.level < weapon.max_level:
+    weapon = ownership.weapon
+
+    if ownership.level < weapon.max_level:
         base_price = int(weapon.price or 0)
-        current_level = int(weapon.level or 1)
+        current_level = int(ownership.level or 1)
         level_cost = int(round(base_price * (1 + 0.6 * (current_level - 1))))
 
         if user.tokens < level_cost:
             flash("Not enough credits to level up this weapon.", "warning")
-            return redirect(url_for("gear", bot_id=weapon.bot_id))
+            if ownership.bot_id:
+                return redirect(url_for("gear", bot_id=ownership.bot_id))
+            return redirect(url_for("store"))
 
         user.tokens -= level_cost
-        weapon.level += 1
+        ownership.level += 1
         db.session.commit()
         flash(f"{weapon.name} leveled up! (-{level_cost} tokens)", "success")
     else:
         flash("Weapon already at max level.", "info")
 
-    return redirect(url_for("gear", bot_id=weapon.bot_id))
+    if ownership.bot_id:
+        return redirect(url_for("gear", bot_id=ownership.bot_id))
+    return redirect(url_for("store"))
 
 @app.route("/buy_weapon/<int:weapon_id>", methods=["POST"])
 @login_required
@@ -1598,13 +1607,16 @@ def gear(bot_id):
         if "weapon_ownership_id" in request.form:
             ow_id = int(request.form.get("weapon_ownership_id"))
             ow = WeaponOwnership.query.get_or_404(ow_id)
+            if ow.user_id != user.id:
+                flash("You do not own this weapon.", "warning")
+                return redirect(url_for("gear", bot_id=bot.id))
 
-            if ow.weapon.level >= ow.weapon.max_level:
+            if ow.level >= ow.weapon.max_level:
                 flash("Weapon already at max level.", "warning")
                 return redirect(url_for("gear", bot_id=bot.id))
 
             base_price = int(ow.weapon.price or 0)
-            current_level = int(ow.weapon.level or 1)
+            current_level = int(ow.level or 1)
             level_cost = int(round(base_price * (1 + 0.6 * (current_level - 1))))
 
             user = User.query.get(session["user_id"])
@@ -1613,7 +1625,7 @@ def gear(bot_id):
                 return redirect(url_for("gear", bot_id=bot.id))
 
             user.tokens = int(user.tokens or 0) - level_cost
-            ow.weapon.level += 1
+            ow.level += 1
             db.session.commit()
             flash(f"{ow.weapon.name} leveled up! (-{level_cost} tokens)", "success")
 
