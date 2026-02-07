@@ -11,17 +11,6 @@
         <span id="datetime-display">--/--/---- --:--:--</span>
     </div>
 
-    <!-- flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="flash-area">
-          {% for category, message in messages %}
-            <div class="flash {{ category }}">{{ message }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
-
     <h1>Your Characters</h1>
     <p>Select a character to equip upgrades.</p>
 
@@ -30,7 +19,7 @@
         <label for="selected-character">Select Character:</label>
         <select id="selected-character" name="character_id" class="bot-dropdown" {% if bots|length == 0 %}disabled{% endif %}>
             {% for bot in bots %}
-                <option value="{{ bot.id }}">{{ bot.name }}</option>
+                <option value="{{ bot.id }}" {% if selected_bot and bot.id == selected_bot.id %}selected{% endif %}>{{ bot.name }}</option>
             {% endfor %}
         </select>
         {% if bots|length == 0 %}
@@ -39,7 +28,7 @@
     </div>
 
     <h2>Upgrades</h2>
-    <p>! This is a one-time use upgrade !</p>
+    <p>Upgrades are one-time consumables and apply to the next battle.</p>
 
     <!-- upgrades grid -->
     <div class="store-grid">
@@ -53,7 +42,7 @@
 
             <form method="POST" action="{{ url_for('buy_character') }}">
                 <input type="hidden" name="purchase_id" value="{{ upgrade["id"] }}">
-                <input type="hidden" name="bot_id" class="selected-bot-input" value="{{ bots[0].id if bots else '' }}">
+                <input type="hidden" name="bot_id" value="{{ selected_bot.id if selected_bot else '' }}" class="selected-bot-input">
 
                 <button type="submit" class="buy-btn"
                         {% if tokens < upgrade["cost"] or bots|length == 0 %}disabled{% endif %}>
@@ -107,15 +96,6 @@
     margin-bottom: 30px;
     padding-bottom: 8px;
 }
-
-.flash-area .flash {
-    padding: 10px;
-    margin-bottom: 15px;
-    border-left: 4px solid;
-}
-.flash.success { border-color: #00ff00; color: #00ff00; }
-.flash.danger  { border-color: #ff0040; color: #ff0040; }
-.flash.warning { border-color: #ffae00; color: #ffae00; }
 
 .character-select {
     margin-bottom: 25px;

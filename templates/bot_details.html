@@ -25,6 +25,15 @@
             None
         {% endif %}
     </p>
+    <p>
+        <strong>Upgrades:</strong>
+        {% set upgrades = get_upgrade_labels(bot) %}
+        {% if upgrades %}
+            {{ upgrades | join(", ") }}
+        {% else %}
+            None
+        {% endif %}
+    </p>
 
     <table class="bot-details-table">
         <thead>

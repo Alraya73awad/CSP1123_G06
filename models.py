@@ -62,6 +62,13 @@ class Bot(db.Model):
     botwins = db.Column(db.Integer, default=0)
     botlosses = db.Column(db.Integer, default=0)
 
+    upgrade_armor_plating = db.Column(db.Boolean, default=False)
+    upgrade_overclock_unit = db.Column(db.Boolean, default=False)
+    upgrade_regen_core = db.Column(db.Boolean, default=False)
+    upgrade_critical_subroutine = db.Column(db.Boolean, default=False)
+    upgrade_energy_recycler = db.Column(db.Boolean, default=False)
+    upgrade_emp_shield = db.Column(db.Boolean, default=False)
+
     @property
     def equipped_weapon(self):
         for ow in self.equipped_weapon_ownership:
@@ -99,12 +106,6 @@ class History(db.Model):
 
     seed = db.Column(db.Integer, nullable=False)
 
-    logs = db.relationship(
-        "HistoryLog",
-        backref="history",
-        cascade="all, delete-orphan"
-    )
-
     # Bot 1 stats snapshot
     bot1_hp = db.Column(db.Integer)
     bot1_energy = db.Column(db.Integer)
@@ -112,8 +113,17 @@ class History(db.Model):
     bot1_defense = db.Column(db.Integer)
     bot1_clk = db.Column(db.Integer)
     bot1_luck = db.Column(db.Integer)
+    bot1_logic = db.Column(db.Integer, default=0)
     bot1_weapon_atk = db.Column(db.Integer, default=0)
+    bot1_weapon_name = db.Column(db.String(50))
     bot1_weapon_type = db.Column(db.String(20))
+    bot1_algorithm = db.Column(db.String(50))
+    bot1_upgrade_armor_plating = db.Column(db.Boolean, default=False)
+    bot1_upgrade_overclock_unit = db.Column(db.Boolean, default=False)
+    bot1_upgrade_regen_core = db.Column(db.Boolean, default=False)
+    bot1_upgrade_critical_subroutine = db.Column(db.Boolean, default=False)
+    bot1_upgrade_energy_recycler = db.Column(db.Boolean, default=False)
+    bot1_upgrade_emp_shield = db.Column(db.Boolean, default=False)
     
     # Bot 2 stats snapshot
     bot2_hp = db.Column(db.Integer)
@@ -122,8 +132,17 @@ class History(db.Model):
     bot2_defense = db.Column(db.Integer)
     bot2_clk = db.Column(db.Integer)
     bot2_luck = db.Column(db.Integer)
+    bot2_logic = db.Column(db.Integer, default=0)
     bot2_weapon_atk = db.Column(db.Integer, default=0)
+    bot2_weapon_name = db.Column(db.String(50))
     bot2_weapon_type = db.Column(db.String(20))
+    bot2_algorithm = db.Column(db.String(50))
+    bot2_upgrade_armor_plating = db.Column(db.Boolean, default=False)
+    bot2_upgrade_overclock_unit = db.Column(db.Boolean, default=False)
+    bot2_upgrade_regen_core = db.Column(db.Boolean, default=False)
+    bot2_upgrade_critical_subroutine = db.Column(db.Boolean, default=False)
+    bot2_upgrade_energy_recycler = db.Column(db.Boolean, default=False)
+    bot2_upgrade_emp_shield = db.Column(db.Boolean, default=False)
 
 
 class WeaponOwnership(db.Model):
@@ -146,13 +165,6 @@ class WeaponOwnership(db.Model):
     def effective_atk(self):
         return self.weapon.effective_atk() if self.weapon else 0
 
-class HistoryLog(db.Model):
-    __tablename__ = "history_log"
-
-    id = db.Column(db.Integer, primary_key=True)
-    history_id = db.Column(db.Integer, db.ForeignKey("history.id"), nullable=False)
-    type = db.Column(db.String(20))
-    text = db.Column(db.Text)
 
 class Weapon(db.Model):
     __tablename__ = "weapons"

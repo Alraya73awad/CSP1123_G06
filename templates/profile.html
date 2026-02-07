@@ -14,7 +14,7 @@
 
 <!-- Battle Statistics Card -->
     <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header">
             <h4>⚔️ Battle Statistics</h4>
         </div>
         <div class="card-body">
@@ -22,21 +22,21 @@
                 <!-- Rating -->
                 <div class="col-md-6 mb-3">
                     <h5>Current Rating</h5>
-                    <h2 class="{{ rank.color }}">
+                    <h2 style="color: {{ rank.color }} ;">
                         {{ rank.icon }} {{ user.rating }}
                     </h2>
-                    <p class="text-muted">Rank: {{ rank.name }}</p>
+                    <p>Rank: {{ rank.name }}</p>
                 </div>
                 
                 <!-- Win/Loss Record -->
                 <div class="col-md-6 mb-3">
                     <h5>Battle Record</h5>
                     <h3>
-                        <span class="badge bg-success">{{ user.wins }}W</span>
-                        <span class="badge bg-danger">{{ user.losses }}L</span>
+                        <span style="color:#00ffaa;">{{ user.wins }}W</span>
+                        <span style="color: red;">{{ user.losses }}L</span>
                     </h3>
-                    <p class="text-muted">Total Battles: {{ total_battles }}</p>
-                    <p class="text-muted">Win Rate: {{ "{:.2f}".format(win_rate) }}%</p>
+                    <p>Total Battles: {{ total_battles }}</p>
+                    <p>Win Rate: {{ "{:.2f}".format(win_rate) }}%</p>
                 </div>
             </div>
 
@@ -44,16 +44,25 @@
             <div class="mt-4">
                 <h6>Rank Tiers:</h6>
                 <ul class="list-unstyled">
-                    <li>🔧 <strong>Prototype:</strong> 0 - 799 (Experimental builds)</li>
-                    <li>⚡ <strong>Circuit:</strong> 800 - 999 (Basic systems)</li>
-                    <li>🖥️ <strong>Processor:</strong> 1000 - 1199 (Optimized units)</li>
-                    <li>💻 <strong>Mainframe:</strong> 1200 - 1399 (Advanced networks)</li>
-                    <li>🌌 <strong>Quantum:</strong> 1400 - 1599 (Cutting-edge tech)</li>
-                    <li>🔮 <strong>Nexus:</strong> 1600+ (Elite neural networks)</li>
+                    {% for tier in rank_tiers %}
+                        <li style="color: {{ tier.color }};">
+                            {{ tier.icon }} <strong>{{ tier.name }}:</strong>
+                            {% if tier.max is none %}
+                                {{ tier.min }}+ (Elite neural networks)
+                            {% else %}
+                                {{ tier.min }} - {{ tier.max }}
+                                {% if tier.name == "Prototype" %}(Experimental builds){% endif %}
+                                {% if tier.name == "Circuit" %}(Basic systems){% endif %}
+                                {% if tier.name == "Processor" %}(Optimized units){% endif %}
+                                {% if tier.name == "Mainframe" %}(Advanced networks){% endif %}
+                                {% if tier.name == "Quantum" %}(Cutting-edge tech){% endif %}
+                            {% endif %}
+                        </li>
+                    {% endfor %}
                 </ul>
             </div>
         </div>
     </div>
 
-<a href="{{ url_for('dashboard') }}" class="terminal-btn">DASHBOARD</a>
+<a href="{{ url_for('dashboard') }}" class="btn">←Dashboard</a>
 {% endblock %}

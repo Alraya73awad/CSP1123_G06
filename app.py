@@ -1,19 +1,15 @@
 import os
+import random
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
-from sqlalchemy import or_
 from functools import wraps
 from sqlalchemy import or_
 
 from extensions import db
-from constants import CURRENCY_NAME,CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS, UPGRADES
-from battle import BattleBot, full_battle, calculate_bot_stat_points
-from seed_weapons import seed_weapons
-
-
-from models import User, Bot, History, HistoryLog, Weapon, WeaponOwnership, Admin
-
+from constants import CURRENCY_NAME,CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS, UPGRADES, RANK_TIERS
+from battle import BattleBot, full_battle, calculate_bot_stat_points, ARENA_EFFECTS
+from models import User, Bot, History, Weapon, WeaponOwnership
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -42,10 +38,55 @@ def inject_current_user():
         user = User.query.get(session["user_id"])
     return dict(current_user=user)
 
-with app.app_context():
-    db.create_all()
-    seed_weapons()
+def get_rank_tier(rating):
+    for tier in RANK_TIERS:
+        max_rating = tier["max"]
+        if max_rating is None:
+            if rating >= tier["min"]:
+                return tier
+        elif tier["min"] <= rating <= max_rating:
+            return tier
+    return RANK_TIERS[0]
 
+@app.context_processor
+def inject_rank_helpers():
+    return dict(get_rank_tier=get_rank_tier, rank_tiers=RANK_TIERS)
+
+def get_upgrade_labels(bot):
+    labels = []
+    if getattr(bot, "upgrade_armor_plating", False):
+        labels.append("Armor Plating")
+    if getattr(bot, "upgrade_overclock_unit", False):
+        labels.append("Overclock Unit")
+    if getattr(bot, "upgrade_regen_core", False):
+        labels.append("Regen Core")
+    if getattr(bot, "upgrade_critical_subroutine", False):
+        labels.append("Critical Subroutine")
+    if getattr(bot, "upgrade_energy_recycler", False):
+        labels.append("Energy Recycler")
+    if getattr(bot, "upgrade_emp_shield", False):
+        labels.append("EMP Shield")
+    return labels
+
+def apply_upgrade_arena_effects(stats, upgrades, arena="neutral"):
+    effective = stats.copy()
+
+    if upgrades.get("armor"):
+        effective["def"] = int((effective.get("def") or 0) * 1.10)
+    if upgrades.get("overclock"):
+        effective["clk"] = int((effective.get("clk") or 0) * 1.10)
+    if upgrades.get("crit"):
+        effective["luck"] = int((effective.get("luck") or 0) + 5)
+
+    effects = ARENA_EFFECTS.get(arena, ARENA_EFFECTS["neutral"])
+    effective["clk"] = int((effective.get("clk") or 0) * effects.get("spd_mod", 1.0))
+    effective["def"] = int((effective.get("def") or 0) * effects.get("def_mod", 1.0))
+
+    return effective
+
+@app.context_processor
+def inject_upgrade_helpers():
+    return dict(get_upgrade_labels=get_upgrade_labels)
 
 def calculate_elo_change(winner_rating, loser_rating, k_factor=32):
     """
@@ -168,8 +209,13 @@ def forgot_password():
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if "user_id" not in session:
+        user_id = session.get("user_id")
+        if not user_id:
             flash("Please log in to continue.", "warning")
+            return redirect(url_for("login"))
+        if not User.query.get(user_id):
+            session.clear()
+            flash("Session expired. Please log in again.", "warning")
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
@@ -211,7 +257,7 @@ def dashboard():
             "def": int(bot.defense or 0),
             "clk": int(bot.speed or 0),
             "logic": int(bot.logic or 0),
-            "ent": int(bot.luck or 0),
+            "luck": int(bot.luck or 0),
             "pwr": int(bot.energy or 0),
         }
 
@@ -312,6 +358,7 @@ def bot_xp_to_next_level(level):
 
 # manage bot
 @app.route('/manage_bot')
+@login_required
 def manage_bot():
     if 'user_id' not in session:
         flash("Please log in to manage your bots.", "warning")
@@ -329,7 +376,7 @@ def manage_bot():
             "def": bot.defense,   
             "clk": bot.speed,
             "logic": bot.logic,
-            "ent": bot.luck,
+            "luck": bot.luck,
             "pwr": bot.energy
         }
 
@@ -470,6 +517,7 @@ def equip_weapon_from_store():
 
 # profile page
 @app.route('/profile')
+@login_required
 def profile():
     user_id = session.get('user_id')
     if not user_id:
@@ -484,22 +532,6 @@ def profile():
     # Calculate win rate
     total_battles = user.wins + user.losses
     win_rate = (user.wins / total_battles * 100) if total_battles > 0 else 0
-    
-    # Determine rank tier
-    def get_rank_tier(rating):
-        if rating < 800:
-            return {"name": "Prototype", "icon": "🔧", "color": "text-secondary"}
-        elif rating < 1000:
-            return {"name": "Circuit", "icon": "⚡", "color": "text-success"}
-        elif rating < 1200:
-            return {"name": "Processor", "icon": "🖥️", "color": "text-info"}
-        elif rating < 1400:
-            return {"name": "Mainframe", "icon": "💻", "color": "text-primary"}
-        elif rating < 1600:
-            return {"name": "Quantum", "icon": "🌌", "color": "text-warning"}
-        else:
-            return {"name": "Nexus", "icon": "🔮", "color": "text-danger"}
-    
     rank = get_rank_tier(user.rating)
 
     return render_template(
@@ -558,17 +590,30 @@ def buy_character():
         flash("Not enough tokens!", "danger")
         return redirect(url_for("character", bot_id=bot.id))
 
+    flag = item.get("flag")
+    if not flag or not hasattr(bot, flag):
+        flash(f"{item['name']} is not implemented yet. No tokens were spent.", "warning")
+        return redirect(url_for("character", bot_id=bot.id))
+
+    upgrade_flags = [
+        "upgrade_armor_plating",
+        "upgrade_overclock_unit",
+        "upgrade_regen_core",
+        "upgrade_critical_subroutine",
+        "upgrade_energy_recycler",
+        "upgrade_emp_shield",
+    ]
+    active_upgrades = sum(1 for f in upgrade_flags if getattr(bot, f, False))
+    if active_upgrades >= 3 and not getattr(bot, flag):
+        flash("Upgrade cap reached (3). Use an upgrade in battle before buying another.", "warning")
+        return redirect(url_for("character", bot_id=bot.id))
+
+    if getattr(bot, flag):
+        flash(f"{item['name']} is already installed on {bot.name}.", "warning")
+        return redirect(url_for("character", bot_id=bot.id))
+
     user.tokens -= cost
-
-    # Apply upgrade to the bot
-    stat = item.get("stat")
-    value = int(item.get("value", 0))
-
-    if stat in ["hp", "atk", "defense", "speed", "logic", "luck", "energy"]:
-        setattr(bot, stat, int(getattr(bot, stat) or 0) + value)
-    else:
-        flash(f"{item['name']} purchased, but stat '{stat}' isn't implemented in Bot yet.", "warning")
-
+    setattr(bot, flag, True)
     db.session.commit()
     flash(f"{item['name']} purchased for {bot.name}! (-{cost} tokens)", "success")
     return redirect(url_for("character", bot_id=bot.id))
@@ -631,6 +676,10 @@ def delete_bot(bot_id):
         user_id=session["user_id"]
     ).first_or_404()
 
+    # Detach bot from history before delete to avoid FK / NOT NULL issues
+    History.query.filter_by(bot1_id=bot.id).update({"bot1_id": None})
+    History.query.filter_by(bot2_id=bot.id).update({"bot2_id": None})
+
     db.session.delete(bot)
     db.session.commit()
     flash("Bot deleted successfully.", "success")
@@ -679,6 +728,10 @@ def edit_bot(bot_id):
                 low, high = STAT_LIMITS[stat]
                 if val < low or val > high:
                     errors.append(f"{stat.upper()} must be between {low} and {high}.")
+                    continue
+                current_val = int(getattr(bot, stat) or 0)
+                if val < current_val:
+                    errors.append(f"{stat.upper()} cannot be lower than the current value ({current_val}).")
 
             if errors:
                 for e in errors:
@@ -720,6 +773,11 @@ def edit_bot(bot_id):
                 low, high = STAT_LIMITS[stat]
                 if val < low or val > high:
                     errors.append(f"{stat.upper()} must be between {low} and {high}.")
+                    continue
+                current_val = int(getattr(bot, stat) or 0)
+                if val < current_val:
+                    errors.append(f"{stat.upper()} cannot be lower than the current value ({current_val}).")
+                    continue
                 final_stats[stat] = val
 
             if errors:
@@ -806,6 +864,7 @@ def bot_details(bot_id):
     )
 
 @app.route("/bots")
+@login_required
 def bot_list():
     user_id = session["user_id"]
     bots = Bot.query.filter_by(user_id=user_id).all()
@@ -818,7 +877,7 @@ def bot_list():
             "def": bot.defense,   
             "clk": bot.speed,
             "logic": bot.logic,
-            "ent": bot.luck,
+            "luck": bot.luck,
             "pwr": bot.energy
         }
         effects = algorithm_effects.get(bot.algorithm, {})
@@ -838,6 +897,8 @@ def combat_log(bot1_id, bot2_id):
     # Apply algorithm stats
     stats1 = apply_algorithm(bot1)
     stats2 = apply_algorithm(bot2)
+    stats1_base = stats1
+    stats2_base = stats2
     weapon1_ow = WeaponOwnership.query.filter_by(bot_id=bot1.id, equipped=True).first()
     weapon2_ow = WeaponOwnership.query.filter_by(bot_id=bot2.id, equipped=True).first()
 
@@ -856,6 +917,23 @@ def combat_log(bot1_id, bot2_id):
     base_proc2 = bot2.atk + weapon2_atk
     final_proc2 = int(base_proc2 * effects2.get("proc", 1.0))
 
+    bot1_upgrades = {
+        "armor": bot1.upgrade_armor_plating,
+        "overclock": bot1.upgrade_overclock_unit,
+        "regen": bot1.upgrade_regen_core,
+        "crit": bot1.upgrade_critical_subroutine,
+        "recycler": bot1.upgrade_energy_recycler,
+        "emp": bot1.upgrade_emp_shield,
+    }
+    bot2_upgrades = {
+        "armor": bot2.upgrade_armor_plating,
+        "overclock": bot2.upgrade_overclock_unit,
+        "regen": bot2.upgrade_regen_core,
+        "crit": bot2.upgrade_critical_subroutine,
+        "recycler": bot2.upgrade_energy_recycler,
+        "emp": bot2.upgrade_emp_shield,
+    }
+
     # Convert to BattleBot
     battleA = BattleBot(
         name=bot1.name,
@@ -865,8 +943,16 @@ def combat_log(bot1_id, bot2_id):
         defense=stats1["def"],   # FIX
         clk=stats1["clk"],
         luck=stats1["luck"],
-        weapon_atk=weapon1_atk,
-        weapon_type=weapon1_ow.weapon.type if weapon1_ow else None
+        logic=stats1["logic"],
+        weapon_atk=0,
+        weapon_type=weapon1_ow.weapon.type if weapon1_ow else None,
+        algorithm=bot1.algorithm,
+        upgrade_armor_plating=bot1_upgrades["armor"],
+        upgrade_overclock_unit=bot1_upgrades["overclock"],
+        upgrade_regen_core=bot1_upgrades["regen"],
+        upgrade_critical_subroutine=bot1_upgrades["crit"],
+        upgrade_energy_recycler=bot1_upgrades["recycler"],
+        upgrade_emp_shield=bot1_upgrades["emp"],
     )
 
     battleB = BattleBot(
@@ -877,31 +963,62 @@ def combat_log(bot1_id, bot2_id):
         defense=stats2["def"],   # FIX
         clk=stats2["clk"],
         luck=stats2["luck"],
-        weapon_atk=weapon2_atk,
-        weapon_type=weapon2_ow.weapon.type if weapon2_ow else None
+        logic=stats2["logic"],
+        weapon_atk=0,
+        weapon_type=weapon2_ow.weapon.type if weapon2_ow else None,
+        algorithm=bot2.algorithm,
+        upgrade_armor_plating=bot2_upgrades["armor"],
+        upgrade_overclock_unit=bot2_upgrades["overclock"],
+        upgrade_regen_core=bot2_upgrades["regen"],
+        upgrade_critical_subroutine=bot2_upgrades["crit"],
+        upgrade_energy_recycler=bot2_upgrades["recycler"],
+        upgrade_emp_shield=bot2_upgrades["emp"],
     )
 
     # Run the battle
     result = full_battle(battleA, battleB)
     winner_name = result["winner"]
     log = result["log"]
+    is_draw = (winner_name == "draw" or winner_name is None)
     botA_points = result["botA_points"]
     botB_points = result["botB_points"]
     seed = result["seed"]
 
-    #save bot win or loss
-    if winner_name == bot1.name:
-        bot1.botwins += 1
-        bot2.botlosses += 1
-    else:
-        bot2.botwins += 1
-        bot1.botlosses += 1
+    # consume one-time upgrades after battle
+    if any(bot1_upgrades.values()):
+        bot1.upgrade_armor_plating = False
+        bot1.upgrade_overclock_unit = False
+        bot1.upgrade_regen_core = False
+        bot1.upgrade_critical_subroutine = False
+        bot1.upgrade_energy_recycler = False
+        bot1.upgrade_emp_shield = False
+
+    if any(bot2_upgrades.values()):
+        bot2.upgrade_armor_plating = False
+        bot2.upgrade_overclock_unit = False
+        bot2.upgrade_regen_core = False
+        bot2.upgrade_critical_subroutine = False
+        bot2.upgrade_energy_recycler = False
+        bot2.upgrade_emp_shield = False
+
+    # save bot win or loss (skip if draw)
+    if not is_draw:
+        if winner_name == bot1.name:
+            bot1.botwins += 1
+            bot2.botlosses += 1
+        else:
+            bot2.botwins += 1
+            bot1.botlosses += 1
 
     db.session.commit()
 
     # Determine results
-    bot1_result = "win" if winner_name == bot1.name else "lose"
-    bot2_result = "win" if winner_name == bot2.name else "lose"
+    if is_draw:
+        bot1_result = "draw"
+        bot2_result = "draw"
+    else:
+        bot1_result = "win" if winner_name == bot1.name else "lose"
+        bot2_result = "win" if winner_name == bot2.name else "lose"
 
     # BOT XP SYSTEM
     def bot_xp_to_next_level(level):
@@ -920,18 +1037,19 @@ def combat_log(bot1_id, bot2_id):
             bot.level += 1
             levels_gained += 1
 
-            bot.hp = int(bot.hp or 0) + 10
-            bot.atk = int(bot.atk or 0) + 2
-            bot.defense = int(bot.defense or 0) + 2
-
             bot.stat_points += 5
 
         return levels_gained
 
     # Calculate XP per bot
     def calculate_bot_xp(battle_bot, result):
-        base = 20 if result == "win" else 10
-        return base
+        if result == "win":
+            return 20
+        elif result == "lose":
+            return 5
+        elif result == "draw":
+            return 10 
+        return 0
 
     # Apply XP
     bot1_xp = calculate_bot_xp(battleA, bot1_result)
@@ -967,17 +1085,11 @@ def combat_log(bot1_id, bot2_id):
 
         user.tokens = int(user.tokens or 0) + 5
 
-     # BOT-specific stat points reward (per level gained)
-        winning_bot.stat_points = int(winning_bot.stat_points or 0) + (levels_gained * 5)
-
         db.session.commit()
 
     elif losing_bot and losing_bot.user_id == user.id:
         xp_gained = 10
         levels_gained = add_xp(user, xp_gained)
-
-    # gives loser smaller points
-        losing_bot.stat_points = int(losing_bot.stat_points or 0) + (levels_gained * 2)
 
         db.session.commit()
         flash(f"Congratulations {user.username}! You gained {xp_gained} XP and {levels_gained} levels.", "success")
@@ -985,7 +1097,7 @@ def combat_log(bot1_id, bot2_id):
     # elo rating changes
     is_ranked = (bot1.user_id != bot2.user_id)
     
-    if is_ranked:
+    if is_ranked and not is_draw:
         if winner_name == bot1.name:
             winner_user = bot1.user
             loser_user = bot2.user
@@ -1019,13 +1131,35 @@ def combat_log(bot1_id, bot2_id):
         )
 
     # Add weapon info to stats dictionaries for template
-    stats1["weapon_atk"] = weapon1_atk
-    stats1["weapon_type"] = weapon1_ow.weapon.type if weapon1_ow else None
-    stats1["proc"] = final_proc1 
+    stats1_base["weapon_atk"] = weapon1_atk
+    stats1_base["weapon_name"] = weapon1_ow.weapon.name if weapon1_ow else None
+    stats1_base["weapon_type"] = weapon1_ow.weapon.type if weapon1_ow else None
+    stats1_base["proc"] = final_proc1 
+    stats1["upgrades"] = [
+        label for label, enabled in [
+            ("Armor Plating", bot1_upgrades["armor"]),
+            ("Overclock Unit", bot1_upgrades["overclock"]),
+            ("Regen Core", bot1_upgrades["regen"]),
+            ("Critical Subroutine", bot1_upgrades["crit"]),
+            ("Energy Recycler", bot1_upgrades["recycler"]),
+            ("EMP Shield", bot1_upgrades["emp"]),
+        ] if enabled
+    ]
     
-    stats2["weapon_atk"] = weapon2_atk
-    stats2["weapon_type"] = weapon2_ow.weapon.type if weapon2_ow else None
-    stats2["proc"] = final_proc2  
+    stats2_base["weapon_atk"] = weapon2_atk
+    stats2_base["weapon_name"] = weapon2_ow.weapon.name if weapon2_ow else None
+    stats2_base["weapon_type"] = weapon2_ow.weapon.type if weapon2_ow else None
+    stats2_base["proc"] = final_proc2  
+    stats2["upgrades"] = [
+        label for label, enabled in [
+            ("Armor Plating", bot2_upgrades["armor"]),
+            ("Overclock Unit", bot2_upgrades["overclock"]),
+            ("Regen Core", bot2_upgrades["regen"]),
+            ("Critical Subroutine", bot2_upgrades["crit"]),
+            ("Energy Recycler", bot2_upgrades["recycler"]),
+            ("EMP Shield", bot2_upgrades["emp"]),
+        ] if enabled
+    ]
 
     
     history = History(
@@ -1038,40 +1172,66 @@ def combat_log(bot1_id, bot2_id):
         winner=winner_name,
         seed=seed,
 
-        bot1_hp=stats1["hp"],
-        bot1_energy=stats1["energy"],
+        bot1_hp=stats1_base["hp"],
+        bot1_energy=stats1_base["energy"],
         bot1_proc=final_proc1,
-        bot1_defense=stats1["def"],   
-        bot1_clk=stats1["clk"],
-        bot1_luck=stats1["luck"],
+        bot1_defense=stats1_base["def"],   
+        bot1_clk=stats1_base["clk"],
+        bot1_luck=stats1_base["luck"],
+        bot1_logic=stats1_base["logic"],
         bot1_weapon_atk=weapon1_atk,
+        bot1_weapon_name=(weapon1_ow.weapon.name if weapon1_ow else None),
         bot1_weapon_type=(weapon1_ow.weapon.type if weapon1_ow else None),
+        bot1_algorithm=bot1.algorithm,
+        bot1_upgrade_armor_plating=bot1_upgrades["armor"],
+        bot1_upgrade_overclock_unit=bot1_upgrades["overclock"],
+        bot1_upgrade_regen_core=bot1_upgrades["regen"],
+        bot1_upgrade_critical_subroutine=bot1_upgrades["crit"],
+        bot1_upgrade_energy_recycler=bot1_upgrades["recycler"],
+        bot1_upgrade_emp_shield=bot1_upgrades["emp"],
 
-        bot2_hp=stats2["hp"],
-        bot2_energy=stats2["energy"],
+        bot2_hp=stats2_base["hp"],
+        bot2_energy=stats2_base["energy"],
         bot2_proc=final_proc2,
-        bot2_defense=stats2["def"],   #use def 
-        bot2_clk=stats2["clk"],
-        bot2_luck=stats2["luck"],
+        bot2_defense=stats2_base["def"],   #use def 
+        bot2_clk=stats2_base["clk"],
+        bot2_luck=stats2_base["luck"],
+        bot2_logic=stats2_base["logic"],
         bot2_weapon_atk=weapon2_atk,
+        bot2_weapon_name=(weapon2_ow.weapon.name if weapon2_ow else None),
         bot2_weapon_type=(weapon2_ow.weapon.type if weapon2_ow else None),
+        bot2_algorithm=bot2.algorithm,
+        bot2_upgrade_armor_plating=bot2_upgrades["armor"],
+        bot2_upgrade_overclock_unit=bot2_upgrades["overclock"],
+        bot2_upgrade_regen_core=bot2_upgrades["regen"],
+        bot2_upgrade_critical_subroutine=bot2_upgrades["crit"],
+        bot2_upgrade_energy_recycler=bot2_upgrades["recycler"],
+        bot2_upgrade_emp_shield=bot2_upgrades["emp"],
     )
     db.session.add(history)
-    db.session.flush()
-
-    for type, text in log:
-        entry = HistoryLog(history_id=history.id, type=type, text=text)
-        db.session.add(entry)
 
     db.session.commit()
 
+
+    stats1_display = apply_upgrade_arena_effects(stats1_base, bot1_upgrades)
+    stats2_display = apply_upgrade_arena_effects(stats2_base, bot2_upgrades)
+    stats1_display["weapon_atk"] = stats1_base["weapon_atk"]
+    stats1_display["weapon_name"] = stats1_base["weapon_name"]
+    stats1_display["weapon_type"] = stats1_base["weapon_type"]
+    stats1_display["proc"] = stats1_base["proc"]
+    stats1_display["upgrades"] = stats1["upgrades"]
+    stats2_display["weapon_atk"] = stats2_base["weapon_atk"]
+    stats2_display["weapon_name"] = stats2_base["weapon_name"]
+    stats2_display["weapon_type"] = stats2_base["weapon_type"]
+    stats2_display["proc"] = stats2_base["proc"]
+    stats2_display["upgrades"] = stats2["upgrades"]
 
     return render_template(
     "combat_log.html",
     bot1=bot1,
     bot2=bot2,
-    stats1=stats1,
-    stats2=stats2,
+    stats1=stats1_display,
+    stats2=stats2_display,
     log=log,
     winner=winner_name,
     xp_gained=xp_gained,
@@ -1163,19 +1323,35 @@ def battle_select():
     )
 
 def apply_algorithm(bot):
-    effects = algorithm_effects.get(bot.algorithm, {})
     equipped = WeaponOwnership.query.filter_by(bot_id=bot.id, equipped=True).first()
     weapon_atk = equipped.effective_atk() if equipped else 0
 
-    # Return new effective stats
-    return {
-        "hp": int(bot.hp * effects.get("hp", 1.0)),
-        "energy": int(bot.energy * effects.get("energy", 1.0)),
-        "proc": int(bot.atk * effects.get("proc", 1.0)),
-        "def": int(bot.defense * effects.get("def", 1.0)),   # FIX: key + multiplier key
-        "clk": int(bot.speed * effects.get("clk", 1.0)),
-        "luck": int(bot.luck * effects.get("luck", 1.0)),
+    base_stats = {
+        "hp": bot.hp,
+        "energy": bot.energy,
+        "proc": bot.atk,
+        "def": bot.defense,
+        "clk": bot.speed,
+        "luck": bot.luck,
+        "logic": bot.logic or 0,
     }
+
+    algo = bot.algorithm
+
+    effects = algorithm_effects.get(algo, {}).copy()
+
+    # Apply multipliers
+    final_stats = {
+        "hp": int(base_stats["hp"] * effects.get("hp", 1.0)),
+        "energy": int(base_stats["energy"] * effects.get("energy", 1.0)),
+        "proc": int(base_stats["proc"] * effects.get("proc", 1.0)),
+        "def": int(base_stats["def"] * effects.get("def", 1.0)),
+        "clk": int(base_stats["clk"] * effects.get("clk", 1.0)),
+        "luck": int(base_stats["luck"] * effects.get("luck", 1.0)),
+        "logic": int(base_stats["logic"] * effects.get("logic", 1.0)),
+    }
+
+    return final_stats
 
 @app.route("/history")
 @login_required
@@ -1208,8 +1384,20 @@ def view_history(history_id):
         "def": history.bot1_defense,  
         "clk": history.bot1_clk,
         "luck": history.bot1_luck,
+        "logic": history.bot1_logic or 0,
         "weapon_atk": history.bot1_weapon_atk if history.bot1_weapon_atk else 0,
-        "weapon_type": history.bot1_weapon_type
+        "weapon_name": history.bot1_weapon_name,
+        "weapon_type": history.bot1_weapon_type,
+        "upgrades": [
+            label for label, enabled in [
+                ("Armor Plating", history.bot1_upgrade_armor_plating),
+                ("Overclock Unit", history.bot1_upgrade_overclock_unit),
+                ("Regen Core", history.bot1_upgrade_regen_core),
+                ("Critical Subroutine", history.bot1_upgrade_critical_subroutine),
+                ("Energy Recycler", history.bot1_upgrade_energy_recycler),
+                ("EMP Shield", history.bot1_upgrade_emp_shield),
+            ] if enabled
+        ]
     }
     
     stats2 = {
@@ -1219,11 +1407,23 @@ def view_history(history_id):
         "def": history.bot2_defense,   
         "clk": history.bot2_clk,
         "luck": history.bot2_luck,
+        "logic": history.bot2_logic or 0,
         "weapon_atk": history.bot2_weapon_atk if history.bot2_weapon_atk else 0,
-        "weapon_type": history.bot2_weapon_type
+        "weapon_name": history.bot2_weapon_name,
+        "weapon_type": history.bot2_weapon_type,
+        "upgrades": [
+            label for label, enabled in [
+                ("Armor Plating", history.bot2_upgrade_armor_plating),
+                ("Overclock Unit", history.bot2_upgrade_overclock_unit),
+                ("Regen Core", history.bot2_upgrade_regen_core),
+                ("Critical Subroutine", history.bot2_upgrade_critical_subroutine),
+                ("Energy Recycler", history.bot2_upgrade_energy_recycler),
+                ("EMP Shield", history.bot2_upgrade_emp_shield),
+            ] if enabled
+        ]
     }
     
-    # Recreate BattleBots
+    # Recreate BattleBots with stored stats (including logic for accurate replay)
     battleA = BattleBot(
         name=history.bot1_name,
         hp=history.bot1_hp,
@@ -1232,8 +1432,16 @@ def view_history(history_id):
         defense=history.bot1_defense,
         clk=history.bot1_clk,
         luck=history.bot1_luck,
-        weapon_atk=history.bot1_weapon_atk,
-        weapon_type=history.bot1_weapon_type
+        logic=stats1["logic"],
+        weapon_atk=0,
+        weapon_type=history.bot1_weapon_type,
+        algorithm=history.bot1_algorithm,
+        upgrade_armor_plating=history.bot1_upgrade_armor_plating,
+        upgrade_overclock_unit=history.bot1_upgrade_overclock_unit,
+        upgrade_regen_core=history.bot1_upgrade_regen_core,
+        upgrade_critical_subroutine=history.bot1_upgrade_critical_subroutine,
+        upgrade_energy_recycler=history.bot1_upgrade_energy_recycler,
+        upgrade_emp_shield=history.bot1_upgrade_emp_shield,
     )
 
     battleB = BattleBot(
@@ -1244,20 +1452,57 @@ def view_history(history_id):
         defense=history.bot2_defense,
         clk=history.bot2_clk,
         luck=history.bot2_luck,
-        weapon_atk=history.bot2_weapon_atk,
-        weapon_type=history.bot2_weapon_type
+        logic=stats2["logic"],
+        weapon_atk=0,
+        weapon_type=history.bot2_weapon_type,
+        algorithm=history.bot2_algorithm,
+        upgrade_armor_plating=history.bot2_upgrade_armor_plating,
+        upgrade_overclock_unit=history.bot2_upgrade_overclock_unit,
+        upgrade_regen_core=history.bot2_upgrade_regen_core,
+        upgrade_critical_subroutine=history.bot2_upgrade_critical_subroutine,
+        upgrade_energy_recycler=history.bot2_upgrade_energy_recycler,
+        upgrade_emp_shield=history.bot2_upgrade_emp_shield,
     )
     
     result = full_battle(battleA, battleB, history.seed)
     winner = result["winner"]
     log = result["log"]
 
+    upgrades1 = {
+        "armor": history.bot1_upgrade_armor_plating,
+        "overclock": history.bot1_upgrade_overclock_unit,
+        "regen": history.bot1_upgrade_regen_core,
+        "crit": history.bot1_upgrade_critical_subroutine,
+        "recycler": history.bot1_upgrade_energy_recycler,
+        "emp": history.bot1_upgrade_emp_shield,
+    }
+    upgrades2 = {
+        "armor": history.bot2_upgrade_armor_plating,
+        "overclock": history.bot2_upgrade_overclock_unit,
+        "regen": history.bot2_upgrade_regen_core,
+        "crit": history.bot2_upgrade_critical_subroutine,
+        "recycler": history.bot2_upgrade_energy_recycler,
+        "emp": history.bot2_upgrade_emp_shield,
+    }
+    stats1_display = apply_upgrade_arena_effects(stats1, upgrades1)
+    stats2_display = apply_upgrade_arena_effects(stats2, upgrades2)
+    stats1_display["weapon_atk"] = stats1["weapon_atk"]
+    stats1_display["weapon_name"] = stats1["weapon_name"]
+    stats1_display["weapon_type"] = stats1["weapon_type"]
+    stats1_display["proc"] = stats1["proc"]
+    stats1_display["upgrades"] = stats1["upgrades"]
+    stats2_display["weapon_atk"] = stats2["weapon_atk"]
+    stats2_display["weapon_name"] = stats2["weapon_name"]
+    stats2_display["weapon_type"] = stats2["weapon_type"]
+    stats2_display["proc"] = stats2["proc"]
+    stats2_display["upgrades"] = stats2["upgrades"]
+
     return render_template(
         "combat_log.html",
         log=log,
         winner=winner,
-        stats1=stats1,
-        stats2=stats2,
+        stats1=stats1_display,
+        stats2=stats2_display,
         history=history,
         is_replay=True
     )
@@ -1268,14 +1513,28 @@ def weapons_shop():
     return render_template("weapons.html", weapons=weapons)
 
 @app.route("/weapon/<int:weapon_id>/level_up", methods=["POST"])
+@login_required
 def level_up_weapon(weapon_id):
     weapon = Weapon.query.get_or_404(weapon_id)
+    user = User.query.get(session["user_id"])
 
     if weapon.level < weapon.max_level:
+        base_price = int(weapon.price or 0)
+        current_level = int(weapon.level or 1)
+        level_cost = int(round(base_price * (1 + 0.6 * (current_level - 1))))
+
+        if user.tokens < level_cost:
+            flash("Not enough credits to level up this weapon.", "warning")
+            return redirect(url_for("gear", bot_id=weapon.bot_id))
+
+        user.tokens -= level_cost
         weapon.level += 1
         db.session.commit()
+        flash(f"{weapon.name} leveled up! (-{level_cost} tokens)", "success")
+    else:
+        flash("Weapon already at max level.", "info")
 
-    return redirect(url_for("edit_bot", bot_id=weapon.bot_id))
+    return redirect(url_for("gear", bot_id=weapon.bot_id))
 
 @app.route("/buy_weapon/<int:weapon_id>", methods=["POST"])
 @login_required
@@ -1309,10 +1568,13 @@ def buy_weapon(weapon_id):
     return redirect(url_for("store"))
 
 @app.route('/gear/<int:bot_id>', methods=['GET', 'POST'])
+@login_required
 def gear(bot_id):
     bot = Bot.query.get_or_404(bot_id)
     user_id = bot.user_id 
     owned_weapons = WeaponOwnership.query.filter_by(user_id=user_id).all()
+    user = User.query.get(session["user_id"])
+    user_tokens = int(user.tokens or 0) if user else 0
 
     if request.method == "POST":
         if "equip_weapon" in request.form:
@@ -1337,12 +1599,23 @@ def gear(bot_id):
             ow_id = int(request.form.get("weapon_ownership_id"))
             ow = WeaponOwnership.query.get_or_404(ow_id)
 
-            if ow.weapon.level < ow.weapon.max_level:
-                ow.weapon.level += 1
-                db.session.commit()
-                flash(f"{ow.weapon.name} leveled up!", "success")
-            else:
+            if ow.weapon.level >= ow.weapon.max_level:
                 flash("Weapon already at max level.", "warning")
+                return redirect(url_for("gear", bot_id=bot.id))
+
+            base_price = int(ow.weapon.price or 0)
+            current_level = int(ow.weapon.level or 1)
+            level_cost = int(round(base_price * (1 + 0.6 * (current_level - 1))))
+
+            user = User.query.get(session["user_id"])
+            if not user or int(user.tokens or 0) < level_cost:
+                flash("Not enough credits to level up this weapon.", "warning")
+                return redirect(url_for("gear", bot_id=bot.id))
+
+            user.tokens = int(user.tokens or 0) - level_cost
+            ow.weapon.level += 1
+            db.session.commit()
+            flash(f"{ow.weapon.name} leveled up! (-{level_cost} tokens)", "success")
 
             return redirect(url_for("gear", bot_id=bot.id))
 
@@ -1350,7 +1623,8 @@ def gear(bot_id):
     return render_template(
         "gear.html",
         bot=bot,
-        owned_weapons=owned_weapons
+        owned_weapons=owned_weapons,
+        user_tokens=user_tokens
     )
 
 @app.route("/leaderboard")
@@ -1374,7 +1648,7 @@ def leaderboard():
             current_user_rank = higher_rated + 1
 
     # Only show nearby players if user is NOT in top 50
-    if current_user_rank > 50:
+    if current_user_rank is not None and current_user_rank > 50:
         show_nearby = True
                 
         # Get all players with matches, sorted by rating
@@ -1432,7 +1706,45 @@ def add_xp(user, amount):
         user.tokens = int(user.tokens or 0) + 20 
 
     db.session.commit()
-    return levels_gained
+    return levels_gained 
+
+@app.route("/database")
+@login_required
+def database():
+    return render_template("database.html")
+
+#Database Pages
+@app.route("/database/getting-started")
+def database_getting_started():
+    return render_template("database_pages/getting_started.html", active_database="getting_started")
+
+@app.route("/database/combat")
+def database_combat():
+    return render_template("database_pages/combat.html", active_database="combat")
+
+@app.route("/database/algorithms")
+def database_algorithms():
+    return render_template("database_pages/algorithms.html", active_database="algorithms")
+
+@app.route("/database/weapons")
+def database_weapons():
+    return render_template("database_pages/weapons.html", active_database="weapons")
+
+@app.route("/database/upgrades")
+def database_upgrades():
+    return render_template("database_pages/upgrades.html", active_database="upgrades")
+
+@app.route("/database/stats")
+def database_stats():
+    return render_template("database_pages/stats.html", active_database="stats")
+
+@app.route("/database/leaderboard")
+def database_rating_system():
+    return render_template("database_pages/rating_system.html", active_database="rating_system")
+
+@app.route("/database/arenas")
+def database_arenas():
+    return render_template("database_pages/arenas.html", active_database="arenas")
 
 @app.route("/database")
 @login_required
@@ -1475,5 +1787,4 @@ def database_arenas():
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True, port=5001, use_reloader=False) 
-
+    app.run(debug=True, port=5001, use_reloader=False)
