@@ -18,6 +18,23 @@ def upgrade():
     # Drop any existing FK that points to bot
     op.execute("ALTER TABLE history DROP CONSTRAINT IF EXISTS history_bot1_id_fkey;")
     op.execute("ALTER TABLE history DROP CONSTRAINT IF EXISTS history_bot2_id_fkey;")
+    # Clean up invalid bot references before adding FK
+    op.execute(
+        """
+        UPDATE history
+        SET bot1_id = NULL
+        WHERE bot1_id IS NOT NULL
+          AND bot1_id NOT IN (SELECT id FROM bots);
+        """
+    )
+    op.execute(
+        """
+        UPDATE history
+        SET bot2_id = NULL
+        WHERE bot2_id IS NOT NULL
+          AND bot2_id NOT IN (SELECT id FROM bots);
+        """
+    )
     # Recreate FK to bots table
     op.execute(
         """
