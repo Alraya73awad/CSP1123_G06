@@ -2,7 +2,7 @@ import random
 from constants import ALGORITHM_XP_MULTIPLIER
 
 # -----------------------------
-# Character Items (hard-coded)
+# Character Items
 # -----------------------------
 CHARACTER_ITEMS = [
     {
@@ -581,6 +581,8 @@ if __name__ == "__main__":
         weapon_type="melee",
         special_effect="Time Dilation",
         algorithm="CHAOS-RND",
+        item = CHARACTER_ITEMS[2:4],  # Regen Core + Critical Subroutine
+
     )
     bot2 = BattleBot(
         "Beta",
@@ -593,6 +595,7 @@ if __name__ == "__main__":
         weapon_type="ranged",
         special_effect="Evolve Protocol",
         algorithm="ADAPT-X",
+        item = CHARACTER_ITEMS[0:2],  # Armor Plating + Overclock Unit
     )
 
     # 🎲 Randomly pick Ironclash, Skyline, Neutral, or Frozen
