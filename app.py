@@ -84,6 +84,14 @@ def apply_upgrade_arena_effects(stats, upgrades, arena="neutral"):
 
     return effective
 
+def build_items_from_flags(flags):
+    items = []
+    for item in CHARACTER_ITEMS:
+        flag = item.get("flag")
+        if flag and flags.get(flag):
+            items.append({"id": item["id"]})
+    return items
+
 @app.context_processor
 def inject_upgrade_helpers():
     return dict(get_upgrade_labels=get_upgrade_labels)
@@ -881,6 +889,22 @@ def combat_log(bot1_id, bot2_id):
         "recycler": bot2.upgrade_energy_recycler,
         "emp": bot2.upgrade_emp_shield,
     }
+    bot1_items = build_items_from_flags({
+        "upgrade_armor_plating": bot1.upgrade_armor_plating,
+        "upgrade_overclock_unit": bot1.upgrade_overclock_unit,
+        "upgrade_regen_core": bot1.upgrade_regen_core,
+        "upgrade_critical_subroutine": bot1.upgrade_critical_subroutine,
+        "upgrade_energy_recycler": bot1.upgrade_energy_recycler,
+        "upgrade_emp_shield": bot1.upgrade_emp_shield,
+    })
+    bot2_items = build_items_from_flags({
+        "upgrade_armor_plating": bot2.upgrade_armor_plating,
+        "upgrade_overclock_unit": bot2.upgrade_overclock_unit,
+        "upgrade_regen_core": bot2.upgrade_regen_core,
+        "upgrade_critical_subroutine": bot2.upgrade_critical_subroutine,
+        "upgrade_energy_recycler": bot2.upgrade_energy_recycler,
+        "upgrade_emp_shield": bot2.upgrade_emp_shield,
+    })
 
     # Convert to BattleBot
     battleA = BattleBot(
@@ -895,12 +919,7 @@ def combat_log(bot1_id, bot2_id):
         weapon_atk=0,
         weapon_type=weapon1_ow.weapon.type if weapon1_ow else None,
         algorithm=bot1.algorithm,
-        upgrade_armor_plating=bot1_upgrades["armor"],
-        upgrade_overclock_unit=bot1_upgrades["overclock"],
-        upgrade_regen_core=bot1_upgrades["regen"],
-        upgrade_critical_subroutine=bot1_upgrades["crit"],
-        upgrade_energy_recycler=bot1_upgrades["recycler"],
-        upgrade_emp_shield=bot1_upgrades["emp"],
+        items=bot1_items,
     )
 
     battleB = BattleBot(
@@ -915,12 +934,7 @@ def combat_log(bot1_id, bot2_id):
         weapon_atk=0,
         weapon_type=weapon2_ow.weapon.type if weapon2_ow else None,
         algorithm=bot2.algorithm,
-        upgrade_armor_plating=bot2_upgrades["armor"],
-        upgrade_overclock_unit=bot2_upgrades["overclock"],
-        upgrade_regen_core=bot2_upgrades["regen"],
-        upgrade_critical_subroutine=bot2_upgrades["crit"],
-        upgrade_energy_recycler=bot2_upgrades["recycler"],
-        upgrade_emp_shield=bot2_upgrades["emp"],
+        items=bot2_items,
     )
 
     # Run the battle
@@ -1384,12 +1398,14 @@ def view_history(history_id):
         weapon_atk=0,
         weapon_type=history.bot1_weapon_type,
         algorithm=history.bot1_algorithm,
-        upgrade_armor_plating=history.bot1_upgrade_armor_plating,
-        upgrade_overclock_unit=history.bot1_upgrade_overclock_unit,
-        upgrade_regen_core=history.bot1_upgrade_regen_core,
-        upgrade_critical_subroutine=history.bot1_upgrade_critical_subroutine,
-        upgrade_energy_recycler=history.bot1_upgrade_energy_recycler,
-        upgrade_emp_shield=history.bot1_upgrade_emp_shield,
+        items=build_items_from_flags({
+            "upgrade_armor_plating": history.bot1_upgrade_armor_plating,
+            "upgrade_overclock_unit": history.bot1_upgrade_overclock_unit,
+            "upgrade_regen_core": history.bot1_upgrade_regen_core,
+            "upgrade_critical_subroutine": history.bot1_upgrade_critical_subroutine,
+            "upgrade_energy_recycler": history.bot1_upgrade_energy_recycler,
+            "upgrade_emp_shield": history.bot1_upgrade_emp_shield,
+        }),
     )
 
     battleB = BattleBot(
@@ -1404,12 +1420,14 @@ def view_history(history_id):
         weapon_atk=0,
         weapon_type=history.bot2_weapon_type,
         algorithm=history.bot2_algorithm,
-        upgrade_armor_plating=history.bot2_upgrade_armor_plating,
-        upgrade_overclock_unit=history.bot2_upgrade_overclock_unit,
-        upgrade_regen_core=history.bot2_upgrade_regen_core,
-        upgrade_critical_subroutine=history.bot2_upgrade_critical_subroutine,
-        upgrade_energy_recycler=history.bot2_upgrade_energy_recycler,
-        upgrade_emp_shield=history.bot2_upgrade_emp_shield,
+        items=build_items_from_flags({
+            "upgrade_armor_plating": history.bot2_upgrade_armor_plating,
+            "upgrade_overclock_unit": history.bot2_upgrade_overclock_unit,
+            "upgrade_regen_core": history.bot2_upgrade_regen_core,
+            "upgrade_critical_subroutine": history.bot2_upgrade_critical_subroutine,
+            "upgrade_energy_recycler": history.bot2_upgrade_energy_recycler,
+            "upgrade_emp_shield": history.bot2_upgrade_emp_shield,
+        }),
     )
     
     result = full_battle(battleA, battleB, history.seed)
