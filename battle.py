@@ -261,6 +261,7 @@ def calculate_damage(attacker, defender, log, rng, arena="neutral"):
 
 
 def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
+    round_had_damage = False
     # Track rounds alive
     botA.rounds_alive += 1
     botB.rounds_alive += 1
@@ -325,11 +326,13 @@ def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
 
         if not attacker.is_alive():
             log_line(log, "energy", f"{attacker.name} has been defeated (out of energy)!")
-            return defender.name
+            return {"winner": defender.name, "damage": round_had_damage}
 
         use_ability(attacker, defender, log=log, round_num=round_num, rng=rng)
 
         damage = calculate_damage(attacker, defender, log, rng, arena=arena)
+        if damage > 0:
+            round_had_damage = True
         defender.hp = max(defender.hp - damage, 0)
 
         log_line(log, "attack", f"{attacker.name} attacks {defender.name} for {damage:.2f} damage!")
@@ -338,14 +341,16 @@ def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
         if attacker.extra_attacks > 0 and defender.is_alive():
             attacker.extra_attacks -= 1
             extra_dmg = calculate_damage(attacker, defender, log, rng, arena=arena)
+            if extra_dmg > 0:
+                round_had_damage = True
             defender.hp = max(defender.hp - extra_dmg, 0)
             log_line(log, "attack", f"{attacker.name} strikes again for {extra_dmg:.2f} damage!")
 
         if not defender.is_alive():
             log_line(log, "defeat", f"{defender.name} has been defeated!")
-            return attacker.name
+            return {"winner": attacker.name, "damage": True}
 
-    return None
+    return {"winner": None, "damage": round_had_damage}
 
 
 def full_battle(botA, botB, seed=None, arena="neutral"):
