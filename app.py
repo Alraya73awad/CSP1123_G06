@@ -12,7 +12,8 @@ from battle import BattleBot, full_battle, calculate_bot_stat_points
 from seed_weapons import seed_weapons
 
 
-from models import User, Bot, History, HistoryLog, Weapon, WeaponOwnership
+from models import User, Bot, History, HistoryLog, Weapon, WeaponOwnership, Admin
+
 
 app = Flask(__name__, instance_relative_config=True)
 
@@ -31,6 +32,8 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 migrate = Migrate(app, db)
+
+
 
 @app.context_processor
 def inject_current_user():
@@ -87,18 +90,38 @@ def home():
 def login():
     if "user_id" in session:
         return redirect(url_for("dashboard"))
+    if "admin_id" in session:
+        return redirect(url_for("admin_dashboard"))
 
     if request.method == "POST":
-        user = User.query.filter_by(username=request.form["username"]).first()
-        if user and check_password_hash(user.password, request.form["password"]):
+        identifier = request.form.get("username")
+        password = request.form.get("password")
+
+        # First check if it's an admin
+        admin = Admin.query.filter(
+            or_(Admin.username == identifier, Admin.email == identifier)
+        ).first()
+
+        if admin and check_password_hash(admin.password, password):
+            session["admin_id"] = admin.id
+            flash("Admin login successful!", "success")
+            return redirect(url_for("admin_dashboard"))
+
+        # Otherwise check normal user
+        user = User.query.filter(
+            or_(User.username == identifier, User.email == identifier)
+        ).first()
+
+        if user and not user.banned and check_password_hash(user.password, password):
             session["user_id"] = user.id
             flash("Login successful!", "success")
-            return redirect(url_for("dashboard"))  
+            return redirect(url_for("dashboard"))
+        elif user and user.banned:
+            flash("Your account has been banned. Contact support.", "danger")
         else:
             flash("Invalid credentials", "danger")
 
     return render_template("login.html")
-
 
 #register
 @app.route("/register", methods=["GET", "POST"])
@@ -127,6 +150,21 @@ def register():
 
     return render_template("register.html")
 
+@app.route("/forgot_password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        identifier = request.form.get("email")
+        new_password = request.form.get("new_password")
+        user = User.query.filter(or_(User.username == identifier, User.email == identifier)).first()
+        if user:
+            user.password = generate_password_hash(new_password)
+            db.session.commit()
+            flash("Password reset successfully!", "success")
+        else:
+            flash("Player ID not found.", "danger")
+        return redirect(url_for("login"))
+    return render_template("forgot_password.html")
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -145,8 +183,6 @@ def dashboard():
         session.clear()
         flash("Session expired. Please log in again.", "warning")
         return redirect(url_for("login"))
-    # rest of code
-
 
     # HANDLE BOT CREATION (FORM SUBMIT)
     if request.method == "POST":
@@ -196,6 +232,47 @@ def dashboard():
         xp_table=XP_TABLE,
     )
 
+@app.route("/admin_dashboard")
+def admin_dashboard():
+    if "admin_id" not in session:
+        flash("Admin login required.", "danger")
+        return redirect(url_for("admin_login"))
+
+    users = User.query.all()
+    return render_template("admin_dashboard.html", users=users)
+
+@app.route("/admin/ban/<int:user_id>", methods=["POST"])
+def admin_ban_user(user_id):
+    if "admin_id" not in session:
+        flash("Admin login required.", "danger")
+        return redirect(url_for("admin_login"))
+
+    user = User.query.get(user_id)
+    if user:
+        user.banned = True
+        db.session.commit()
+        flash(f"User {user.username} has been banned.", "warning")
+    else:
+        flash("User not found.", "danger")
+
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/delete/<int:user_id>", methods=["POST"])
+def admin_delete_user(user_id):
+    if "admin_id" not in session:
+        flash("Admin login required.", "danger")
+        return redirect(url_for("admin_login"))
+
+    user = User.query.get(user_id)
+    if user:
+        db.session.delete(user)
+        db.session.commit()
+        flash(f"User {user.username} deleted.", "success")
+    else:
+        flash("User not found.", "danger")
+
+    return redirect(url_for("admin_dashboard"))
 
 #logout
 @app.route("/logout")
@@ -499,6 +576,8 @@ def buy_character():
 
 
 
+
+
 @app.route("/update_settings", methods=["POST"])
 @login_required
 def update_settings():
@@ -517,6 +596,32 @@ def update_settings():
     db.session.commit()
     flash("Settings updated successfully!", "success")
     return redirect(url_for("dashboard"))
+
+@app.route("/delete_account", methods=["POST"])
+@login_required
+def delete_account():
+    user = User.query.get(session["user_id"])
+
+    # Delete related data
+    # Delete weapon ownership
+    WeaponOwnership.query.filter_by(user_id=user.id).delete()
+
+    # Delete bots (this will cascade to weapon_ownership if bot_id)
+    Bot.query.filter_by(user_id=user.id).delete()
+
+    # Delete history logs where history involves the user
+    histories = History.query.filter(or_(History.user1_id == user.id, History.user2_id == user.id)).all()
+    for history in histories:
+        HistoryLog.query.filter_by(history_id=history.id).delete()
+        db.session.delete(history)
+
+    # Delete the user
+    db.session.delete(user)
+    db.session.commit()
+
+    session.clear()
+    flash("Account deleted successfully.", "info")
+    return redirect(url_for("home"))
 
 @app.route("/delete_bot/<int:bot_id>", methods=["POST"])
 @login_required
@@ -1329,6 +1434,43 @@ def add_xp(user, amount):
     db.session.commit()
     return levels_gained
 
+@app.route("/database")
+@login_required
+def database():
+    return render_template("database.html")
+
+#Database Pages
+@app.route("/database/getting-started")
+def database_getting_started():
+    return render_template("database_pages/getting_started.html", active_database="getting_started")
+
+@app.route("/database/combat")
+def database_combat():
+    return render_template("database_pages/combat.html", active_database="combat")
+
+@app.route("/database/algorithms")
+def database_algorithms():
+    return render_template("database_pages/algorithms.html", active_database="algorithms")
+
+@app.route("/database/weapons")
+def database_weapons():
+    return render_template("database_pages/weapons.html", active_database="weapons")
+
+@app.route("/database/upgrades")
+def database_upgrades():
+    return render_template("database_pages/upgrades.html", active_database="upgrades")
+
+@app.route("/database/stats")
+def database_stats():
+    return render_template("database_pages/stats.html", active_database="stats")
+
+@app.route("/database/leaderboard")
+def database_rating_system():
+    return render_template("database_pages/rating_system.html", active_database="rating_system")
+
+@app.route("/database/arenas")
+def database_arenas():
+    return render_template("database_pages/arenas.html", active_database="arenas")
 
 if __name__ == "__main__":
     with app.app_context():
