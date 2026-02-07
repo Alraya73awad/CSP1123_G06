@@ -3,6 +3,8 @@
 {% block content %}
 <div class="container mt-4">
     <h2>Gear — {{ bot.name }}</h2>
+    <p><strong>Bits:</strong> {{ user_tokens }}</p>
+
 
 
     <h4>Equip Weapon</h4>
@@ -22,6 +24,7 @@
         </form>
 
     {% if owned_weapons %}
+    <div>
     <table class="bot-details-table">
         <thead>
             <tr>
@@ -29,6 +32,7 @@
                 <th>Level</th>
                 <th>Effective ATK</th>
                 <th>Max Level</th>
+                <th>Next Level Cost</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -40,10 +44,20 @@
                 <td>{{ ow.weapon.effective_atk() }}</td>
                 <td>{{ ow.weapon.max_level }}</td>
                 <td>
+                    {% set base_price = ow.weapon.price or 0 %}
+                    {% set current_level = ow.weapon.level or 1 %}
+                    {% set next_cost = (base_price * (1 + 0.6 * (current_level - 1))) | round(0, 'common') | int %}
+                    {% if ow.weapon.level >= ow.weapon.max_level %}
+                        Max
+                    {% else %}
+                        {{ next_cost }}
+                    {% endif %}
+                </td>
+                <td>
                     <form method="POST" style="display:inline;">
                         <input type="hidden" name="weapon_ownership_id" value="{{ ow.id }}">
-                        <button type="submit" class="btn btn-sm btn-warning"
-                            {% if ow.weapon.level >= ow.weapon.max_level %} disabled {% endif %}>
+                        <button type="submit" class="btn btn-sm btn-warning level-up-btn"
+                            {% if ow.weapon.level >= ow.weapon.max_level or user_tokens < next_cost %} disabled {% endif %}>
                             Level Up
                         </button>
                     </form>
@@ -52,10 +66,23 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
         <p>This bot has no equipped weapons.</p>
     {% endif %}
 
     <a href="{{ url_for('manage_bot') }}" class="btn btn-secondary mt-3">Back</a>
 </div>
+
+<style>
+.level-up-btn {
+    min-width: 70px;
+    padding: 4px 8px !important;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+</style>
 {% endblock %}
+
+
+

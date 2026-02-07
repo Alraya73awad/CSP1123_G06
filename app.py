@@ -9,9 +9,6 @@ from sqlalchemy import or_
 from extensions import db
 from constants import CURRENCY_NAME,CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS, UPGRADES, RANK_TIERS
 from battle import BattleBot, full_battle, calculate_bot_stat_points, ARENA_EFFECTS
-from seed_weapons import seed_weapons
-
-
 from models import User, Bot, History, Weapon, WeaponOwnership
 
 app = Flask(__name__, instance_relative_config=True)
@@ -88,14 +85,6 @@ def apply_upgrade_arena_effects(stats, upgrades, arena="neutral"):
 @app.context_processor
 def inject_upgrade_helpers():
     return dict(get_upgrade_labels=get_upgrade_labels)
-
-def ensure_weapons_seeded():
-    with app.app_context():
-        if Weapon.query.count() == 0:
-            seed_weapons()
-
-ensure_weapons_seeded()
-
 
 def calculate_elo_change(winner_rating, loser_rating, k_factor=32):
     """
@@ -192,8 +181,13 @@ def register():
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if "user_id" not in session:
+        user_id = session.get("user_id")
+        if not user_id:
             flash("Please log in to continue.", "warning")
+            return redirect(url_for("login"))
+        if not User.query.get(user_id):
+            session.clear()
+            flash("Session expired. Please log in again.", "warning")
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorated_function
@@ -580,6 +574,10 @@ def delete_bot(bot_id):
         id=bot_id,
         user_id=session["user_id"]
     ).first_or_404()
+
+    # Detach bot from history before delete to avoid FK / NOT NULL issues
+    History.query.filter_by(bot1_id=bot.id).update({"bot1_id": None})
+    History.query.filter_by(bot2_id=bot.id).update({"bot2_id": None})
 
     db.session.delete(bot)
     db.session.commit()
@@ -1417,12 +1415,25 @@ def weapons_shop():
 @login_required
 def level_up_weapon(weapon_id):
     weapon = Weapon.query.get_or_404(weapon_id)
+    user = User.query.get(session["user_id"])
 
     if weapon.level < weapon.max_level:
+        base_price = int(weapon.price or 0)
+        current_level = int(weapon.level or 1)
+        level_cost = int(round(base_price * (1 + 0.6 * (current_level - 1))))
+
+        if user.tokens < level_cost:
+            flash("Not enough credits to level up this weapon.", "warning")
+            return redirect(url_for("gear", bot_id=weapon.bot_id))
+
+        user.tokens -= level_cost
         weapon.level += 1
         db.session.commit()
+        flash(f"{weapon.name} leveled up! (-{level_cost} tokens)", "success")
+    else:
+        flash("Weapon already at max level.", "info")
 
-    return redirect(url_for("edit_bot", bot_id=weapon.bot_id))
+    return redirect(url_for("gear", bot_id=weapon.bot_id))
 
 @app.route("/buy_weapon/<int:weapon_id>", methods=["POST"])
 @login_required
@@ -1461,6 +1472,8 @@ def gear(bot_id):
     bot = Bot.query.get_or_404(bot_id)
     user_id = bot.user_id 
     owned_weapons = WeaponOwnership.query.filter_by(user_id=user_id).all()
+    user = User.query.get(session["user_id"])
+    user_tokens = int(user.tokens or 0) if user else 0
 
     if request.method == "POST":
         if "equip_weapon" in request.form:
@@ -1485,12 +1498,23 @@ def gear(bot_id):
             ow_id = int(request.form.get("weapon_ownership_id"))
             ow = WeaponOwnership.query.get_or_404(ow_id)
 
-            if ow.weapon.level < ow.weapon.max_level:
-                ow.weapon.level += 1
-                db.session.commit()
-                flash(f"{ow.weapon.name} leveled up!", "success")
-            else:
+            if ow.weapon.level >= ow.weapon.max_level:
                 flash("Weapon already at max level.", "warning")
+                return redirect(url_for("gear", bot_id=bot.id))
+
+            base_price = int(ow.weapon.price or 0)
+            current_level = int(ow.weapon.level or 1)
+            level_cost = int(round(base_price * (1 + 0.6 * (current_level - 1))))
+
+            user = User.query.get(session["user_id"])
+            if not user or int(user.tokens or 0) < level_cost:
+                flash("Not enough credits to level up this weapon.", "warning")
+                return redirect(url_for("gear", bot_id=bot.id))
+
+            user.tokens = int(user.tokens or 0) - level_cost
+            ow.weapon.level += 1
+            db.session.commit()
+            flash(f"{ow.weapon.name} leveled up! (-{level_cost} tokens)", "success")
 
             return redirect(url_for("gear", bot_id=bot.id))
 
@@ -1498,7 +1522,8 @@ def gear(bot_id):
     return render_template(
         "gear.html",
         bot=bot,
-        owned_weapons=owned_weapons
+        owned_weapons=owned_weapons,
+        user_tokens=user_tokens
     )
 
 @app.route("/leaderboard")
