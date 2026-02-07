@@ -11,17 +11,6 @@
         <span id="datetime-display">--/--/---- --:--:--</span>
     </div>
 
-    <!-- flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="flash-area">
-          {% for category, message in messages %}
-            <div class="flash {{ category }}">{{ message }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
-
     <h1>Your Characters</h1>
     <p>Select a character to equip upgrades.</p>
 
@@ -108,15 +97,6 @@
     margin-bottom: 30px;
     padding-bottom: 8px;
 }
-
-.flash-area .flash {
-    padding: 10px;
-    margin-bottom: 15px;
-    border-left: 4px solid;
-}
-.flash.success { border-color: #00ff00; color: #00ff00; }
-.flash.danger  { border-color: #ff0040; color: #ff0040; }
-.flash.warning { border-color: #ffae00; color: #ffae00; }
 
 .character-select {
     margin-bottom: 25px;

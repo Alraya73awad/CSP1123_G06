@@ -73,17 +73,7 @@
             {% endif %}
         </div>
 
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, msg in messages %}
-                    <div class="alert alert-{{ category }} mt-2">
-                        {{ msg }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
+        
         <a href="{{ url_for('dashboard') }}" class="btn btn-cancel">
             Cancel
         </a>
