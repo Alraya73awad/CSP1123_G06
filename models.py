@@ -17,6 +17,7 @@ class User(db.Model, UserMixin):
     rating = db.Column(db.Integer, default=600)  # ELO-style rating
     wins = db.Column(db.Integer, default=0)
     losses = db.Column(db.Integer, default=0)
+    banned = db.Column(db.Boolean, default=False)
 
     bots = db.relationship("Bot", backref="user", lazy=True)
 
@@ -68,6 +69,8 @@ class Bot(db.Model):
     upgrade_critical_subroutine = db.Column(db.Boolean, default=False)
     upgrade_energy_recycler = db.Column(db.Boolean, default=False)
     upgrade_emp_shield = db.Column(db.Boolean, default=False)
+
+   
 
     @property
     def equipped_weapon(self):

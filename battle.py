@@ -118,9 +118,8 @@ class BattleBot:
         self.energy_drain = 0
         self.emp_shield = False
 
-        # apply items if provided
-        if items:
-            apply_items(self, items)
+        #Internal flags for alogorithm-specific behaviors
+        self.adopted_logic_applied = False
 
     def is_alive(self):
         return self.hp > 0 and self.energy > 0

@@ -131,22 +131,11 @@ def home():
 def login():
     if "user_id" in session:
         return redirect(url_for("dashboard"))
-    if "admin_id" in session:
-        return redirect(url_for("admin_dashboard"))
+
 
     if request.method == "POST":
         identifier = request.form.get("username")
         password = request.form.get("password")
-
-        # First check if it's an admin
-        admin = Admin.query.filter(
-            or_(Admin.username == identifier, Admin.email == identifier)
-        ).first()
-
-        if admin and check_password_hash(admin.password, password):
-            session["admin_id"] = admin.id
-            flash("Admin login successful!", "success")
-            return redirect(url_for("admin_dashboard"))
 
         # Otherwise check normal user
         user = User.query.filter(
@@ -278,47 +267,6 @@ def dashboard():
         xp_table=XP_TABLE,
     )
 
-@app.route("/admin_dashboard")
-def admin_dashboard():
-    if "admin_id" not in session:
-        flash("Admin login required.", "danger")
-        return redirect(url_for("admin_login"))
-
-    users = User.query.all()
-    return render_template("admin_dashboard.html", users=users)
-
-@app.route("/admin/ban/<int:user_id>", methods=["POST"])
-def admin_ban_user(user_id):
-    if "admin_id" not in session:
-        flash("Admin login required.", "danger")
-        return redirect(url_for("admin_login"))
-
-    user = User.query.get(user_id)
-    if user:
-        user.banned = True
-        db.session.commit()
-        flash(f"User {user.username} has been banned.", "warning")
-    else:
-        flash("User not found.", "danger")
-
-    return redirect(url_for("admin_dashboard"))
-
-
-@app.route("/admin/delete/<int:user_id>", methods=["POST"])
-def admin_delete_user(user_id):
-    if "admin_id" not in session:
-        flash("Admin login required.", "danger")
-        return redirect(url_for("admin_login"))
-
-    user = User.query.get(user_id)
-    if user:
-        db.session.delete(user)
-        db.session.commit()
-        flash(f"User {user.username} deleted.", "success")
-    else:
-        flash("User not found.", "danger")
-
-    return redirect(url_for("admin_dashboard"))
 
 #logout
 @app.route("/logout")
