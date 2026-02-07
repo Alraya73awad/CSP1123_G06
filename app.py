@@ -613,7 +613,6 @@ def delete_account():
     # Delete history logs where history involves the user
     histories = History.query.filter(or_(History.user1_id == user.id, History.user2_id == user.id)).all()
     for history in histories:
-        HistoryLog.query.filter_by(history_id=history.id).delete()
         db.session.delete(history)
 
     # Delete the user
