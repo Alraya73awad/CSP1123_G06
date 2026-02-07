@@ -89,9 +89,12 @@ def apply_upgrade_arena_effects(stats, upgrades, arena="neutral"):
 def inject_upgrade_helpers():
     return dict(get_upgrade_labels=get_upgrade_labels)
 
-with app.app_context():
-    db.create_all()
-    seed_weapons()
+def ensure_weapons_seeded():
+    with app.app_context():
+        if Weapon.query.count() == 0:
+            seed_weapons()
+
+ensure_weapons_seeded()
 
 
 def calculate_elo_change(winner_rating, loser_rating, k_factor=32):
