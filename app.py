@@ -8,6 +8,7 @@ from sqlalchemy import or_
 
 from extensions import db
 from sqlalchemy.exc import OperationalError, ProgrammingError
+from sqlalchemy import inspect
 from constants import CURRENCY_NAME,CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS, UPGRADES, RANK_TIERS
 from battle import BattleBot, full_battle, calculate_bot_stat_points, ARENA_EFFECTS
 from seed_weapons import seed_weapons
@@ -91,6 +92,20 @@ def inject_upgrade_helpers():
     return dict(get_upgrade_labels=get_upgrade_labels)
 
 _weapons_seeded = False
+_db_initialized = False
+
+def ensure_db_initialized():
+    global _db_initialized
+    if _db_initialized:
+        return
+    try:
+        inspector = inspect(db.engine)
+        if not inspector.has_table("user"):
+            db.create_all()
+        _db_initialized = True
+    except (OperationalError, ProgrammingError):
+        # DB might not be ready yet
+        pass
 
 def ensure_weapons_seeded():
     global _weapons_seeded
@@ -106,6 +121,7 @@ def ensure_weapons_seeded():
 
 @app.before_request
 def seed_weapons_on_first_request():
+    ensure_db_initialized()
     ensure_weapons_seeded()
 
 
