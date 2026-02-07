@@ -26,29 +26,7 @@
             </thead>
 
             <tbody>
-                <!-- WEAPON ROW -->
-                <tr>
-                    <td><strong>WEAPON</strong></td>
-                    <td>
-                        {% if stats1.weapon_type %}
-                            <span>{{ stats1.weapon_type|upper }}</span>
-                            <br>
-                            <small>+{{ stats1.weapon_atk }} ATK</small>
-                        {% else %}
-                            <span>No Weapon</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if stats2.weapon_type %}
-                            <span>{{ stats2.weapon_type|upper }}</span>
-                            <br>
-                            <small>+{{ stats2.weapon_atk }} ATK</small>
-                        {% else %}
-                            <span>No Weapon</span>
-                        {% endif %}
-                    </td>
-                </tr>
-
+                
                 <!-- ALGORITHM ROW -->
                 <tr>
                     <td><strong>ALGORITHM</strong></td>
@@ -59,6 +37,57 @@
                         <td>{{ bot1.algorithm }}</td>
                         <td>{{ bot2.algorithm }}</td>
                     {% endif %}
+                </tr>
+
+                <!-- WEAPON ROW -->
+                <tr>
+                    <td><strong>WEAPON</strong></td>
+                    <td>
+                        {% if stats1.weapon_name %}
+                            <span>{{ stats1.weapon_name }}</span>
+                            <br>
+                            <small>+{{ stats1.weapon_atk }} ATK</small>
+                        {% elif stats1.weapon_type %}
+                            <span>{{ stats1.weapon_type|upper }}</span>
+                            <br>
+                            <small>+{{ stats1.weapon_atk }} ATK</small>
+                        {% else %}
+                            <span>No Weapon</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if stats2.weapon_name %}
+                            <span>{{ stats2.weapon_name }}</span>
+                            <br>
+                            <small>+{{ stats2.weapon_atk }} ATK</small>
+                        {% elif stats2.weapon_type %}
+                            <span>{{ stats2.weapon_type|upper }}</span>
+                            <br>
+                            <small>+{{ stats2.weapon_atk }} ATK</small>
+                        {% else %}
+                            <span>No Weapon</span>
+                        {% endif %}
+                    </td>
+                </tr>
+
+
+                <!-- UPGRADES ROW -->
+                <tr>
+                    <td><strong>UPGRADES</strong></td>
+                    <td>
+                        {% if stats1.upgrades %}
+                            {{ stats1.upgrades | join(", ") }}
+                        {% else %}
+                            None
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if stats2.upgrades %}
+                            {{ stats2.upgrades | join(", ") }}
+                        {% else %}
+                            None
+                        {% endif %}
+                    </td>
                 </tr>
 
                 <!-- PROC (Total ATK including weapon) ROW -->

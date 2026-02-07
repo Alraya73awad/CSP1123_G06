@@ -19,7 +19,7 @@
         <label for="selected-character">Select Character:</label>
         <select id="selected-character" name="character_id" class="bot-dropdown" {% if bots|length == 0 %}disabled{% endif %}>
             {% for bot in bots %}
-                <option value="{{ bot.id }}">{{ bot.name }}</option>
+                <option value="{{ bot.id }}" {% if selected_bot and bot.id == selected_bot.id %}selected{% endif %}>{{ bot.name }}</option>
             {% endfor %}
         </select>
         {% if bots|length == 0 %}
@@ -28,7 +28,7 @@
     </div>
 
     <h2>Upgrades</h2>
-    <p>! This is a one-time use upgrade !</p>
+    <p>Upgrades are one-time consumables and apply to the next battle.</p>
 
     <!-- upgrades grid -->
     <div class="store-grid">
@@ -42,7 +42,7 @@
 
             <form method="POST" action="{{ url_for('buy_character') }}">
                 <input type="hidden" name="purchase_id" value="{{ upgrade["id"] }}">
-                <input type="hidden" name="bot_id" value="{{ bots[0].id if bots else '' }}" class="selected-bot-input">
+                <input type="hidden" name="bot_id" value="{{ selected_bot.id if selected_bot else '' }}" class="selected-bot-input">
 
                 <button type="submit" class="buy-btn"
                         {% if tokens < upgrade["cost"] or bots|length == 0 %}disabled{% endif %}>

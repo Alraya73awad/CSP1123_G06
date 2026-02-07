@@ -8,7 +8,7 @@ from sqlalchemy import or_
 
 from extensions import db
 from constants import CURRENCY_NAME,CHARACTER_ITEMS, algorithms, algorithm_effects, algorithm_descriptions, XP_TABLE, PASSIVE_ITEMS, UPGRADES, RANK_TIERS
-from battle import BattleBot, full_battle, calculate_bot_stat_points
+from battle import BattleBot, full_battle, calculate_bot_stat_points, ARENA_EFFECTS
 from seed_weapons import seed_weapons
 
 
@@ -52,6 +52,42 @@ def get_rank_tier(rating):
 @app.context_processor
 def inject_rank_helpers():
     return dict(get_rank_tier=get_rank_tier, rank_tiers=RANK_TIERS)
+
+def get_upgrade_labels(bot):
+    labels = []
+    if getattr(bot, "upgrade_armor_plating", False):
+        labels.append("Armor Plating")
+    if getattr(bot, "upgrade_overclock_unit", False):
+        labels.append("Overclock Unit")
+    if getattr(bot, "upgrade_regen_core", False):
+        labels.append("Regen Core")
+    if getattr(bot, "upgrade_critical_subroutine", False):
+        labels.append("Critical Subroutine")
+    if getattr(bot, "upgrade_energy_recycler", False):
+        labels.append("Energy Recycler")
+    if getattr(bot, "upgrade_emp_shield", False):
+        labels.append("EMP Shield")
+    return labels
+
+def apply_upgrade_arena_effects(stats, upgrades, arena="neutral"):
+    effective = stats.copy()
+
+    if upgrades.get("armor"):
+        effective["def"] = int((effective.get("def") or 0) * 1.10)
+    if upgrades.get("overclock"):
+        effective["clk"] = int((effective.get("clk") or 0) * 1.10)
+    if upgrades.get("crit"):
+        effective["luck"] = int((effective.get("luck") or 0) + 5)
+
+    effects = ARENA_EFFECTS.get(arena, ARENA_EFFECTS["neutral"])
+    effective["clk"] = int((effective.get("clk") or 0) * effects.get("spd_mod", 1.0))
+    effective["def"] = int((effective.get("def") or 0) * effects.get("def_mod", 1.0))
+
+    return effective
+
+@app.context_processor
+def inject_upgrade_helpers():
+    return dict(get_upgrade_labels=get_upgrade_labels)
 
 with app.app_context():
     db.create_all()
@@ -475,17 +511,30 @@ def buy_character():
         flash("Not enough tokens!", "danger")
         return redirect(url_for("character", bot_id=bot.id))
 
+    flag = item.get("flag")
+    if not flag or not hasattr(bot, flag):
+        flash(f"{item['name']} is not implemented yet. No tokens were spent.", "warning")
+        return redirect(url_for("character", bot_id=bot.id))
+
+    upgrade_flags = [
+        "upgrade_armor_plating",
+        "upgrade_overclock_unit",
+        "upgrade_regen_core",
+        "upgrade_critical_subroutine",
+        "upgrade_energy_recycler",
+        "upgrade_emp_shield",
+    ]
+    active_upgrades = sum(1 for f in upgrade_flags if getattr(bot, f, False))
+    if active_upgrades >= 3 and not getattr(bot, flag):
+        flash("Upgrade cap reached (3). Use an upgrade in battle before buying another.", "warning")
+        return redirect(url_for("character", bot_id=bot.id))
+
+    if getattr(bot, flag):
+        flash(f"{item['name']} is already installed on {bot.name}.", "warning")
+        return redirect(url_for("character", bot_id=bot.id))
+
     user.tokens -= cost
-
-    # Apply upgrade to the bot
-    stat = item.get("stat")
-    value = int(item.get("value", 0))
-
-    if stat in ["hp", "atk", "defense", "speed", "logic", "luck", "energy"]:
-        setattr(bot, stat, int(getattr(bot, stat) or 0) + value)
-    else:
-        flash(f"{item['name']} purchased, but stat '{stat}' isn't implemented in Bot yet.", "warning")
-
+    setattr(bot, flag, True)
     db.session.commit()
     flash(f"{item['name']} purchased for {bot.name}! (-{cost} tokens)", "success")
     return redirect(url_for("character", bot_id=bot.id))
@@ -681,7 +730,7 @@ def bot_details(bot_id):
         "def": bot.defense,   
         "clk": bot.speed,
         "logic": bot.logic,
-        "luck": bot.luck,
+        "ent": bot.luck,
         "pwr": bot.energy
     }
 
@@ -737,6 +786,8 @@ def combat_log(bot1_id, bot2_id):
     # Apply algorithm stats
     stats1 = apply_algorithm(bot1)
     stats2 = apply_algorithm(bot2)
+    stats1_base = stats1
+    stats2_base = stats2
     weapon1_ow = WeaponOwnership.query.filter_by(bot_id=bot1.id, equipped=True).first()
     weapon2_ow = WeaponOwnership.query.filter_by(bot_id=bot2.id, equipped=True).first()
 
@@ -755,6 +806,23 @@ def combat_log(bot1_id, bot2_id):
     base_proc2 = bot2.atk + weapon2_atk
     final_proc2 = int(base_proc2 * effects2.get("proc", 1.0))
 
+    bot1_upgrades = {
+        "armor": bot1.upgrade_armor_plating,
+        "overclock": bot1.upgrade_overclock_unit,
+        "regen": bot1.upgrade_regen_core,
+        "crit": bot1.upgrade_critical_subroutine,
+        "recycler": bot1.upgrade_energy_recycler,
+        "emp": bot1.upgrade_emp_shield,
+    }
+    bot2_upgrades = {
+        "armor": bot2.upgrade_armor_plating,
+        "overclock": bot2.upgrade_overclock_unit,
+        "regen": bot2.upgrade_regen_core,
+        "crit": bot2.upgrade_critical_subroutine,
+        "recycler": bot2.upgrade_energy_recycler,
+        "emp": bot2.upgrade_emp_shield,
+    }
+
     # Convert to BattleBot
     battleA = BattleBot(
         name=bot1.name,
@@ -768,6 +836,12 @@ def combat_log(bot1_id, bot2_id):
         weapon_atk=0,
         weapon_type=weapon1_ow.weapon.type if weapon1_ow else None,
         algorithm=bot1.algorithm,
+        upgrade_armor_plating=bot1_upgrades["armor"],
+        upgrade_overclock_unit=bot1_upgrades["overclock"],
+        upgrade_regen_core=bot1_upgrades["regen"],
+        upgrade_critical_subroutine=bot1_upgrades["crit"],
+        upgrade_energy_recycler=bot1_upgrades["recycler"],
+        upgrade_emp_shield=bot1_upgrades["emp"],
     )
 
     battleB = BattleBot(
@@ -782,6 +856,12 @@ def combat_log(bot1_id, bot2_id):
         weapon_atk=0,
         weapon_type=weapon2_ow.weapon.type if weapon2_ow else None,
         algorithm=bot2.algorithm,
+        upgrade_armor_plating=bot2_upgrades["armor"],
+        upgrade_overclock_unit=bot2_upgrades["overclock"],
+        upgrade_regen_core=bot2_upgrades["regen"],
+        upgrade_critical_subroutine=bot2_upgrades["crit"],
+        upgrade_energy_recycler=bot2_upgrades["recycler"],
+        upgrade_emp_shield=bot2_upgrades["emp"],
     )
 
     # Run the battle
@@ -792,6 +872,23 @@ def combat_log(bot1_id, bot2_id):
     botA_points = result["botA_points"]
     botB_points = result["botB_points"]
     seed = result["seed"]
+
+    # consume one-time upgrades after battle
+    if any(bot1_upgrades.values()):
+        bot1.upgrade_armor_plating = False
+        bot1.upgrade_overclock_unit = False
+        bot1.upgrade_regen_core = False
+        bot1.upgrade_critical_subroutine = False
+        bot1.upgrade_energy_recycler = False
+        bot1.upgrade_emp_shield = False
+
+    if any(bot2_upgrades.values()):
+        bot2.upgrade_armor_plating = False
+        bot2.upgrade_overclock_unit = False
+        bot2.upgrade_regen_core = False
+        bot2.upgrade_critical_subroutine = False
+        bot2.upgrade_energy_recycler = False
+        bot2.upgrade_emp_shield = False
 
     # save bot win or loss (skip if draw)
     if not is_draw:
@@ -923,13 +1020,35 @@ def combat_log(bot1_id, bot2_id):
         )
 
     # Add weapon info to stats dictionaries for template
-    stats1["weapon_atk"] = weapon1_atk
-    stats1["weapon_type"] = weapon1_ow.weapon.type if weapon1_ow else None
-    stats1["proc"] = final_proc1 
+    stats1_base["weapon_atk"] = weapon1_atk
+    stats1_base["weapon_name"] = weapon1_ow.weapon.name if weapon1_ow else None
+    stats1_base["weapon_type"] = weapon1_ow.weapon.type if weapon1_ow else None
+    stats1_base["proc"] = final_proc1 
+    stats1["upgrades"] = [
+        label for label, enabled in [
+            ("Armor Plating", bot1_upgrades["armor"]),
+            ("Overclock Unit", bot1_upgrades["overclock"]),
+            ("Regen Core", bot1_upgrades["regen"]),
+            ("Critical Subroutine", bot1_upgrades["crit"]),
+            ("Energy Recycler", bot1_upgrades["recycler"]),
+            ("EMP Shield", bot1_upgrades["emp"]),
+        ] if enabled
+    ]
     
-    stats2["weapon_atk"] = weapon2_atk
-    stats2["weapon_type"] = weapon2_ow.weapon.type if weapon2_ow else None
-    stats2["proc"] = final_proc2  
+    stats2_base["weapon_atk"] = weapon2_atk
+    stats2_base["weapon_name"] = weapon2_ow.weapon.name if weapon2_ow else None
+    stats2_base["weapon_type"] = weapon2_ow.weapon.type if weapon2_ow else None
+    stats2_base["proc"] = final_proc2  
+    stats2["upgrades"] = [
+        label for label, enabled in [
+            ("Armor Plating", bot2_upgrades["armor"]),
+            ("Overclock Unit", bot2_upgrades["overclock"]),
+            ("Regen Core", bot2_upgrades["regen"]),
+            ("Critical Subroutine", bot2_upgrades["crit"]),
+            ("Energy Recycler", bot2_upgrades["recycler"]),
+            ("EMP Shield", bot2_upgrades["emp"]),
+        ] if enabled
+    ]
 
     
     history = History(
@@ -942,39 +1061,66 @@ def combat_log(bot1_id, bot2_id):
         winner=winner_name,
         seed=seed,
 
-        bot1_hp=stats1["hp"],
-        bot1_energy=stats1["energy"],
+        bot1_hp=stats1_base["hp"],
+        bot1_energy=stats1_base["energy"],
         bot1_proc=final_proc1,
-        bot1_defense=stats1["def"],   
-        bot1_clk=stats1["clk"],
-        bot1_luck=stats1["luck"],
-        bot1_logic=stats1["logic"],
+        bot1_defense=stats1_base["def"],   
+        bot1_clk=stats1_base["clk"],
+        bot1_luck=stats1_base["luck"],
+        bot1_logic=stats1_base["logic"],
         bot1_weapon_atk=weapon1_atk,
+        bot1_weapon_name=(weapon1_ow.weapon.name if weapon1_ow else None),
         bot1_weapon_type=(weapon1_ow.weapon.type if weapon1_ow else None),
         bot1_algorithm=bot1.algorithm,
+        bot1_upgrade_armor_plating=bot1_upgrades["armor"],
+        bot1_upgrade_overclock_unit=bot1_upgrades["overclock"],
+        bot1_upgrade_regen_core=bot1_upgrades["regen"],
+        bot1_upgrade_critical_subroutine=bot1_upgrades["crit"],
+        bot1_upgrade_energy_recycler=bot1_upgrades["recycler"],
+        bot1_upgrade_emp_shield=bot1_upgrades["emp"],
 
-        bot2_hp=stats2["hp"],
-        bot2_energy=stats2["energy"],
+        bot2_hp=stats2_base["hp"],
+        bot2_energy=stats2_base["energy"],
         bot2_proc=final_proc2,
-        bot2_defense=stats2["def"],   #use def 
-        bot2_clk=stats2["clk"],
-        bot2_luck=stats2["luck"],
-        bot2_logic=stats2["logic"],
+        bot2_defense=stats2_base["def"],   #use def 
+        bot2_clk=stats2_base["clk"],
+        bot2_luck=stats2_base["luck"],
+        bot2_logic=stats2_base["logic"],
         bot2_weapon_atk=weapon2_atk,
+        bot2_weapon_name=(weapon2_ow.weapon.name if weapon2_ow else None),
         bot2_weapon_type=(weapon2_ow.weapon.type if weapon2_ow else None),
         bot2_algorithm=bot2.algorithm,
+        bot2_upgrade_armor_plating=bot2_upgrades["armor"],
+        bot2_upgrade_overclock_unit=bot2_upgrades["overclock"],
+        bot2_upgrade_regen_core=bot2_upgrades["regen"],
+        bot2_upgrade_critical_subroutine=bot2_upgrades["crit"],
+        bot2_upgrade_energy_recycler=bot2_upgrades["recycler"],
+        bot2_upgrade_emp_shield=bot2_upgrades["emp"],
     )
     db.session.add(history)
 
     db.session.commit()
 
 
+    stats1_display = apply_upgrade_arena_effects(stats1_base, bot1_upgrades)
+    stats2_display = apply_upgrade_arena_effects(stats2_base, bot2_upgrades)
+    stats1_display["weapon_atk"] = stats1_base["weapon_atk"]
+    stats1_display["weapon_name"] = stats1_base["weapon_name"]
+    stats1_display["weapon_type"] = stats1_base["weapon_type"]
+    stats1_display["proc"] = stats1_base["proc"]
+    stats1_display["upgrades"] = stats1["upgrades"]
+    stats2_display["weapon_atk"] = stats2_base["weapon_atk"]
+    stats2_display["weapon_name"] = stats2_base["weapon_name"]
+    stats2_display["weapon_type"] = stats2_base["weapon_type"]
+    stats2_display["proc"] = stats2_base["proc"]
+    stats2_display["upgrades"] = stats2["upgrades"]
+
     return render_template(
     "combat_log.html",
     bot1=bot1,
     bot2=bot2,
-    stats1=stats1,
-    stats2=stats2,
+    stats1=stats1_display,
+    stats2=stats2_display,
     log=log,
     winner=winner_name,
     xp_gained=xp_gained,
@@ -1129,7 +1275,18 @@ def view_history(history_id):
         "luck": history.bot1_luck,
         "logic": history.bot1_logic or 0,
         "weapon_atk": history.bot1_weapon_atk if history.bot1_weapon_atk else 0,
-        "weapon_type": history.bot1_weapon_type
+        "weapon_name": history.bot1_weapon_name,
+        "weapon_type": history.bot1_weapon_type,
+        "upgrades": [
+            label for label, enabled in [
+                ("Armor Plating", history.bot1_upgrade_armor_plating),
+                ("Overclock Unit", history.bot1_upgrade_overclock_unit),
+                ("Regen Core", history.bot1_upgrade_regen_core),
+                ("Critical Subroutine", history.bot1_upgrade_critical_subroutine),
+                ("Energy Recycler", history.bot1_upgrade_energy_recycler),
+                ("EMP Shield", history.bot1_upgrade_emp_shield),
+            ] if enabled
+        ]
     }
     
     stats2 = {
@@ -1141,7 +1298,18 @@ def view_history(history_id):
         "luck": history.bot2_luck,
         "logic": history.bot2_logic or 0,
         "weapon_atk": history.bot2_weapon_atk if history.bot2_weapon_atk else 0,
-        "weapon_type": history.bot2_weapon_type
+        "weapon_name": history.bot2_weapon_name,
+        "weapon_type": history.bot2_weapon_type,
+        "upgrades": [
+            label for label, enabled in [
+                ("Armor Plating", history.bot2_upgrade_armor_plating),
+                ("Overclock Unit", history.bot2_upgrade_overclock_unit),
+                ("Regen Core", history.bot2_upgrade_regen_core),
+                ("Critical Subroutine", history.bot2_upgrade_critical_subroutine),
+                ("Energy Recycler", history.bot2_upgrade_energy_recycler),
+                ("EMP Shield", history.bot2_upgrade_emp_shield),
+            ] if enabled
+        ]
     }
     
     # Recreate BattleBots with stored stats (including logic for accurate replay)
@@ -1157,6 +1325,12 @@ def view_history(history_id):
         weapon_atk=0,
         weapon_type=history.bot1_weapon_type,
         algorithm=history.bot1_algorithm,
+        upgrade_armor_plating=history.bot1_upgrade_armor_plating,
+        upgrade_overclock_unit=history.bot1_upgrade_overclock_unit,
+        upgrade_regen_core=history.bot1_upgrade_regen_core,
+        upgrade_critical_subroutine=history.bot1_upgrade_critical_subroutine,
+        upgrade_energy_recycler=history.bot1_upgrade_energy_recycler,
+        upgrade_emp_shield=history.bot1_upgrade_emp_shield,
     )
 
     battleB = BattleBot(
@@ -1171,18 +1345,53 @@ def view_history(history_id):
         weapon_atk=0,
         weapon_type=history.bot2_weapon_type,
         algorithm=history.bot2_algorithm,
+        upgrade_armor_plating=history.bot2_upgrade_armor_plating,
+        upgrade_overclock_unit=history.bot2_upgrade_overclock_unit,
+        upgrade_regen_core=history.bot2_upgrade_regen_core,
+        upgrade_critical_subroutine=history.bot2_upgrade_critical_subroutine,
+        upgrade_energy_recycler=history.bot2_upgrade_energy_recycler,
+        upgrade_emp_shield=history.bot2_upgrade_emp_shield,
     )
     
     result = full_battle(battleA, battleB, history.seed)
     winner = result["winner"]
     log = result["log"]
 
+    upgrades1 = {
+        "armor": history.bot1_upgrade_armor_plating,
+        "overclock": history.bot1_upgrade_overclock_unit,
+        "regen": history.bot1_upgrade_regen_core,
+        "crit": history.bot1_upgrade_critical_subroutine,
+        "recycler": history.bot1_upgrade_energy_recycler,
+        "emp": history.bot1_upgrade_emp_shield,
+    }
+    upgrades2 = {
+        "armor": history.bot2_upgrade_armor_plating,
+        "overclock": history.bot2_upgrade_overclock_unit,
+        "regen": history.bot2_upgrade_regen_core,
+        "crit": history.bot2_upgrade_critical_subroutine,
+        "recycler": history.bot2_upgrade_energy_recycler,
+        "emp": history.bot2_upgrade_emp_shield,
+    }
+    stats1_display = apply_upgrade_arena_effects(stats1, upgrades1)
+    stats2_display = apply_upgrade_arena_effects(stats2, upgrades2)
+    stats1_display["weapon_atk"] = stats1["weapon_atk"]
+    stats1_display["weapon_name"] = stats1["weapon_name"]
+    stats1_display["weapon_type"] = stats1["weapon_type"]
+    stats1_display["proc"] = stats1["proc"]
+    stats1_display["upgrades"] = stats1["upgrades"]
+    stats2_display["weapon_atk"] = stats2["weapon_atk"]
+    stats2_display["weapon_name"] = stats2["weapon_name"]
+    stats2_display["weapon_type"] = stats2["weapon_type"]
+    stats2_display["proc"] = stats2["proc"]
+    stats2_display["upgrades"] = stats2["upgrades"]
+
     return render_template(
         "combat_log.html",
         log=log,
         winner=winner,
-        stats1=stats1,
-        stats2=stats2,
+        stats1=stats1_display,
+        stats2=stats2_display,
         history=history,
         is_replay=True
     )
