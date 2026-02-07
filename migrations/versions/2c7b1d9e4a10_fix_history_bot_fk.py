@@ -15,9 +15,13 @@ depends_on = None
 
 
 def upgrade():
-    # Drop any existing FK that points to bot
-    op.execute("ALTER TABLE history DROP CONSTRAINT IF EXISTS history_bot1_id_fkey;")
-    op.execute("ALTER TABLE history DROP CONSTRAINT IF EXISTS history_bot2_id_fkey;")
+    # SQLite doesn't support DROP/ADD CONSTRAINT; skip FK ops there.
+    bind = op.get_bind()
+    is_sqlite = bind.dialect.name == "sqlite"
+    if not is_sqlite:
+        # Drop any existing FK that points to bot
+        op.execute("ALTER TABLE history DROP CONSTRAINT IF EXISTS history_bot1_id_fkey;")
+        op.execute("ALTER TABLE history DROP CONSTRAINT IF EXISTS history_bot2_id_fkey;")
     # Clean up invalid bot references before adding FK
     op.execute(
         """
@@ -35,23 +39,26 @@ def upgrade():
           AND bot2_id NOT IN (SELECT id FROM bots);
         """
     )
-    # Recreate FK to bots table
-    op.execute(
-        """
-        ALTER TABLE history
-        ADD CONSTRAINT history_bot1_id_fkey
-        FOREIGN KEY (bot1_id) REFERENCES bots (id) ON DELETE SET NULL;
-        """
-    )
-    op.execute(
-        """
-        ALTER TABLE history
-        ADD CONSTRAINT history_bot2_id_fkey
-        FOREIGN KEY (bot2_id) REFERENCES bots (id) ON DELETE SET NULL;
-        """
-    )
+    if not is_sqlite:
+        # Recreate FK to bots table
+        op.execute(
+            """
+            ALTER TABLE history
+            ADD CONSTRAINT history_bot1_id_fkey
+            FOREIGN KEY (bot1_id) REFERENCES bots (id) ON DELETE SET NULL;
+            """
+        )
+        op.execute(
+            """
+            ALTER TABLE history
+            ADD CONSTRAINT history_bot2_id_fkey
+            FOREIGN KEY (bot2_id) REFERENCES bots (id) ON DELETE SET NULL;
+            """
+        )
 
 
 def downgrade():
-    op.execute("ALTER TABLE history DROP CONSTRAINT IF EXISTS history_bot1_id_fkey;")
-    op.execute("ALTER TABLE history DROP CONSTRAINT IF EXISTS history_bot2_id_fkey;")
+    bind = op.get_bind()
+    if bind.dialect.name != "sqlite":
+        op.execute("ALTER TABLE history DROP CONSTRAINT IF EXISTS history_bot1_id_fkey;")
+        op.execute("ALTER TABLE history DROP CONSTRAINT IF EXISTS history_bot2_id_fkey;")

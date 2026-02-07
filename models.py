@@ -81,7 +81,7 @@ class Bot(db.Model):
         base = self.atk or 0
         ow = self.equipped_weapon
         if ow and ow.weapon:
-            return base + (ow.weapon.effective_atk() or 0)
+            return base + (ow.effective_atk() or 0)
         return base
 
     def __repr__(self):
@@ -152,6 +152,7 @@ class WeaponOwnership(db.Model):
 
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     weapon_id = db.Column(db.Integer, db.ForeignKey("weapons.id"), nullable=False)
+    level = db.Column(db.Integer, default=1)
 
     # NULL = unequipped
     bot_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=True)
@@ -163,7 +164,9 @@ class WeaponOwnership(db.Model):
     bot = db.relationship("Bot", backref="equipped_weapon_ownership")
 
     def effective_atk(self):
-        return self.weapon.effective_atk() if self.weapon else 0
+        if not self.weapon:
+            return 0
+        return self.weapon.effective_atk(level=self.level)
 
 
 class Weapon(db.Model):
@@ -177,10 +180,9 @@ class Weapon(db.Model):
     tier = db.Column(db.Integer, default=1)
     description = db.Column(db.String(200), nullable=False)
     price = db.Column(db.Integer, default=0)
-    level = db.Column(db.Integer, default=1)
     max_level = db.Column(db.Integer, default=5)
 
-    def effective_atk(self):
+    def effective_atk(self, level=1):
         tier_stats = {
             1: {"base": 5, "per_level": 1},
             2: {"base": 8, "per_level": 2},
@@ -190,5 +192,5 @@ class Weapon(db.Model):
             6: {"base": 100, "per_level": 20},
         }
         stats = tier_stats.get(self.tier, {"base": 5, "per_level": 1})
-        return stats["base"] + (self.level - 1) * stats["per_level"]
+        return stats["base"] + (level - 1) * stats["per_level"]
 
