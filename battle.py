@@ -74,12 +74,7 @@ class BattleBot:
         weapon_type=None,
         special_effect=None,
         algorithm=None,
-        upgrade_armor_plating=False,
-        upgrade_overclock_unit=False,
-        upgrade_regen_core=False,
-        upgrade_critical_subroutine=False,
-        upgrade_energy_recycler=False,
-        upgrade_emp_shield=False,
+        items=None,
     ):
         self.name = name
         self.hp = hp
@@ -96,13 +91,6 @@ class BattleBot:
         self.weapon_type = weapon_type    # "ranged" or "melee"
         self.special_effect = special_effect
         self.algorithm = algorithm  
-        self.upgrade_armor_plating = upgrade_armor_plating
-        self.upgrade_overclock_unit = upgrade_overclock_unit
-        self.upgrade_regen_core = upgrade_regen_core
-        self.upgrade_critical_subroutine = upgrade_critical_subroutine
-        self.upgrade_energy_recycler = upgrade_energy_recycler
-        self.upgrade_emp_shield = upgrade_emp_shield
-        self.crit_bonus_pct = 5.0 if self.upgrade_critical_subroutine else 0.0
 
         # battle tracking
         self.damage_dealt = 0
@@ -118,8 +106,12 @@ class BattleBot:
         self.energy_drain = 0
         self.emp_shield = False
 
-        #Internal flags for alogorithm-specific behaviors
-        self.adopted_logic_applied = False
+        # apply items if provided
+        if items:
+            apply_items(self, items)
+
+        # Internal flags for algorithm-specific behavior
+        self._adapt_logic_applied = False
 
     def is_alive(self):
         return self.hp > 0 and self.energy > 0
@@ -233,14 +225,14 @@ def apply_items(bot, items):
         if item["id"] == 101:  # Armor Plating
             bot.defense = int(bot.defense * 1.10)
         elif item["id"] == 102:  # Overclock Unit
-            bot.speed = int(bot.speed * 1.10)
+            bot.clk = int(bot.clk * 1.10)
             bot.energy_drain += 5
         elif item["id"] == 103:  # Regen Core
-            bot.regen += int(bot.hp * (item["value"]/100))  # 5% regen
+            bot.regen += int(bot.hp * 0.05)  # 5% regen
         elif item["id"] == 104:  # Critical Subroutine
-            bot.luck += item["value"]  # +5% crit chance
+            bot.luck += 5  # +5% crit chance
         elif item["id"] == 105:  # Energy Recycler
-            bot.energy_gain += item["value"]
+            bot.energy_gain += 10
         elif item["id"] == 106:  # EMP Shield
             bot.emp_shield = True
 
@@ -329,7 +321,7 @@ def calculate_damage(attacker, defender, log, rng, arena="neutral"):
 
     # Critical hit check — defender LOGIC reduces incoming crit chance
     # Effective Crit Chance = BaseCrit × (100 / (100 + Defender LOGIC))
-    base_crit_pct = float(attacker.luck or 0) + float(getattr(attacker, "crit_bonus_pct", 0.0))
+    base_crit_pct = float(attacker.luck or 0)
     defender_logic = float(defender.logic or 0)
     effective_crit_pct = base_crit_pct * (100.0 / (100.0 + defender_logic))
     is_crit = rng.random() < (effective_crit_pct / 100.0)
@@ -360,21 +352,6 @@ def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
         bot.energy = max(bot.energy, 0)
     round_had_damage = False
     # Track rounds alive
-
-    def apply_round_upgrades(bot):
-        if bot.upgrade_overclock_unit and not bot.upgrade_emp_shield:
-            bot.energy = max((bot.energy or 0) - 5, 0)
-
-        if bot.upgrade_energy_recycler:
-            bot.energy = min((bot.energy or 0) + 10, bot.max_energy)
-
-        if bot.upgrade_regen_core:
-            heal = int((bot.max_hp or 0) * 0.05)
-            if heal > 0:
-                bot.hp = min((bot.hp or 0) + heal, bot.max_hp)
-
-    apply_round_upgrades(botA)
-    apply_round_upgrades(botB)
 
     # CHAOS-RND: per-turn random buffs/debuffs
     def apply_chaos(bot):
@@ -466,15 +443,6 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
     # DRAW rule: draw when both bots don’t land any hits for 10 turns in a row
     NO_HIT_TURN_LIMIT = 10
     no_hit_turns = 0
-
-    def apply_prebattle_upgrades(bot):
-        if bot.upgrade_armor_plating:
-            bot.defense = int(bot.defense * 1.10)
-        if bot.upgrade_overclock_unit:
-            bot.clk = int(bot.clk * 1.10)
-
-    apply_prebattle_upgrades(botA)
-    apply_prebattle_upgrades(botB)
 
     # Apply arena mods ONCE
     # Apply arena mods ONCE 
