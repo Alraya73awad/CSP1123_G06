@@ -231,17 +231,6 @@ def calculate_damage(attacker, defender, log, rng, arena="neutral"):
     if attacker.weapon_type == "ranged":
         base_proc *= rng.uniform(0.85, 1.15)
 
-    # Critical hit check — defender LOGIC reduces incoming crit chance
-    # Effective Crit Chance = BaseCrit × (100 / (100 + Defender LOGIC))
-    base_crit_pct = float(attacker.luck or 0) + float(getattr(attacker, "crit_bonus_pct", 0.0))
-    defender_logic = float(defender.logic or 0)
-    effective_crit_pct = base_crit_pct * (100.0 / (100.0 + defender_logic))
-    is_crit = rng.random() < (effective_crit_pct / 100.0)
-    if is_crit:
-        attacker.critical_hits += 1
-        log_line(log, "crit", f"💥 Critical Hit! {attacker.name} lands a devastating strike!")
-        base_proc *= 2.0
-
     # Dodge check — attacker LOGIC reduces defender's effective dodge (accuracy)
     # Final Dodge = Dodge Chance × (100 / (100 + Attacker LOGIC))
     if defender.clk > attacker.clk:
@@ -253,7 +242,19 @@ def calculate_damage(attacker, defender, log, rng, arena="neutral"):
         if rng.random() < final_dodge:
             defender.dodges += 1
             log_line(log, "dodge", f"🌀 {defender.name} dodged the attack!")
+            log_line(log, "status", f"{defender.name} HP: {defender.hp:.2f}, Energy: {defender.energy:.2f}")
             return 0.0
+
+    # Critical hit check — defender LOGIC reduces incoming crit chance
+    # Effective Crit Chance = BaseCrit × (100 / (100 + Defender LOGIC))
+    base_crit_pct = float(attacker.luck or 0) + float(getattr(attacker, "crit_bonus_pct", 0.0))
+    defender_logic = float(defender.logic or 0)
+    effective_crit_pct = base_crit_pct * (100.0 / (100.0 + defender_logic))
+    is_crit = rng.random() < (effective_crit_pct / 100.0)
+    if is_crit:
+        attacker.critical_hits += 1
+        log_line(log, "crit", f"💥 Critical Hit! {attacker.name} lands a devastating strike!")
+        base_proc *= 2.0
 
     # Track damage dealt
     attacker.damage_dealt += float(base_proc)
@@ -340,6 +341,11 @@ def battle_round(botA, botB, log, rng, arena="neutral", round_num=1):
 
         if attacker.extra_attacks > 0 and defender.is_alive():
             attacker.extra_attacks -= 1
+            attacker.energy -= 10
+            attacker.energy = max(attacker.energy, 0)
+            if not attacker.is_alive():
+                log_line(log, "energy", f"{attacker.name} has been defeated (out of energy)!")
+                return {"winner": defender.name, "damage": round_had_damage}
             extra_dmg = calculate_damage(attacker, defender, log, rng, arena=arena)
             if extra_dmg > 0:
                 round_had_damage = True
