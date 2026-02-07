@@ -79,18 +79,25 @@
 
 {% if enhanced_bots %}
     <div class="bot-list hologram-grid">
-    {% for item in enhanced_bots %}
-        {% set bot = item.bot %}
-        {% set final = item.final_stats %}
+{% for item in enhanced_bots %}
+    {% set bot = item.bot %}
+    {% set final = item.final_stats %}
 
+    <a href="{{ url_for('edit_bot', bot_id=bot.id) }}" class="bot-card-link">
         <div class="bot-card holo-card">
             <div class="holo-glow"></div>
             <h3>{{ bot.name }} ({{ bot.algorithm }})</h3>
             <p>BOT LVL: {{ bot.level }} | BOT XP: {{ bot.xp or 0 }} </p>
-            <p>STAT PTS: {{ item.bot.stat_points or 0 }}</p>
-            <p>INT: {{ final.int }} | PROC: {{ final.proc }} | DEF: {{ final.def }} | CLK: {{ final.clk }} | LOGIC: {{ final.logic }} | ENT: {{ final.luck }} | PWR: {{ final.pwr }}</p>
+            <p>STAT PTS: {{ bot.stat_points or 0 }}</p>
+            <p>
+                INT: {{ final.int }} | PROC: {{ final.proc }} | DEF: {{ final.def }} |
+                CLK: {{ final.clk }} | LOGIC: {{ final.logic }} | ENT: {{ final.luck }} |
+                PWR: {{ final.pwr }}
+            </p>
         </div>
-        {% endfor %}
+    </a>
+{% endfor %}
+
     </div>
 {% else %}
     <p>No bots found — create your first bot below.</p>
