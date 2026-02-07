@@ -243,6 +243,7 @@ def bot_xp_to_next_level(level):
 
 # manage bot
 @app.route('/manage_bot')
+@login_required
 def manage_bot():
     if 'user_id' not in session:
         flash("Please log in to manage your bots.", "warning")
@@ -401,6 +402,7 @@ def equip_weapon_from_store():
 
 # profile page
 @app.route('/profile')
+@login_required
 def profile():
     user_id = session.get('user_id')
     if not user_id:
@@ -702,6 +704,7 @@ def bot_details(bot_id):
     )
 
 @app.route("/bots")
+@login_required
 def bot_list():
     user_id = session["user_id"]
     bots = Bot.query.filter_by(user_id=user_id).all()
@@ -762,7 +765,7 @@ def combat_log(bot1_id, bot2_id):
         clk=stats1["clk"],
         luck=stats1["luck"],
         logic=stats1["logic"],
-        weapon_atk=weapon1_atk,
+        weapon_atk=0,
         weapon_type=weapon1_ow.weapon.type if weapon1_ow else None,
         algorithm=bot1.algorithm,
     )
@@ -776,7 +779,7 @@ def combat_log(bot1_id, bot2_id):
         clk=stats2["clk"],
         luck=stats2["luck"],
         logic=stats2["logic"],
-        weapon_atk=weapon2_atk,
+        weapon_atk=0,
         weapon_type=weapon2_ow.weapon.type if weapon2_ow else None,
         algorithm=bot2.algorithm,
     )
@@ -1151,7 +1154,7 @@ def view_history(history_id):
         clk=history.bot1_clk,
         luck=history.bot1_luck,
         logic=stats1["logic"],
-        weapon_atk=history.bot1_weapon_atk,
+        weapon_atk=0,
         weapon_type=history.bot1_weapon_type,
         algorithm=history.bot1_algorithm,
     )
@@ -1165,7 +1168,7 @@ def view_history(history_id):
         clk=history.bot2_clk,
         luck=history.bot2_luck,
         logic=stats2["logic"],
-        weapon_atk=history.bot2_weapon_atk,
+        weapon_atk=0,
         weapon_type=history.bot2_weapon_type,
         algorithm=history.bot2_algorithm,
     )
@@ -1190,6 +1193,7 @@ def weapons_shop():
     return render_template("weapons.html", weapons=weapons)
 
 @app.route("/weapon/<int:weapon_id>/level_up", methods=["POST"])
+@login_required
 def level_up_weapon(weapon_id):
     weapon = Weapon.query.get_or_404(weapon_id)
 
@@ -1231,6 +1235,7 @@ def buy_weapon(weapon_id):
     return redirect(url_for("store"))
 
 @app.route('/gear/<int:bot_id>', methods=['GET', 'POST'])
+@login_required
 def gear(bot_id):
     bot = Bot.query.get_or_404(bot_id)
     user_id = bot.user_id 

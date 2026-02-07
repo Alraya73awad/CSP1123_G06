@@ -155,6 +155,9 @@ def use_ability(attacker, defender, log, round_num=1, rng=None):
     if not (attacker.hp < 40 or round_num == 6):
         return
 
+    if rng is None:
+        rng = random.Random()
+
     attacker.ability_used = True
 
     if attacker.special_effect == "Core Meltdown":
@@ -361,7 +364,7 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
         hpA_before = float(botA.hp or 0)
         hpB_before = float(botB.hp or 0)
 
-        winner = battle_round(
+        round_result = battle_round(
             botA,
             botB,
             log,
@@ -370,25 +373,19 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
             round_num=round_num
         )
 
-        if winner:
+        winner = round_result["winner"]
+        round_had_damage = round_result["damage"]
+
+        if winner is not None:
             log_line(log, "battleover", f"Battle Over! Winner: {winner}")
             break
 
-        # Track HP 
-        hpA_after = float(botA.hp or 0)
-        hpB_after = float(botB.hp or 0)
-
-        # Only count REAL damage
-        dmg_to_A = max(0.0, hpA_before - hpA_after)
-        dmg_to_B = max(0.0, hpB_before - hpB_after)
-        damage_this_round = dmg_to_A + dmg_to_B
-
-        if damage_this_round <= 0:
-            no_hit_turns += 2
+        if not round_had_damage:
+            no_hit_turns += 1
             log_line(
                 log,
                 "system",
-                f" No hits landed this round. No-hit turns: {no_hit_turns}/{NO_HIT_TURN_LIMIT}"
+                f"No hits landed this round. No-hit rounds: {no_hit_turns}/{NO_HIT_TURN_LIMIT}"
             )
 
             if no_hit_turns >= NO_HIT_TURN_LIMIT:
@@ -396,7 +393,7 @@ def full_battle(botA, botB, seed=None, arena="neutral"):
                 log_line(
                     log,
                     "battleover",
-                    f" DRAW! No hits landed for {NO_HIT_TURN_LIMIT} turns in a row."
+                    f"DRAW! No hits landed for {NO_HIT_TURN_LIMIT} rounds in a row."
                 )
                 break
         else:
