@@ -59,15 +59,14 @@
 
    <!-- Status Area -->
     <div class="status-area">
+        <input type="hidden" id="user-xp" value="{{ user.xp }}">
+        <input type="hidden" id="xp-to-next" value="{{ xp_to_next }}">
         <p>LEVEL: {{ user.level }}</p>
         <p>Bits Available: {{ tokens }}</p>
         <p>XP Progress:</p>
 
         <div class="xp-bar" style="width: 100%; background: rgba(0,0,0,0.2); height: 25px; border-radius: 6px;">
-            <div style="height: 100%;
-                width: {{ ((user.xp / xp_to_next) * 100) | round(1) if xp_to_next > 0 else 0 }}%;
-                background: #00ffaa;
-                border-radius: 6px;">
+            <div id="xp-fill" style="height: 100%; background: #00ffaa; border-radius: 6px;">
             </div>
         </div>
         <p>{{ user.xp }} / {{ xp_to_next }} XP</p>
@@ -210,6 +209,15 @@ if (botDropdown) {
             input.value = selectedBotId;
         });
     });
+}
+
+// Set XP bar width
+const xpFill = document.getElementById("xp-fill");
+if (xpFill) {
+    const userXp = parseFloat(document.getElementById("user-xp").value);
+    const xpToNext = parseFloat(document.getElementById("xp-to-next").value);
+    const widthPercent = xpToNext > 0 ? ((userXp / xpToNext) * 100).toFixed(1) : 0;
+    xpFill.style.width = widthPercent + "%";
 }
 </script>
 

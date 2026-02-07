@@ -1,12 +1,8 @@
 from faker import Faker
 from werkzeug.security import generate_password_hash
-import random
-
-from app import app
 from extensions import db
-from models import User, Bot, Weapon, WeaponOwnership
-from constants import algorithms, XP_TABLE
-from seed_weapons import seed_weapons
+from models import Admin
+from app import app
 
 fake = Faker()
 

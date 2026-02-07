@@ -153,65 +153,6 @@ document.addEventListener('click', function() {
 
 {% block scripts %}{% endblock %}
 
-{% if current_user %}
-<!-- settings modal-->
-<div class="modal fade" id="settingsModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content neon-panel">
-
-      <!-- SETTINGS FORM -->
-      <form method="POST" action="{{ url_for('update_settings') }}">
-        <div class="modal-header">
-          <h5 class="modal-title">Account Settings</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-
-        <div class="modal-body">
-          <div class="mb-3">
-            <label>Username</label>
-            <input type="text" class="form-control" name="username"
-                   value="{{ current_user.username if current_user else '' }}">
-          </div>
-
-          <div class="mb-3">
-            <label>Email</label>
-            <input type="text" class="form-control" name="email"
-                   value="{{ current_user.email if current_user else '' }}">
-          </div>
-
-          <div class="mb-3">
-            <label>New Password</label>
-            <input type="password" class="form-control" name="password">
-          </div>
-        </div>
-
-        <div class="modal-footer d-flex flex-column gap-2">
-          <button type="submit" class="btn btn-primary w-100">
-            Update Settings
-          </button>
-
-          <button type="button" class="btn btn-secondary w-100"
-                  data-bs-dismiss="modal">
-            Cancel
-          </button>
-        </div>
-      </form>
-
-      <!-- LOGOUT BUTTON -->
-      <div class="px-3 pb-3">
-        <a href="{{ url_for('logout') }}"
-           class="btn btn-outline-danger w-100 mt-2 neon-btn"
-           onclick="return confirm('Are you sure you want to log out?');">
-          Log Out
-        </a>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-{% endif %}
-
 
 </body>
 </html>
