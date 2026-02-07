@@ -165,19 +165,85 @@
         </table>
 
     <div>
-        <div class="combat-log-output" style="
+        <div class="combat-log-output" id="combat-log-output" style="
             max-height: 70vh;
             overflow-y: auto;
             background: black;
             padding: 15px;
             border-radius: 6px;
             border: 1px solid #ddd;
-        ">
-            {% for type, line in log %}
-                <span class="log-text {{type}}">{{ line }}</span>
-            {% endfor %}
+        "></div>
+
+        <div class="mt-3 d-flex gap-2">
+            <button id="skip-log" class="btn btn-outline-secondary" type="button">Skip to End</button>
+            <small id="log-progress" class="text-muted align-self-center"></small>
         </div>
     </div>
+
+    <script type="application/json" id="combat-log-data">
+        {{ log | tojson }}
+    </script>
+
+    <script>
+    (function() {
+        const output = document.getElementById("combat-log-output");
+        const skipBtn = document.getElementById("skip-log");
+        const progress = document.getElementById("log-progress");
+        const dataEl = document.getElementById("combat-log-data");
+        const lines = JSON.parse(dataEl.textContent || "[]");
+
+        const intervalMs = 2000;
+        let index = 0;
+        let timer = null;
+
+        function renderLine(type, text) {
+            const span = document.createElement("span");
+            span.className = "log-text " + type;
+            span.textContent = text;
+            output.appendChild(span);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function updateProgress() {
+            progress.textContent = `Showing ${index} / ${lines.length}`;
+        }
+
+        function step() {
+            if (index >= lines.length) {
+                clearInterval(timer);
+                timer = null;
+                skipBtn.disabled = true;
+                updateProgress();
+                return;
+            }
+            const entry = lines[index];
+            renderLine(entry[0], entry[1]);
+            index += 1;
+            updateProgress();
+        }
+
+        function start() {
+            updateProgress();
+            timer = setInterval(step, intervalMs);
+        }
+
+        skipBtn.addEventListener("click", function() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+            while (index < lines.length) {
+                const entry = lines[index];
+                renderLine(entry[0], entry[1]);
+                index += 1;
+            }
+            updateProgress();
+            skipBtn.disabled = true;
+        });
+
+        start();
+    })();
+    </script>
 
     {% if winner %}
     <div class="alert alert-success mt-3">
